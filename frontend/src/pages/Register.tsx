@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { authApi, userApi } from "../services/api";
 import { useAuthStore } from "../store/authStore";
 
 export default function Register() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { setTokens, setUser } = useAuthStore();
   const [email, setEmail] = useState("");
@@ -23,7 +25,7 @@ export default function Register() {
       setUser(me.data);
       navigate("/");
     } catch (err: any) {
-      setError(err.response?.data?.detail || "Registration failed");
+      setError(err.response?.data?.detail || t("auth.register_failed"));
     } finally {
       setLoading(false);
     }
@@ -33,8 +35,8 @@ export default function Register() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-indigo-100 px-4">
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-primary-600">Create Account</h1>
-          <p className="text-gray-500 mt-1">Start tracking your challenges</p>
+          <h1 className="text-3xl font-bold text-primary-600">{t("auth.app_name")}</h1>
+          <p className="text-gray-500 mt-1">{t("auth.register_subtitle")}</p>
         </div>
 
         {error && (
@@ -46,7 +48,7 @@ export default function Register() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="email"
-            placeholder="Email"
+            placeholder={t("auth.email_placeholder")}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -54,7 +56,7 @@ export default function Register() {
           />
           <input
             type="password"
-            placeholder="Password (min 6 chars)"
+            placeholder={t("auth.password_hint")}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             minLength={6}
@@ -66,14 +68,14 @@ export default function Register() {
             disabled={loading}
             className="w-full py-3 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 disabled:opacity-50 transition-colors"
           >
-            {loading ? "Creating account..." : "Create Account"}
+            {loading ? t("auth.creating") : t("auth.create_account")}
           </button>
         </form>
 
         <p className="text-center text-sm text-gray-500 mt-6">
-          Already have an account?{" "}
+          {t("auth.have_account")}{" "}
           <Link to="/login" className="text-primary-600 font-medium hover:underline">
-            Sign In
+            {t("auth.sign_in_link")}
           </Link>
         </p>
       </div>

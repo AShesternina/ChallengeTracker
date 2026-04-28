@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { reportsApi } from "../services/api";
 
 interface Report {
@@ -16,6 +17,7 @@ interface Report {
 }
 
 export default function ChallengeReport() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
@@ -25,7 +27,7 @@ export default function ChallengeReport() {
     if (!id) return;
     reportsApi.challenge(Number(id))
       .then((r) => setReport(r.data))
-      .catch(() => setError("Failed to load report"))
+      .catch(() => setError(t("challenge_report.failed")))
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -38,32 +40,29 @@ export default function ChallengeReport() {
   return (
     <div className="space-y-4 pb-20">
       <div className="flex items-center gap-3">
-        <Link to="/challenges" className="text-gray-400 hover:text-gray-600">←</Link>
+        <Link to="/challenges" className="text-gray-400 hover:text-gray-600">{t("common.back")}</Link>
         <h2 className="text-xl font-bold text-gray-800 truncate">{report.challenge_title}</h2>
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 p-6">
         <div className="grid grid-cols-2 gap-4">
-          <Stat label="Total tasks" value={report.total_tasks} />
-          <Stat label="Completed" value={report.completed_tasks} color="text-green-600" />
-          <Stat label="Skipped" value={report.skipped_tasks} color="text-gray-400" />
-          <Stat label="Rate" value={`${rate}%`} color={rate >= 80 ? "text-green-600" : rate >= 50 ? "text-yellow-600" : "text-red-500"} />
-          <Stat label="Current streak" value={`${report.current_streak} 🔥`} />
-          <Stat label="Best streak" value={`${report.longest_streak} 🏆`} />
+          <Stat label={t("challenge_report.total_tasks")} value={report.total_tasks} />
+          <Stat label={t("challenge_report.completed")} value={report.completed_tasks} color="text-green-600" />
+          <Stat label={t("challenge_report.skipped")} value={report.skipped_tasks} color="text-gray-400" />
+          <Stat label={t("challenge_report.rate")} value={`${rate}%`} color={rate >= 80 ? "text-green-600" : rate >= 50 ? "text-yellow-600" : "text-red-500"} />
+          <Stat label={t("challenge_report.current_streak")} value={`${report.current_streak} 🔥`} />
+          <Stat label={t("challenge_report.best_streak")} value={`${report.longest_streak} 🏆`} />
         </div>
       </div>
 
       <div className="bg-white rounded-xl border p-4">
-        <p className="text-sm text-gray-500 mb-1">Period</p>
-        <p className="font-medium text-gray-800">
-          {report.start_date} → {report.end_date}
-        </p>
+        <p className="text-sm text-gray-500 mb-1">{t("challenge_report.period")}</p>
+        <p className="font-medium text-gray-800">{report.start_date} → {report.end_date}</p>
       </div>
 
-      {/* Progress bar */}
       <div className="bg-white rounded-xl border p-4">
         <div className="flex justify-between text-sm text-gray-600 mb-2">
-          <span>Completion</span>
+          <span>{t("challenge_report.completion")}</span>
           <span className="font-semibold">{rate}%</span>
         </div>
         <div className="h-3 bg-gray-100 rounded-full overflow-hidden">

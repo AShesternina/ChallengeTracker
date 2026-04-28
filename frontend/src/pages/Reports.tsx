@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
+import { ru as ruLocale, enUS } from "date-fns/locale";
+import { useTranslation } from "react-i18next";
 import { reportsApi } from "../services/api";
 
 interface DayStats {
@@ -19,6 +21,8 @@ interface MonthlyReport {
 }
 
 export default function Reports() {
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language === "ru" ? ruLocale : enUS;
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -46,21 +50,16 @@ export default function Reports() {
     else setMonth(m => m + 1);
   };
 
-  const monthName = format(new Date(year, month - 1), "MMMM yyyy");
+  const monthName = format(new Date(year, month - 1), "LLLL yyyy", { locale: dateLocale });
 
   return (
     <div className="space-y-4 pb-20">
-      <h2 className="text-2xl font-bold text-gray-800">Reports</h2>
+      <h2 className="text-2xl font-bold text-gray-800">{t("reports.title")}</h2>
 
-      {/* Month nav */}
       <div className="flex items-center justify-between bg-white rounded-xl border border-gray-100 p-3">
-        <button onClick={prevMonth} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-          ←
-        </button>
-        <span className="font-semibold text-gray-700">{monthName}</span>
-        <button onClick={nextMonth} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-          →
-        </button>
+        <button onClick={prevMonth} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">←</button>
+        <span className="font-semibold text-gray-700 capitalize">{monthName}</span>
+        <button onClick={nextMonth} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">→</button>
       </div>
 
       {loading && (
@@ -71,32 +70,29 @@ export default function Reports() {
 
       {report && !loading && (
         <>
-          {/* Summary cards */}
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-white rounded-xl border p-3 text-center">
               <p className="text-lg font-bold text-gray-800">{report.total_tasks}</p>
-              <p className="text-xs text-gray-500">Total tasks</p>
+              <p className="text-xs text-gray-500">{t("reports.total_tasks")}</p>
             </div>
             <div className="bg-white rounded-xl border p-3 text-center">
               <p className="text-lg font-bold text-green-600">{report.total_completed}</p>
-              <p className="text-xs text-gray-500">Completed</p>
+              <p className="text-xs text-gray-500">{t("reports.completed")}</p>
             </div>
             <div className="bg-white rounded-xl border p-3 text-center">
               <p className="text-lg font-bold text-primary-600">
                 {Math.round(report.completion_rate * 100)}%
               </p>
-              <p className="text-xs text-gray-500">Rate</p>
+              <p className="text-xs text-gray-500">{t("reports.rate")}</p>
             </div>
           </div>
 
-          {/* Heatmap-style calendar */}
           <div className="bg-white rounded-xl border border-gray-100 p-4">
-            <h3 className="font-semibold text-gray-700 mb-3">Daily completion</h3>
+            <h3 className="font-semibold text-gray-700 mb-3">{t("reports.daily_completion")}</h3>
             <div className="grid grid-cols-7 gap-1">
               {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
                 <div key={i} className="text-center text-xs text-gray-400 pb-1">{d}</div>
               ))}
-              {/* Offset for first day of month */}
               {Array.from({ length: (new Date(year, month - 1, 1).getDay() + 6) % 7 }).map((_, i) => (
                 <div key={`pad-${i}`} />
               ))}
@@ -120,10 +116,10 @@ export default function Reports() {
               })}
             </div>
             <div className="flex gap-3 mt-3 text-xs text-gray-500">
-              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-green-500 inline-block" /> 100%</span>
-              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-green-300 inline-block" /> 50%+</span>
-              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-red-200 inline-block" /> &lt;50%</span>
-              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-gray-100 inline-block" /> No tasks</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-green-500 inline-block" /> {t("reports.legend_100")}</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-green-300 inline-block" /> {t("reports.legend_50")}</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-red-200 inline-block" /> {t("reports.legend_less50")}</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-gray-100 inline-block" /> {t("reports.legend_none")}</span>
             </div>
           </div>
         </>

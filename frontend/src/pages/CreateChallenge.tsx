@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
+import { useTranslation } from "react-i18next";
 import { challengesApi } from "../services/api";
 
 interface Template {
@@ -16,12 +17,12 @@ interface Template {
 type ChallengeType = "single" | "multi" | "all_day";
 
 export default function CreateChallenge() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [step, setStep] = useState<"select" | "configure">("select");
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
 
-  // form state
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [type, setType] = useState<ChallengeType>("single");
@@ -36,13 +37,13 @@ export default function CreateChallenge() {
     challengesApi.templates().then((r) => setTemplates(r.data));
   }, []);
 
-  const applyTemplate = (t: Template) => {
-    setSelectedTemplate(t);
-    setTitle(t.title);
-    setDescription(t.description || "");
-    setType(t.type as ChallengeType);
-    setDuration(t.default_duration_days);
-    setTasksPerDay(t.tasks_per_day);
+  const applyTemplate = (tpl: Template) => {
+    setSelectedTemplate(tpl);
+    setTitle(tpl.title);
+    setDescription(tpl.description || "");
+    setType(tpl.type as ChallengeType);
+    setDuration(tpl.default_duration_days);
+    setTasksPerDay(tpl.tasks_per_day);
     setStep("configure");
   };
 
@@ -63,7 +64,7 @@ export default function CreateChallenge() {
       await challengesApi.start(challenge.id, startDate);
       navigate("/challenges");
     } catch (err: any) {
-      setError(err.response?.data?.detail || "Failed to create challenge");
+      setError(err.response?.data?.detail || t("create_challenge.failed"));
     } finally {
       setLoading(false);
     }
@@ -73,36 +74,31 @@ export default function CreateChallenge() {
     return (
       <div className="space-y-4 pb-20">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">New Challenge</h2>
-          <p className="text-gray-500">Pick a template or start from scratch</p>
+          <h2 className="text-2xl font-bold text-gray-800">{t("create_challenge.title")}</h2>
         </div>
 
         <button
-          onClick={() => {
-            setSelectedTemplate(null);
-            setTitle("");
-            setStep("configure");
-          }}
+          onClick={() => { setSelectedTemplate(null); setTitle(""); setStep("configure"); }}
           className="w-full border-2 border-dashed border-primary-300 rounded-xl p-4 text-primary-600 font-medium hover:bg-primary-50 transition-colors"
         >
-          ✨ Start from scratch
+          {t("create_challenge.from_scratch")}
         </button>
 
-        <h3 className="font-semibold text-gray-700">Templates</h3>
+        <h3 className="font-semibold text-gray-700">{t("create_challenge.templates")}</h3>
         <div className="space-y-3">
-          {templates.map((t) => (
+          {templates.map((tpl) => (
             <button
-              key={t.id}
-              onClick={() => applyTemplate(t)}
+              key={tpl.id}
+              onClick={() => applyTemplate(tpl)}
               className="w-full text-left bg-white border border-gray-200 rounded-xl p-4 hover:border-primary-300 hover:shadow-sm transition-all"
             >
               <div className="flex items-center gap-3">
-                <span className="text-2xl">{t.icon || "🎯"}</span>
+                <span className="text-2xl">{tpl.icon || "🎯"}</span>
                 <div>
-                  <p className="font-semibold text-gray-800">{t.title}</p>
-                  <p className="text-sm text-gray-500">{t.description}</p>
+                  <p className="font-semibold text-gray-800">{tpl.title}</p>
+                  <p className="text-sm text-gray-500">{tpl.description}</p>
                   <p className="text-xs text-gray-400 mt-1">
-                    {t.default_duration_days} days · {t.tasks_per_day}×/day
+                    {tpl.default_duration_days} {t("challenges.days")} · {tpl.tasks_per_day}{t("challenges.per_day")}
                   </p>
                 </div>
               </div>
@@ -117,10 +113,10 @@ export default function CreateChallenge() {
     <div className="space-y-4 pb-20">
       <div className="flex items-center gap-3">
         <button onClick={() => setStep("select")} className="text-gray-400 hover:text-gray-600">
-          ←
+          {t("common.back")}
         </button>
         <h2 className="text-2xl font-bold text-gray-800">
-          {selectedTemplate ? "Customize" : "New Challenge"}
+          {selectedTemplate ? t("create_challenge.customize") : t("create_challenge.title")}
         </h2>
       </div>
 
@@ -132,19 +128,19 @@ export default function CreateChallenge() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t("create_challenge.title_label")}</label>
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
-            placeholder="e.g. Morning Workout"
+            placeholder={t("create_challenge.title_placeholder")}
             className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t("create_challenge.description_label")}</label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -154,20 +150,20 @@ export default function CreateChallenge() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t("create_challenge.type_label")}</label>
           <div className="grid grid-cols-3 gap-2">
-            {(["single", "multi", "all_day"] as const).map((t) => (
+            {(["single", "multi", "all_day"] as const).map((tp) => (
               <button
-                key={t}
+                key={tp}
                 type="button"
-                onClick={() => setType(t)}
+                onClick={() => setType(tp)}
                 className={`py-2 text-sm rounded-lg border transition-colors ${
-                  type === t
+                  type === tp
                     ? "border-primary-500 bg-primary-50 text-primary-700 font-medium"
                     : "border-gray-200 text-gray-600 hover:border-gray-300"
                 }`}
               >
-                {t === "single" ? "⏰ Single" : t === "multi" ? "🔁 Multi" : "🌅 All Day"}
+                {t(`create_challenge.type_${tp}` as any)}
               </button>
             ))}
           </div>
@@ -175,7 +171,7 @@ export default function CreateChallenge() {
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Duration (days)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t("create_challenge.duration_label")}</label>
             <input
               type="number"
               min={1}
@@ -187,7 +183,7 @@ export default function CreateChallenge() {
           </div>
           {type !== "all_day" && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tasks/day</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("create_challenge.tasks_per_day_label")}</label>
               <input
                 type="number"
                 min={1}
@@ -210,13 +206,13 @@ export default function CreateChallenge() {
 
         {type !== "all_day" && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Scheduled times</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t("create_challenge.times_label")}</label>
             <div className="space-y-2">
-              {taskTimes.slice(0, tasksPerDay).map((t, i) => (
+              {taskTimes.slice(0, tasksPerDay).map((tm, i) => (
                 <input
                   key={i}
                   type="time"
-                  value={t}
+                  value={tm}
                   onChange={(e) =>
                     setTaskTimes((prev) => {
                       const copy = [...prev];
@@ -232,7 +228,7 @@ export default function CreateChallenge() {
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Start date</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t("create_challenge.start_date_label")}</label>
           <input
             type="date"
             value={startDate}
@@ -246,7 +242,7 @@ export default function CreateChallenge() {
           disabled={loading}
           className="w-full py-3 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 disabled:opacity-50 transition-colors"
         >
-          {loading ? "Creating..." : "🚀 Start Challenge"}
+          {loading ? t("create_challenge.submitting") : t("create_challenge.submit")}
         </button>
       </form>
     </div>

@@ -1,15 +1,20 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
+import { ru as ruLocale, enUS } from "date-fns/locale";
+import { useTranslation } from "react-i18next";
 import { dailyApi, challengesApi } from "../services/api";
 import { useAuthStore } from "../store/authStore";
 import { useTaskStore } from "../store/taskStore";
 import ProgressRing from "../components/ProgressRing";
 
 export default function Dashboard() {
+  const { t, i18n } = useTranslation();
   const { user } = useAuthStore();
   const { summary, setSummary, setLoading } = useTaskStore();
   const [challengeCount, setChallengeCount] = useState(0);
+
+  const dateLocale = i18n.language === "ru" ? ruLocale : enUS;
 
   useEffect(() => {
     setLoading(true);
@@ -28,16 +33,19 @@ export default function Dashboard() {
       ? Math.round((summary.completed / summary.total) * 100)
       : 0;
 
+  const userName = user?.email?.split("@")[0] || "there";
+
   return (
     <div className="space-y-6 pb-20">
       <div>
         <h2 className="text-2xl font-bold text-gray-800">
-          Hey, {user?.email?.split("@")[0] || "there"}! 👋
+          {t("dashboard.greeting", { name: userName })}
         </h2>
-        <p className="text-gray-500">{format(new Date(), "EEEE, d MMMM yyyy")}</p>
+        <p className="text-gray-500">
+          {format(new Date(), "EEEE, d MMMM yyyy", { locale: dateLocale })}
+        </p>
       </div>
 
-      {/* Today's progress */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-center gap-6">
         <div className="relative">
           <ProgressRing value={completionRate} size={90} />
@@ -46,44 +54,41 @@ export default function Dashboard() {
           </span>
         </div>
         <div>
-          <p className="text-gray-500 text-sm">Today's progress</p>
+          <p className="text-gray-500 text-sm">{t("dashboard.today_progress")}</p>
           <p className="text-2xl font-bold text-gray-800">
             {summary?.completed ?? 0}/{summary?.total ?? 0}
           </p>
-          <p className="text-sm text-gray-500">{summary?.pending ?? 0} remaining</p>
+          <p className="text-sm text-gray-500">{summary?.pending ?? 0} {t("dashboard.remaining")}</p>
         </div>
       </div>
 
-      {/* Quick stats */}
       <div className="grid grid-cols-3 gap-3">
-        <StatCard label="Active" value={challengeCount} icon="🎯" />
-        <StatCard label="Completed" value={summary?.completed ?? 0} icon="✅" />
-        <StatCard label="Skipped" value={summary?.skipped ?? 0} icon="⏭️" />
+        <StatCard label={t("dashboard.active")} value={challengeCount} icon="🎯" />
+        <StatCard label={t("dashboard.completed")} value={summary?.completed ?? 0} icon="✅" />
+        <StatCard label={t("dashboard.skipped")} value={summary?.skipped ?? 0} icon="⏭️" />
       </div>
 
-      {/* Quick actions */}
       <div className="space-y-3">
-        <h3 className="font-semibold text-gray-700">Quick Actions</h3>
+        <h3 className="font-semibold text-gray-700">{t("dashboard.quick_actions")}</h3>
         <div className="grid grid-cols-2 gap-3">
           <Link
             to="/daily"
             className="bg-primary-600 text-white rounded-xl p-4 font-medium text-center hover:bg-primary-700 transition-colors"
           >
-            📋 Today's Tasks
+            {t("dashboard.today_tasks")}
           </Link>
           <Link
             to="/challenges/new"
             className="bg-white border-2 border-primary-200 text-primary-600 rounded-xl p-4 font-medium text-center hover:bg-primary-50 transition-colors"
           >
-            ➕ New Challenge
+            {t("dashboard.new_challenge")}
           </Link>
         </div>
       </div>
 
-      {/* Recent tasks preview */}
       {summary && summary.tasks.length > 0 && (
         <div>
-          <h3 className="font-semibold text-gray-700 mb-3">Tasks Today</h3>
+          <h3 className="font-semibold text-gray-700 mb-3">{t("dashboard.tasks_today")}</h3>
           <div className="space-y-2">
             {summary.tasks.slice(0, 3).map((task) => (
               <div
@@ -111,7 +116,7 @@ export default function Dashboard() {
             ))}
             {summary.tasks.length > 3 && (
               <Link to="/daily" className="block text-center text-sm text-primary-600 hover:underline pt-1">
-                View all {summary.tasks.length} tasks →
+                {t("dashboard.view_all", { count: summary.tasks.length })}
               </Link>
             )}
           </div>

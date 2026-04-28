@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { DailyTask } from "../store/taskStore";
 
 interface Props {
@@ -14,6 +15,7 @@ const statusColors = {
 };
 
 export default function TaskCard({ task, onComplete, onSkip, loading }: Props) {
+  const { t } = useTranslation();
   const isPending = task.status === "pending";
 
   return (
@@ -34,7 +36,7 @@ export default function TaskCard({ task, onComplete, onSkip, loading }: Props) {
             <span className="text-green-600 font-bold text-lg">✓</span>
           )}
           {task.status === "skipped" && (
-            <span className="text-gray-400 text-sm">skipped</span>
+            <span className="text-gray-400 text-sm">{t("common.skip").toLowerCase()}</span>
           )}
           {isPending && (
             <>
@@ -43,14 +45,14 @@ export default function TaskCard({ task, onComplete, onSkip, loading }: Props) {
                 disabled={loading}
                 className="px-3 py-1.5 text-xs text-gray-500 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 transition-colors"
               >
-                Skip
+                {t("common.skip")}
               </button>
               <button
                 onClick={() => onComplete(task.id)}
                 disabled={loading}
                 className="px-3 py-1.5 text-xs text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50 transition-colors font-medium"
               >
-                Done
+                {t("common.done")}
               </button>
             </>
           )}

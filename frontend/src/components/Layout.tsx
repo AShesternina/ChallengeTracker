@@ -1,14 +1,17 @@
 import { NavLink, Outlet } from "react-router-dom";
-
-const nav = [
-  { to: "/", label: "Dashboard", icon: "🏠" },
-  { to: "/daily", label: "Today", icon: "📋" },
-  { to: "/challenges", label: "Challenges", icon: "🎯" },
-  { to: "/reports", label: "Reports", icon: "📊" },
-  { to: "/settings", label: "Settings", icon: "⚙️" },
-];
+import { useTranslation } from "react-i18next";
 
 export default function Layout() {
+  const { t } = useTranslation();
+
+  const nav = [
+    { to: "/", label: t("nav.dashboard"), icon: "🏠" },
+    { to: "/daily", label: t("nav.today"), icon: "📋" },
+    { to: "/challenges", label: t("nav.challenges"), icon: "🎯" },
+    { to: "/reports", label: t("nav.reports"), icon: "📊" },
+    { to: "/settings", label: t("nav.settings"), icon: "⚙️" },
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <header className="bg-primary-600 text-white px-4 py-3 shadow-md">
