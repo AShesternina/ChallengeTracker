@@ -42,4 +42,8 @@ export default defineConfig({
       },
     },
   },
+  define: {
+    // makes VITE_API_URL available at build time
+    __APP_VERSION__: JSON.stringify(process.env.npm_package_version),
+  },
 });
