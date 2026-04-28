@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { authApi, userApi } from "../services/api";
 import { useAuthStore } from "../store/authStore";
+import PasswordInput from "../components/PasswordInput";
 
 export default function Register() {
   const { t } = useTranslation();
@@ -54,14 +55,12 @@ export default function Register() {
             required
             className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
-          <input
-            type="password"
+          <PasswordInput
             placeholder={t("auth.password_hint")}
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={setPassword}
             minLength={6}
             required
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
           <button
             type="submit"
