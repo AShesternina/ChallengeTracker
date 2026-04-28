@@ -1,0 +1,95 @@
+services:
+  - type: web
+    name: challengetracker-backend
+    env: docker
+    dockerfilePath: backend/Dockerfile
+    dockerContext: backend
+    startCommand: alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: challengetracker-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: challengetracker-redis
+          type: redis
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: 30
+      - key: REFRESH_TOKEN_EXPIRE_DAYS
+        value: 30
+      - key: APP_ENV
+        value: production
+      - key: VAPID_PRIVATE_KEY
+        value: ""
+      - key: VAPID_PUBLIC_KEY
+        value: ""
+      - key: VAPID_MAILTO
+        value: mailto:a.shesternina@gmail.com
+      - key: SENDGRID_API_KEY
+        value: ""
+      - key: EMAIL_FROM
+        value: noreply@challengetracker.app
+      - key: EMAIL_FROM_NAME
+        value: ChallengeTracker
+      - key: FRONTEND_URL
+        value: https://challengetracker.vercel.app
+
+  - type: worker
+    name: challengetracker-worker
+    env: docker
+    dockerfilePath: backend/Dockerfile
+    dockerContext: backend
+    startCommand: celery -A app.workers.celery_app worker --loglevel=info --concurrency=2
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: challengetracker-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: challengetracker-redis
+          type: redis
+          property: connectionString
+      - key: SECRET_KEY
+        fromService:
+          name: challengetracker-backend
+          type: web
+          envVarKey: SECRET_KEY
+
+  - type: worker
+    name: challengetracker-beat
+    env: docker
+    dockerfilePath: backend/Dockerfile
+    dockerContext: backend
+    startCommand: celery -A app.workers.celery_app beat --loglevel=info
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: challengetracker-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: challengetracker-redis
+          type: redis
+          property: connectionString
+      - key: SECRET_KEY
+        fromService:
+          name: challengetracker-backend
+          type: web
+          envVarKey: SECRET_KEY
+
+  - type: redis
+    name: challengetracker-redis
+    plan: free
+    maxmemoryPolicy: noeviction
+
+databases:
+  - name: challengetracker-db
+    plan: free
