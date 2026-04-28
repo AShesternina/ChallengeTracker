@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+
+# Env
+backend/.env
+*.env.local
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Celery
+backend/celerybeat-schedule
+backend/celerybeat.pid
+
+# Docker volumes
+postgres_data/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
