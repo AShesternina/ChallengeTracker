@@ -84,7 +84,7 @@ export const reportsApi = {
 // --- Notifications ---
 export const notificationsApi = {
   vapidKey: () => api.get("/notifications/vapid-public-key"),
-  subscribe: (subscription: unknown, userAgent: string) =>
+  subscribe: (subscription: Record<string, unknown>, userAgent: string) =>
     api.post("/notifications/subscribe", { ...subscription, user_agent: userAgent }),
   devices: () => api.get("/notifications/devices"),
   unsubscribe: (deviceId: number) => api.delete(`/notifications/devices/${deviceId}`),

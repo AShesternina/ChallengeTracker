@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { userApi, notificationsApi } from "../services/api";
+import { userApi } from "../services/api";
 import { useAuthStore } from "../store/authStore";
 import { subscribeToPush } from "../services/push";
 
