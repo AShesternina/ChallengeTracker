@@ -4,7 +4,7 @@ services:
     env: docker
     dockerfilePath: backend/Dockerfile
     dockerContext: backend
-    startCommand: alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    dockerCommand: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
     healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
@@ -46,7 +46,7 @@ services:
     env: docker
     dockerfilePath: backend/Dockerfile
     dockerContext: backend
-    startCommand: celery -A app.workers.celery_app worker --loglevel=info --concurrency=2
+    dockerCommand: celery -A app.workers.celery_app worker --loglevel=info --concurrency=2
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -62,13 +62,15 @@ services:
           name: challengetracker-backend
           type: web
           envVarKey: SECRET_KEY
+      - key: APP_ENV
+        value: production
 
   - type: worker
     name: challengetracker-beat
     env: docker
     dockerfilePath: backend/Dockerfile
     dockerContext: backend
-    startCommand: celery -A app.workers.celery_app beat --loglevel=info
+    dockerCommand: celery -A app.workers.celery_app beat --loglevel=info
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -84,11 +86,14 @@ services:
           name: challengetracker-backend
           type: web
           envVarKey: SECRET_KEY
+      - key: APP_ENV
+        value: production
 
   - type: redis
     name: challengetracker-redis
     plan: free
     maxmemoryPolicy: noeviction
+    ipAllowList: []
 
 databases:
   - name: challengetracker-db
