@@ -109,6 +109,21 @@ Copy `backend/.env.example` → `backend/.env`. Key variables:
 - `VAPID_PRIVATE_KEY` / `VAPID_PUBLIC_KEY` — leave empty to use mock push (logs to console)
 - `SENDGRID_API_KEY` — leave empty to use mock email (logs to console)
 
+## Running tests
+
+```bash
+# Install test deps and run all 36 tests with coverage (inside running local container)
+docker exec challengetracker-backend-1 bash -c \
+  "pip install -r requirements-test.txt -q && pytest tests/ -v --tb=short --cov=app --cov-report=term-missing"
+
+# Run a single test
+docker exec challengetracker-backend-1 pytest tests/test_auth.py::test_login_success -v
+```
+
+Tests use the **same PostgreSQL database** as the running app. Each test truncates all tables and reseeds `challenge_templates` before running — fully isolated. Run only on the **local Docker stack**, never on production.
+
+Coverage summary (last run): **66% overall** — services and workers have lower coverage; auth/models/schemas are well covered.
+
 ## Known issues / gotchas
 
 - **bcrypt compatibility**: `bcrypt` is pinned to `4.0.1` because `passlib 1.7.4` reads `bcrypt.__about__.__version__` which was removed in bcrypt 4.1+
