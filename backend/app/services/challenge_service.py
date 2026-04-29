@@ -7,7 +7,7 @@ from sqlalchemy.orm import selectinload
 
 from app.models.challenge import Challenge, ChallengeTemplate
 from app.models.challenge_instance import ChallengeInstance, InstanceStatus
-from app.schemas.challenge import ChallengeCreate, StartChallengeRequest
+from app.schemas.challenge import ChallengeCreate, ChallengeInstanceUpdate, StartChallengeRequest
 
 
 async def list_templates(db: AsyncSession) -> list[ChallengeTemplate]:
@@ -67,6 +67,29 @@ async def get_instance(db: AsyncSession, instance_id: int, user_id: int) -> Chal
         .options(selectinload(ChallengeInstance.challenge))
     )
     return result.scalar_one_or_none()
+
+
+async def update_instance(
+    db: AsyncSession, instance_id: int, user_id: int, data: ChallengeInstanceUpdate
+) -> ChallengeInstance:
+    instance = await get_instance(db, instance_id, user_id)
+    if not instance:
+        raise ValueError("Instance not found")
+
+    challenge = instance.challenge
+    if data.title is not None:
+        challenge.title = data.title
+    if data.description is not None:
+        challenge.description = data.description
+    if data.end_date is not None:
+        instance.end_date = data.end_date
+    if data.task_times is not None:
+        challenge.task_times = json.dumps(data.task_times)
+    if data.tasks_per_day is not None:
+        challenge.tasks_per_day = data.tasks_per_day
+
+    await db.flush()
+    return instance
 
 
 async def cancel_instance(db: AsyncSession, instance_id: int, user_id: int) -> ChallengeInstance:

@@ -7,7 +7,6 @@ import { challengesApi } from "../services/api";
 
 interface ChallengeInstance {
   id: number;
-  challenge_id: number;
   challenge: { id: number; title: string; description: string | null; type: string };
   start_date: string;
   end_date: string;
@@ -26,24 +25,10 @@ export default function Challenges() {
   const dateLocale = i18n.language === "ru" ? ruLocale : enUS;
   const [instances, setInstances] = useState<ChallengeInstance[]>([]);
   const [loading, setLoading] = useState(true);
-  const [cancelling, setCancelling] = useState<number | null>(null);
 
   useEffect(() => {
     challengesApi.my().then((r) => setInstances(r.data)).finally(() => setLoading(false));
   }, []);
-
-  const handleCancel = async (id: number) => {
-    if (!confirm(t("common.confirm_cancel"))) return;
-    setCancelling(id);
-    try {
-      await challengesApi.cancel(id);
-      setInstances((prev) =>
-        prev.map((i) => (i.id === id ? { ...i, status: "cancelled" } : i))
-      );
-    } finally {
-      setCancelling(null);
-    }
-  };
 
   const statusLabel = (status: string) =>
     t(`challenges.status_${status}` as any, { defaultValue: status });
@@ -80,16 +65,16 @@ export default function Challenges() {
 
       <div className="space-y-3">
         {instances.map((instance) => (
-          <div key={instance.id} className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+          <Link
+            key={instance.id}
+            to={`/challenges/${instance.id}`}
+            className="block bg-white rounded-xl border border-gray-100 p-4 shadow-sm hover:border-primary-200 hover:shadow-md transition-all"
+          >
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <h3 className="font-semibold text-gray-800 truncate">{instance.challenge.title}</h3>
-                  <span
-                    className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${
-                      statusColorMap[instance.status as keyof typeof statusColorMap] || "bg-gray-100"
-                    }`}
-                  >
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${statusColorMap[instance.status as keyof typeof statusColorMap] || "bg-gray-100"}`}>
                     {statusLabel(instance.status)}
                   </span>
                 </div>
@@ -101,22 +86,9 @@ export default function Challenges() {
                   {format(new Date(instance.end_date), "d MMM yyyy", { locale: dateLocale })}
                 </p>
               </div>
-              <div className="flex flex-col gap-2 shrink-0">
-                <Link to={`/reports/challenge/${instance.id}`} className="text-xs text-primary-600 hover:underline">
-                  {t("challenges.report")}
-                </Link>
-                {instance.status === "active" && (
-                  <button
-                    onClick={() => handleCancel(instance.id)}
-                    disabled={cancelling === instance.id}
-                    className="text-xs text-red-500 hover:underline disabled:opacity-50"
-                  >
-                    {t("challenges.cancel")}
-                  </button>
-                )}
-              </div>
+              <span className="text-gray-400 text-lg shrink-0">›</span>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </div>

@@ -71,6 +71,8 @@ export const challengesApi = {
   start: (challenge_id: number, start_date: string) =>
     api.post("/challenges/start", { challenge_id, start_date }),
   my: () => api.get("/challenges/my"),
+  getInstance: (instanceId: number) => api.get(`/challenges/instances/${instanceId}`),
+  updateInstance: (instanceId: number, data: unknown) => api.patch(`/challenges/instances/${instanceId}`, data),
   cancel: (instanceId: number) => api.delete(`/challenges/instances/${instanceId}`),
 };
 

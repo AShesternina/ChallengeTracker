@@ -7,6 +7,7 @@ from app.models.user import User
 from app.schemas.challenge import (
     ChallengeCreate,
     ChallengeInstanceOut,
+    ChallengeInstanceUpdate,
     ChallengeOut,
     ChallengeTemplateOut,
     StartChallengeRequest,
@@ -14,9 +15,11 @@ from app.schemas.challenge import (
 from app.services.challenge_service import (
     cancel_instance,
     create_challenge,
+    get_instance,
     get_user_challenges,
     list_templates,
     start_challenge,
+    update_instance,
 )
 
 router = APIRouter(prefix="/challenges", tags=["challenges"])
@@ -54,6 +57,31 @@ async def my_challenges(
     user: User = Depends(get_current_user),
 ):
     return await get_user_challenges(db, user.id)
+
+
+@router.get("/instances/{instance_id}", response_model=ChallengeInstanceOut)
+async def get_instance_detail(
+    instance_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    instance = await get_instance(db, instance_id, user.id)
+    if not instance:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Instance not found")
+    return instance
+
+
+@router.patch("/instances/{instance_id}", response_model=ChallengeInstanceOut)
+async def update(
+    instance_id: int,
+    data: ChallengeInstanceUpdate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    try:
+        return await update_instance(db, instance_id, user.id, data)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
 @router.delete("/instances/{instance_id}", status_code=status.HTTP_204_NO_CONTENT)

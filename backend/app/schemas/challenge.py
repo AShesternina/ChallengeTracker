@@ -70,6 +70,14 @@ class StartChallengeRequest(BaseModel):
     start_date: date
 
 
+class ChallengeInstanceUpdate(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    end_date: date | None = None
+    tasks_per_day: int | None = None
+    task_times: list[str] | None = None
+
+
 class ChallengeInstanceOut(BaseModel):
     id: int
     challenge_id: int
