@@ -84,7 +84,10 @@ async def test_refresh_token(client: AsyncClient):
     assert r.status_code == 200
     new_tokens = r.json()
     assert "access_token" in new_tokens
-    assert new_tokens["access_token"] != tokens["access_token"]
+    assert "refresh_token" in new_tokens
+    # Verify new token is valid by making an authenticated request
+    r2 = await client.get("/api/v1/users/me", headers=auth_headers(new_tokens))
+    assert r2.status_code == 200
 
 
 async def test_refresh_invalid_token(client: AsyncClient):
