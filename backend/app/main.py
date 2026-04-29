@@ -26,6 +26,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         settings.FRONTEND_URL,
+        "https://tracker.shura.pro",
         "https://challenge-tracker-three.vercel.app",
         "http://localhost:5173",
         "http://localhost:5174",
