@@ -103,7 +103,7 @@ export default function ChallengeReport() {
         <StreakCard
           label={t("challenge_report.best_streak")}
           value={report.longest_streak}
-          Icon={<TrophyIcon size={18} style={{ color: accent }} />}
+          Icon={<TrophyIcon size={18} className="text-accent" />}
           bg={bg}
         />
       </div>

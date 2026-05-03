@@ -28,12 +28,6 @@ export default function TaskCard({ task, onComplete, onSkip, onUndo, loading, sh
     ? "var(--color-surface2)"
     : "var(--color-surface)";
 
-  const cardBorder = isDone
-    ? "var(--color-success)"
-    : isSkipped
-    ? "var(--color-border)"
-    : accent;
-
   return (
     <div
       className="rounded-lg p-3.5 transition-all duration-200"

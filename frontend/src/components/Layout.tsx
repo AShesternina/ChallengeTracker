@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useThemeStore } from "../store/themeStore";
 import { useAuthStore } from "../store/authStore";
@@ -8,7 +8,7 @@ import {
   TargetIcon, TargetFilledIcon,
   BarChartIcon, BarChartFilledIcon,
   GearIcon, GearFilledIcon,
-  MoonIcon, SunIcon, PlusIcon,
+  MoonIcon, SunIcon,
 } from "./Icons";
 
 const NAV = [
