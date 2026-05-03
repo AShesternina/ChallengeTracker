@@ -44,7 +44,7 @@ export default function ChallengeReport() {
   if (error) return <div className="text-center py-16" style={{ color: "var(--color-danger)" }}>{error}</div>;
   if (!report) return null;
 
-  const { icon, accent, bg } = useCategoryStyle(report.challenge_title, dark);
+  const { icon, bg } = useCategoryStyle(report.challenge_title, dark);
   const rate = Math.round(report.completion_rate * 100);
   const rateColor = rate >= 80 ? "var(--color-success)" : rate >= 50 ? "var(--color-warning)" : "var(--color-danger)";
 
