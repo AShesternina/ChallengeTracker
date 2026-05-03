@@ -1,669 +1,441 @@
-# ChallengeTracker — Design Brief
+# ChallengeTracker — New Design Brief (v2)
 
-> **Self-contained brief for a UI redesign.** Written for an AI designer with no access to the codebase.
-> All screenshots are in `design-brief/screenshots/`.
-
----
-
-## 1. Product Overview
-
-**ChallengeTracker** is a personal habit and challenge tracking PWA where users create multi-week challenges, receive a daily task list generated automatically, mark tasks done or skipped, and review progress through reports.
-
-### Target audience
-Non-technical personal productivity users (25–45). They track fitness, reading, hydration, meditation habits. They expect a mobile-first experience similar to Duolingo or Habitica — simple, motivating, minimal friction.
-
-### Core value proposition
-Unlike generic to-do apps, ChallengeTracker thinks in **days, not challenge lists**: every morning it generates a unified task list across all active challenges. The user sees one clean "today" screen instead of navigating per-challenge.
-
-### 5 main user flows
-
-| # | Flow | Screens |
-|---|------|---------|
-| 1 | **Onboarding** | Register → Dashboard (empty) → New Challenge (templates) → Challenge form → Dashboard (with tasks) |
-| 2 | **Daily check-in** | Dashboard → Today's Tasks → mark Done/Skip per task |
-| 3 | **Create custom challenge** | Challenges list → New Challenge step 1 → step 2 (configure) → Start → back to list |
-| 4 | **Review progress** | Reports (monthly heatmap) → pick challenge → Challenge Report (streaks, completion rate) |
-| 5 | **Manage running challenge** | Challenges list → tap card → Challenge Detail → Edit → save / Cancel challenge |
+> **Redesign spec** based on UI exploration session (May 2026).  
+> Direction: **Focus + Pulse** — dark-capable productivity with emotional category colors.  
+> Prototype reference: `Prototype.html` (interactive, light/dark, mobile + desktop).
 
 ---
 
-## 2. Frontend Tech Stack
+## 1. Design Direction
 
-| Layer | Choice | Version |
-|-------|--------|---------|
-| Framework | React | 18.3 |
-| Language | TypeScript | 5.7 |
-| Build tool | Vite | 6.0 |
-| CSS | **Tailwind CSS** (utility-first, no CSS-in-JS) | 3.4 |
-| UI library | **None** — all components hand-built | — |
-| Icons | **Emoji-based** (no icon library). Single SVG eye-toggle in PasswordInput | — |
-| Fonts | **System font stack**: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif` | — |
-| Charts | **Custom SVG** — `ProgressRing` (circle arc). No charting lib | — |
-| Animations | **CSS transitions only** via Tailwind (`transition-colors`, `transition-all duration-500`) | — |
-| Forms | Controlled React state. No form library (react-hook-form etc.) | — |
-| Routing | React Router v6 | 6.28 |
-| Global state | Zustand | 5.0 |
-| API client | Axios with JWT auto-refresh interceptor | 1.7 |
-| i18n | i18next + react-i18next + LanguageDetector | 24.x / 15.x |
-| PWA | vite-plugin-pwa + Workbox (service worker, offline caching, push handler) | — |
+### Concept: Focus + Pulse
+A hybrid of two directions:
 
----
+- **Focus** (Linear / Arc / Vercel) — clean surfaces, strong typographic hierarchy, no decorative noise, purposeful data density.
+- **Pulse** (Duolingo / Streaks) — category color system, streak mechanic, emotional connection to habits through color-coded progress.
 
-## 3. Screen Map (Sitemap)
-
-```
-/ (root)
-├── /login                  — Email/password sign-in form [PUBLIC]
-├── /register               — Email/password registration [PUBLIC]
-│
-└── [RequireAuth wrapper — redirects to /login if not authenticated]
-    ├── /                   — Dashboard: daily summary + quick actions
-    ├── /daily              — Today's Tasks: full task list with complete/skip actions
-    ├── /challenges         — My Challenges: card list of all instances
-    │   ├── /challenges/new     — Create Challenge: 2-step (template picker → config form)
-    │   └── /challenges/:id     — Challenge Detail: view + inline edit form
-    ├── /reports            — Reports: monthly calendar heatmap
-    │   └── /reports/challenge/:id  — Challenge Report: streaks, completion stats
-    └── /settings           — Settings: profile, language picker, timezone, push toggle, logout
-```
-
-All protected routes share the same **Layout** (top header + bottom tab nav). Auth pages are full-screen standalone.
+### What changed from v1
+| Area | Before | After |
+|------|--------|-------|
+| Brand color | `#4f46e5` cool indigo | `#5b4cf5` warm violet (light) / `#7c6dfa` (dark) |
+| Background | `#f9fafb` cold gray | `#f5f4f2` warm off-white |
+| Nav icons | Emoji (🏠📋🎯📊⚙️) | Stroke/filled SVG — outline inactive, filled active |
+| Task cards | Flat white, no category | Color-coded by challenge category |
+| Daily screen | Flat list | Timeline + grouped views with challenge sections |
+| Dark mode | None | Full dark theme with toggle |
+| Desktop | Centered column | Sidebar (240px) + content area |
+| Greeting | Email prefix | First name only ("Привет, Алекс") |
+| Streak | Not shown | 🔥 + count in dashboard header |
 
 ---
 
-## 4. UI Component Inventory
+## 2. Color System
 
-### Navigation
-| Component | File | Used on | Variants |
-|-----------|------|---------|----------|
-| `Layout` | `components/Layout.tsx` | All protected screens | Fixed header (indigo) + fixed bottom nav (5 tabs) |
-| Bottom Tab Nav | inside `Layout` | All protected | 5 items: Dashboard, Today, Challenges, Reports, Settings. Active = indigo, inactive = gray-500 |
+### Light Theme
 
-### Data display
-| Component | File | Used on | Variants |
-|-----------|------|---------|----------|
-| `ProgressRing` | `components/ProgressRing.tsx` | Dashboard | SVG circle, customizable `size` (default 80px) and `stroke` (default 8px). Track = `#e0e7ff`, progress = `#6366f1` |
-| `TaskCard` | `components/TaskCard.tsx` | Daily Tasks, Dashboard preview | Status variants: `pending` (white border), `completed` (green-50 bg + green-200 border), `skipped` (gray-50, opacity-60) |
-| Monthly heatmap | inside `Reports.tsx` | Reports | 7-col grid of day squares. Colors: `bg-green-500` (100%), `bg-green-300` (≥50%), `bg-red-200` (<50%), `bg-gray-100` (no tasks) |
-| Challenge card | inside `Challenges.tsx` | Challenges list | Clickable `<Link>` card, status badge pill (active=green, paused=yellow, completed=blue, cancelled=gray) |
-| Stat card | inside `Dashboard.tsx` | Dashboard | Mini card: emoji icon + large number + label. 3-column grid |
-| Info row | inside `ChallengeDetail.tsx` | Challenge Detail | Gray-50 rounded box: label (xs, gray-400) + value (sm, gray-800) |
+| Token | Value | Usage |
+|-------|-------|-------|
+| `bg` | `#f5f4f2` | Page background (warm off-white) |
+| `surface` | `#ffffff` | Cards, inputs, nav |
+| `surface2` | `#f0eeeb` | Secondary surfaces, stat backgrounds |
+| `border` | `#e8e5e0` | Card borders, dividers |
+| `borderStrong` | `#d4cfc8` | Input borders, button outlines |
+| `textPrimary` | `#18181b` | Headings, card titles |
+| `textSecondary` | `#71717a` | Labels, descriptions |
+| `textTertiary` | `#a1a1aa` | Timestamps, hints, placeholders |
+| `accent` | `#5b4cf5` | Primary brand — buttons, progress, active nav |
+| `accentHover` | `#4a3de0` | Button hover state |
+| `accentSoft` | `#ede9fe` | Accent backgrounds, chips, hero card bg |
+| `accentMid` | `#c4b5fd` | Outline button borders |
+| `green` | `#16a34a` | Completed status, success |
+| `greenBg` | `#dcfce7` | Completed task card background |
+| `red` | `#dc2626` | Skipped/danger, error text |
+| `redBg` | `#fee2e2` | Skipped task background |
+| `yellow` | `#ca8a04` | Paused status |
+| `yellowBg` | `#fef9c3` | Paused badge background |
+| `blue` | `#2563eb` | Completed challenge status |
+| `blueBg` | `#dbeafe` | Completed challenge badge background |
+| `navBg` | `#ffffff` | Bottom nav / sidebar background |
+| `headerBg` | `#ffffff` | Sticky header background (with blur) |
 
-### Input / Forms
-| Component | File | Used on | Variants |
-|-----------|------|---------|----------|
-| `PasswordInput` | `components/PasswordInput.tsx` | Login, Register | Text input + absolute eye-toggle button (SVG, gray-400 → gray-600 hover) |
-| Text input | inline in pages | All forms | `px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500` |
-| Textarea | inline | CreateChallenge, ChallengeDetail edit | `resize-none`, 2 rows |
-| Select | inline | Settings (timezone) | Native `<select>`, same rounded-xl style |
-| Time input | inline | CreateChallenge, ChallengeDetail edit | `<input type="time">` |
-| Date input | inline | CreateChallenge, ChallengeDetail edit | `<input type="date">` |
-| Number input | inline | CreateChallenge | min/max constraints |
-| Toggle switch | inside Settings | Settings (push notifications) | Custom CSS toggle: `h-6 w-11` pill, `bg-primary-600` when on |
-| Language picker | inside Settings | Settings | 2-button segmented control (🇷🇺 / 🇬🇧), border-2 highlight for active |
+### Dark Theme
 
-### Actions / Buttons
-| Pattern | Classes | States |
-|---------|---------|--------|
-| Primary CTA | `bg-primary-600 text-white font-semibold rounded-xl py-3` | hover: `bg-primary-700`, disabled: `opacity-50` |
-| Secondary / outline | `bg-white border-2 border-primary-200 text-primary-600 rounded-xl` | hover: `bg-primary-50` |
-| Danger / destructive | `border-2 border-red-200 text-red-600 rounded-xl` | hover: `bg-red-50` |
-| Tab button (auth) | `bg-white shadow text-primary-600` (active) / `text-gray-500` (inactive) | inside `bg-gray-100 p-1 rounded-lg` container |
-| Small action | `px-3 py-1.5 text-xs border border-gray-300 rounded-lg` | Skip/Done inside TaskCard |
+| Token | Value | Usage |
+|-------|-------|-------|
+| `bg` | `#0f0f13` | Page background |
+| `surface` | `#18181f` | Cards, inputs |
+| `surface2` | `#222229` | Secondary surfaces |
+| `border` | `rgba(255,255,255,0.08)` | Subtle borders |
+| `borderStrong` | `rgba(255,255,255,0.14)` | Visible borders |
+| `textPrimary` | `#f4f4f5` | Primary text |
+| `textSecondary` | `#a1a1aa` | Secondary text |
+| `textTertiary` | `#52525b` | Disabled/hint text |
+| `accent` | `#7c6dfa` | Brand accent (lighter for dark bg) |
+| `accentSoft` | `rgba(124,109,250,0.15)` | Soft accent fill |
+| `green` | `#4ade80` | Success |
+| `greenBg` | `rgba(74,222,128,0.12)` | Success fill |
+| `red` | `#f87171` | Danger |
+| `redBg` | `rgba(248,113,113,0.12)` | Danger fill |
+| `navBg` | `rgba(15,15,19,0.92)` | Nav with blur |
+| `headerBg` | `rgba(15,15,19,0.92)` | Header with blur |
 
-### Feedback / States
-| Pattern | Implementation |
-|---------|---------------|
-| Loading spinner | `animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600` centered in flex container |
-| Error message | `bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3` |
-| Empty state | Emoji (5xl) + heading (gray-600) + hint text (sm, primary-600 link) |
-| Save confirmation | Button text changes to "✓ Saved!" for 2s |
-| Progress bar | `h-2 bg-gray-100 rounded-full` track + `bg-primary-600 rounded-full transition-all duration-500` fill |
+### Category Colors
+
+Each challenge type has a semantic color used for: card border accent, icon background, progress bar, category badge.
+
+| Category | Light accent | Light bg | Dark accent | Dark bg |
+|----------|-------------|----------|-------------|---------|
+| workout (💪) | `#f97316` | `#fff7ed` | `#fb923c` | `rgba(251,146,60,0.12)` |
+| water (💧) | `#0ea5e9` | `#f0f9ff` | `#38bdf8` | `rgba(56,189,248,0.12)` |
+| reading (📚) | `#16a34a` | `#f0fdf4` | `#4ade80` | `rgba(74,222,128,0.12)` |
+| meditation (🧘) | `#8b5cf6` | `#f5f3ff` | `#a78bfa` | `rgba(167,139,250,0.12)` |
+| nosugar (🚫) | `#71717a` | `#f4f4f5` | `#a1a1aa` | `rgba(161,161,170,0.12)` |
 
 ---
 
-## 5. Current Design System
+## 3. Typography
 
-### Colors
+**Font family**: `-apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif`  
+No web fonts loaded — system stack only.
 
-| Token | Hex | Usage |
-|-------|-----|-------|
-| `primary-50` | `#eef2ff` | Auth page gradient start, progress ring focus |
-| `primary-100` | `#e0e7ff` | ProgressRing track color |
-| `primary-500` | `#6366f1` | ProgressRing arc, active nav links, focus rings |
-| `primary-600` | `#4f46e5` | **Main brand color** — header bg, primary buttons, active nav text |
-| `primary-700` | `#4338ca` | Button hover state |
-| `gray-50` | `#f9fafb` | Page background, skipped task bg, info row bg |
-| `gray-100` | `#f3f4f6` | Heatmap empty, tab switcher bg, progress track |
-| `gray-200` | `#e5e7eb` | Borders (light), task card dividers |
-| `gray-300` | `#d1d5db` | Input borders, skip button border |
-| `gray-400` | `#9ca3af` | Placeholder text, secondary icons, timestamps |
-| `gray-500` | `#6b7280` | Inactive nav labels, secondary text |
-| `gray-600` | `#4b5563` | Body text, form labels |
-| `gray-700` | `#374151` | — |
-| `gray-800` | `#1f2937` | Primary text, headings, card titles |
-| `green-50` | `#f0fdf4` | Completed task card bg |
-| `green-100` | `#dcfce7` | Completed task badge bg |
-| `green-200` | `#bbf7d0` | Completed task card border |
-| `green-300` | `#86efac` | Heatmap ≥50% days |
-| `green-500` | `#22c55e` | Heatmap 100% days |
-| `green-600` | `#16a34a` | Completed task ✓ icon, badge text |
-| `red-200` | `#fecaca` | Heatmap <50% days, danger button border |
-| `red-500` | `#ef4444` | Error text (challenge report bad rate) |
-| `red-600` | `#dc2626` | Danger button text |
-| `yellow-100` | `#fef9c3` | Paused status badge bg |
-| `yellow-600` | `#ca8a04` | Paused status text, medium completion rate |
-| `blue-100` | `#dbeafe` | Completed challenge status badge |
-| `blue-700` | `#1d4ed8` | Completed challenge status text |
-| `indigo-100` | `#e0e7ff` | Auth gradient end (shares with primary-100) |
+| Element | Size | Weight | Color token | Notes |
+|---------|------|--------|-------------|-------|
+| App name (header) | 15px | 800 | `accent` | Letter-spacing: -0.3px |
+| Page title (h1) | 22px | 800 | `textPrimary` | Letter-spacing: -0.5px |
+| Section header | 13px | 700 | `textSecondary` | Uppercase, letter-spacing: 0.8px |
+| Card title | 15px | 700–800 | `textPrimary` | |
+| Body / label | 14px | 500–600 | `textPrimary` | |
+| Secondary text | 13px | 400–500 | `textSecondary` | |
+| Caption / hint | 11–12px | 500–600 | `textTertiary` | |
+| Large stat number | 22–36px | 800–900 | `textPrimary` | Letter-spacing: -0.8px to -1.5px |
+| Progress % | 13px | 700 | `accent` | |
+| Button text | 13–14px | 700 | depends on variant | |
+| Badge text | 10–11px | 700 | depends on variant | |
+| Time label | 11px | 600–800 | `accent` or `textTertiary` | |
 
-**No dark mode.** Light-only.
+---
 
-### Typography
+## 4. Spacing & Geometry
 
-| Element | Classes | Computed |
-|---------|---------|----------|
-| Page h1/h2 | `text-2xl font-bold text-gray-800` | 24px, 700 |
-| Section h3 | `font-semibold text-gray-700` | 16px, 600 |
-| Card title | `font-semibold text-gray-800` | 16px, 600 |
-| App name (auth) | `text-3xl font-bold text-primary-600` | 30px, 700 |
-| Body / labels | `text-sm text-gray-600` | 14px, 400 |
-| Secondary / hints | `text-sm text-gray-500` | 14px, 400 |
-| Timestamps / captions | `text-xs text-gray-400` | 12px, 400 |
-| Large stats | `text-2xl font-bold text-gray-800` | 24px, 700 |
-| Progress % | `text-lg font-bold text-primary-600` | 18px, 700 |
-| Button text | `font-semibold` or `font-medium` | 14–16px, 600 |
-| Badge text | `text-xs font-medium` | 12px, 500 |
+**Base unit**: 4px grid (Tailwind default)
 
-**Font family**: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif` (native system font, no web fonts loaded).
+| Token | Value | Usage |
+|-------|-------|-------|
+| `radius.sm` | 8px | Small buttons, badges, heatmap cells |
+| `radius.md` | 12px | Inputs, buttons, stat cards |
+| `radius.lg` | 16px | Task cards, challenge cards, content cards |
+| `radius.xl` | 20px | Hero cards, modals, auth card |
+| `radius.full` | 9999px | Pills, badges, avatars |
 
-### Spacing & Geometry
-
-**Base spacing**: Tailwind default (4px grid). Commonly used: `p-4` (16px), `p-6` (24px), `p-8` (32px), `py-3` (12px), `gap-3` (12px), `gap-6` (24px), `mb-4` (16px).
-
-**Border radius**:
-- Cards: `rounded-xl` (12px) or `rounded-2xl` (16px)
-- Buttons: `rounded-xl` (12px)
-- Inputs: `rounded-xl` (12px)
-- Badges/pills: `rounded-full`
-- Heatmap squares: `rounded-sm` (2px)
-- Tab containers: `rounded-lg` (8px), `rounded-md` (6px)
+**Page padding**: `16–20px` horizontal  
+**Card padding**: `14–16px`  
+**Gap between cards**: `10–12px`  
+**Section gap**: `20–24px`
 
 **Shadows**:
-- Cards: `shadow-sm` (subtle) or `shadow-xl` (auth modal)
-- Hover cards: `hover:shadow-md`
-- Bottom nav: `shadow-lg`
-
-**Borders**: `border border-gray-100` (light cards), `border-2 border-primary-200` (secondary button), `border-2 border-red-200` (danger button), `border border-gray-300` (inputs)
-
-**Breakpoints**: Tailwind defaults (`sm: 640px`, `md: 768px`, `lg: 1024px`). App uses `max-w-2xl` (672px) centered container — effectively a wide-mobile column on all screen sizes.
-
-**Max content width**: 672px (`max-w-2xl`) — the whole app is a single centered column. No sidebar, no multi-column layout.
-
-### Transitions & Motion
-
-All animations are CSS-only via Tailwind:
-- `transition-colors` — button/nav color changes
-- `transition-all` — card borders on hover
-- `duration-500` — progress bar fill animation
-- `animate-spin` — loading spinner (CSS animation)
-- No JS animation libraries (no Framer Motion, no GSAP)
-
-Focus rings: `focus:ring-2 focus:ring-primary-500 focus:outline-none`
+| Name | Value | Usage |
+|------|-------|-------|
+| `sm` | `0 1px 4px rgba(0,0,0,0.06)` | Subtle card lift |
+| `md` | `0 4px 16px rgba(0,0,0,0.08)` | Hover state |
+| `lg` | `0 8px 32px rgba(0,0,0,0.12)` | Auth modal |
+| `accent` | `0 4px 14px rgba(91,76,245,0.3)` | Primary button |
 
 ---
 
-## 6. Content & Copy
+## 5. Component Specifications
 
-### Real text examples (English)
+### Bottom Navigation
+- 5 tabs: Главная / Сегодня / Челленджи / Отчёты / Настройки
+- Icons: **stroke SVG** (1.9px, inactive) → **filled SVG** (active)
+- Active state: icon pill background `accentSoft` (36×28px, radius 10px) + label color `accent` + weight 700
+- Inactive: icon color `textTertiary`, label 9px weight 500
+- Background: `navBg` + `backdrop-filter: blur(20px)` + top border `navBorder`
+- Height: ~60px + safe area padding
+- **No emoji** — SVG only
 
-**Dashboard**: "Hey, Alex! 👋" / "Today's progress" / "4 remaining" / "Quick Actions" / "📋 Today's Tasks" / "➕ New Challenge"
+### Desktop Sidebar
+- Width: 240px, fixed height
+- Logo: 15px, weight 900, color `accent`
+- Nav items: icon (18px) + label (14px), active = `accentSoft` bg + `accent` color, radius 12px
+- Bottom: avatar + name/email + dark mode toggle
+- Border-right: `border`
 
-**Daily Tasks**: "Today's Tasks" / "All done for today!" / "No tasks today!" / "Start a challenge to see tasks here."
+### Header (sticky)
+- Height: ~56px
+- Background: `headerBg` + `backdrop-filter: blur(16px)`
+- Border-bottom: `border`
+- Back button: arrow-left icon, color `textSecondary`
+- Title: 15px weight 700 `textPrimary`
 
-**Challenges**: "My Challenges" / "No challenges yet" / "Start your first challenge →" / status badges: "active", "paused", "completed", "cancelled"
+### Progress Ring (SVG)
+- Track: `accentSoft` (light) / `rgba(accent,0.2)` (dark)
+- Arc: `accent` color, strokeLinecap: round
+- Percentage text inside: 14px weight 700, color `accent`
+- Default size: 72–80px, stroke: 7–8px
 
-**Create Challenge** (step 1): "New Challenge" / "✨ Start from scratch" / "Templates" / "30 days · 1×/day"
-**Create Challenge** (step 2): "Title *" / "e.g. Morning Workout" / "Type" / "⏰ Single" / "🔁 Multi" / "🌅 All Day" / "Duration (days)" / "Tasks/day" / "Scheduled times" / "Start date" / "🚀 Start Challenge"
+### Progress Bar
+- Track: `surface2`, height 5–6px, radius 3px
+- Fill: `accent` (or category color), transition `width 0.4s`
+- For completed state: fill with `green`
 
-**Reports**: "Total tasks" / "Completed" / "Rate" / "Daily completion" / legend: "100%", "50%+", "<50%", "No tasks"
+### Task Card
+- Background:
+  - pending → `surface` + category border `accent+'35'`
+  - completed → `greenBg` + border `green+'44'`
+  - skipped → `surface2` + `border`, opacity 0.55
+- Category icon box: 40×40px, radius 10px, bg = `catBg`
+- When completed: icon replaced with checkmark (green)
+- Name: 14px weight 700, line-through + `textTertiary` when done
+- Time row: clock icon (11px) + time (11px weight 600)
+- Note: 11px `textSecondary`, truncated
+- Multi-task badge: `"N из M"`, 10px weight 800, `accent` pill
+- All-day badge: `"весь день"`, 10px, `accent` pill
+- Actions: "Пропуск" outline btn + "Готово" accent btn
+- Undo: "↩" ghost btn when done/skipped
 
-**Challenge Report**: "Current streak 🔥" / "Best streak 🏆" / "Period" / "Completion"
+### Challenge Card (list)
+- Category icon: 36×36px, radius 10px, bg = `catBg`
+- Title: 15px weight 700, description: 12px `textSecondary`
+- Status badge (pill): active=green, paused=yellow, completed=blue, cancelled=gray
+- Progress bar under content
+- Date range: 11px `textTertiary`
+- Chevron right: `textTertiary`
+- Hover: `shadow.md` + `translateY(-1px)`
 
-**Settings**: "Profile" / "Language" / "Timezone" / "Push Notifications" / "Web push" / "Enabled" / "Sign Out"
+### Hero Progress Card (Dashboard)
+- Full-width gradient: `accent → #4a3de0 → #2563eb`
+- Contains: ProgressRing (white arc) + large number + label
+- Decorative circles: `rgba(255,255,255,0.08)` positioned absolute
+- Radius: `radius.xl`
 
-**Errors**: "Something went wrong" / "Action failed" / "Login failed" / "Registration failed" / "Failed to create challenge"
+### Stat Card (mini)
+- Background: `surface`, border: `border`, radius: `radius.md`
+- Number: 24px weight 800
+- Label: 11px `textTertiary`
+- Color overrides: green for completed, red for skipped
 
-### Challenge types & data
-| Type | Icon | Meaning | Example |
-|------|------|---------|---------|
-| `single` | ⏰ | One task at specific time | Morning Workout at 07:00 |
-| `multi` | 🔁 | Multiple tasks per day | Water Intake at 09:00, 13:00, 18:00 |
-| `all_day` | 🌅 | Open task, anytime | Reading Habit |
+### Buttons
+| Variant | Background | Color | Border | Radius |
+|---------|-----------|-------|--------|--------|
+| Primary | `accent` | white | none | `radius.md` |
+| Outline | transparent | `accent` | `2px accentMid` | `radius.md` |
+| Ghost | transparent | `textSecondary` | `2px border` | `radius.md` |
+| Danger | transparent | `red` | `2px redBg` | `radius.md` |
+| Small done | `accent` | white | none | `radius.sm` |
+| Small skip | transparent | `textSecondary` | `1.5px borderStrong` | `radius.sm` |
 
-### Template library (5 built-in)
-Morning Workout (💪), Reading Habit (📚), Meditation (🧘), No Sugar (🚫🍬), Water Intake (💧)
+Primary button shadow: `0 2px 8px accent+'40'`
 
-### Date format
-`d MMMM yyyy` / `EEEE, d MMMM` — localized via date-fns (EN: "Wednesday, 29 April 2026", RU: "среда, 29 апреля 2026")
+### Input Fields
+- Background: `surface`
+- Border: `1.5px solid border`, on focus: `accent`
+- Radius: `radius.md`
+- Padding: `12px 14px`
+- Font: 14px `textPrimary`
+- Placeholder: `textTertiary`
+- Transition: `border-color 0.15s`
 
-### Language
-Bilingual EN/RU. Detected from `ct_language` localStorage key, fallback to browser locale, fallback to `en`. All UI strings are translated. Language toggled in Settings.
+### Badges / Pills
+- Status active: `greenBg` bg, `green` text, 11px weight 700, `border-radius: 99px`
+- Status paused: `yellowBg` / `yellow`
+- Status completed: `blueBg` / `blue`
+- Category badge: `catBg` / `catAccent`
+- Day counter: `accent+'18'` / `accent`
 
-### Empty states
-
-| Screen | Empty state |
-|--------|-------------|
-| Dashboard | Shows zeros in all stats, quick action buttons still visible |
-| Daily Tasks | 🎉 "No tasks today!" + "Start a challenge to see tasks here." |
-| Challenges | 🎯 "No challenges yet" + "Start your first challenge →" link |
-| Challenge Report | — (not reachable without instances) |
+### Toggle Switch
+- Track: 44×24px, radius 12px
+- Active: `accent` bg; inactive: `surface2` bg
+- Thumb: 18×18px white circle, left: 2px (off) / 22px (on)
+- Transition: `left 0.2s`, `background 0.2s`
 
 ---
 
-## 7. Screenshots
+## 6. Screen-by-Screen Specs
 
-All screenshots captured at realistic data (active user with 3 challenges, 15 tasks today, 2 completed + 1 skipped).
-
-### Auth
-![Login desktop](design-brief/screenshots/01-login-desktop.webp)
-*Login — email form on indigo gradient background. Centered white card (max-w-md).*
-
-![Login mobile](design-brief/screenshots/01-login-mobile.webp)
-*Login mobile (390×844)*
-
-![Register desktop](design-brief/screenshots/02-register-desktop.webp)
-*Register — same card style as Login*
-
-![Register mobile](design-brief/screenshots/02-register-mobile.webp)
+### Login / Register
+- Full-screen gradient background: `accentSoft → bg` (160deg)
+- Centered white card: `radius.xl`, `shadow.lg`, padding 36px
+- App name: 26px weight 900, `accent`
+- Email + password inputs with eye-toggle (SVG)
+- Primary CTA button full-width
+- "No account? Register" link: `accent` weight 700
 
 ### Dashboard
-![Dashboard desktop](design-brief/screenshots/03-dashboard-desktop.webp)
-*Dashboard — progress ring (40%), stat grid (Active/Completed/Skipped), quick action buttons, task preview list*
+**Header**: logo (accent, 800) + streak pill (🔥 + count, catWorkout) + avatar (gradient circle)
 
-![Dashboard mobile](design-brief/screenshots/03-dashboard-mobile.webp)
+**Greeting**: 22px weight 800, first name only ("Привет, Алекс 👋"), date below in `textSecondary`
 
-![Dashboard empty](design-brief/screenshots/12-dashboard-empty-desktop.webp)
-*Dashboard empty state — all zeros, buttons still visible*
+**Hero card**: gradient purple→blue, ProgressRing (white) + "2/15" large number + "N осталось"
+
+**Stats row**: 3 equal StatCards — Active (neutral) / Done (green) / Skipped (red)
+
+**Quick actions**: 2-column grid — Primary "Задачи сегодня" + Outline "Новый"
+
+**Tasks preview**: Card with rows — category dot + name + time + status badge. "Все →" link. Max 3 tasks shown.
 
 ### Daily Tasks
-![Daily Tasks desktop](design-brief/screenshots/04-daily-desktop.webp)
-*Daily Tasks — progress bar, task cards with Done/Skip buttons, status-colored states*
+**Header**: sticky, title + date + `done/total` pill + progress bar + view toggle
 
-![Daily Tasks mobile](design-brief/screenshots/04-daily-mobile.webp)
+**View toggle**: "По времени" | "По челленджам" — segmented control in `surface2`
 
-![Daily Tasks empty](design-brief/screenshots/13-daily-empty-desktop.webp)
-*Daily Tasks empty — 🎉 emoji + hint text*
+**Timeline view** ("По времени"):
+- Left column (44px): time label in `accent` weight 800, vertical connector line
+- Right: TaskCard with `showChallengeName=true` (challenge name badge)
+- Tasks sorted strictly by time ascending; all-day tasks at bottom
+- Multiple tasks at same time slot grouped under one time label
 
-### Challenges
-![Challenges desktop](design-brief/screenshots/05-challenges-desktop.webp)
-*Challenges list — clickable cards with status badge, date range, › arrow*
+**Grouped view** ("По челленджам"):
+- Challenge section card: icon + name + day badge + today progress bar + overall % + chevron
+- **Collapsed**: compact time pills row at bottom showing each task slot (tappable)
+- **Expanded** (tap to open): inner timeline with time labels + full TaskCards
+- Chevron rotates 90° when open
 
-![Challenges mobile](design-brief/screenshots/05-challenges-mobile.webp)
+**All-done state**: green banner with 🎉
 
-![Challenges empty](design-brief/screenshots/14-challenges-empty-desktop.webp)
-*Challenges empty — 🎯 + CTA link*
-
-### Create Challenge
-![Create Step 1 desktop](design-brief/screenshots/06-new-challenge-step1-desktop.webp)
-*Create Challenge step 1 — dashed "from scratch" button + template cards*
-
-![Create Step 1 mobile](design-brief/screenshots/06-new-challenge-step1-mobile.webp)
-
-![Create Step 2 desktop](design-brief/screenshots/07-new-challenge-step2-desktop.webp)
-*Create Challenge step 2 — config form: title, description, type segmented control, duration, tasks/day, time inputs, date picker*
-
-![Create Step 2 mobile](design-brief/screenshots/07-new-challenge-step2-mobile.webp)
+### Challenges List
+- "+ Новый" button in header (accent filled)
+- Challenge cards with category icon, progress bar, date range, status badge
+- Hover lift effect
 
 ### Challenge Detail
-![Challenge Detail desktop](design-brief/screenshots/08-challenge-detail-desktop.webp)
-*Challenge Detail — progress bar, info grid (dates, days left, tasks/day, type), action buttons*
+- Large category icon (52×52, radius 14)
+- Title 22px weight 800 + description
+- Progress card: "N / M дней" + ProgressBar
+- Info grid: 2-column, 6 cells (Start / End / Days left / Tasks/day / Type / Time)
+- Streak card: "Текущая серия 🔥" + "Лучшая 🏆" side by side
+- Actions: 2-column Outline (Edit + Report) + full-width Danger (Cancel)
 
-![Challenge Detail mobile](design-brief/screenshots/08-challenge-detail-mobile.webp)
+### Create Challenge Step 1
+- Step indicator (not previously present in v1): pill steps "1 → 2"
+- "Начать с чистого листа": dashed border, `accentSoft` bg, accent icon + text
+- Template cards: emoji icon + name + meta (days × per-day)
+
+### Create Challenge Step 2
+- Step indicator: filled circle "1" + line + outlined circle "2"
+- Fields: Title, Description (textarea), Type segmented (⏰/🔁/🌅), Duration, Tasks/day, Time (hidden for all-day), Start date
+- Type segmented control: 3 equal buttons, active = `accentSoft` border + bg
+- CTA: "🚀 Запустить челлендж" primary full-width
 
 ### Reports
-![Reports desktop](design-brief/screenshots/09-reports-desktop.webp)
-*Monthly Reports — month navigation, 3 summary cards, calendar heatmap grid with legend*
-
-![Reports mobile](design-brief/screenshots/09-reports-mobile.webp)
-
-![Challenge Report desktop](design-brief/screenshots/10-challenge-report-desktop.webp)
-*Challenge Report — 6-stat grid (total, completed, skipped, rate, streaks), period row, completion bar*
-
-![Challenge Report mobile](design-brief/screenshots/10-challenge-report-mobile.webp)
+- Month navigation (← May 2026 →)
+- 3 StatCards: Total / Completed (green) / Rate % (accent)
+- Heatmap: 7-col grid, day squares with hover scale
+  - 100%: `green`
+  - ≥50%: `catReading` (mid-green)
+  - <50%: `red`
+  - no tasks: `surface2`
+  - today: `accent` with white text
+- Legend: 4 colored squares + labels
+- Per-challenge list: icon + name + ProgressBar + chevron
 
 ### Settings
-![Settings desktop](design-brief/screenshots/11-settings-desktop.webp)
-*Settings — 4 sections (Profile, Language, Timezone, Push Notifications) + Sign Out*
-
-![Settings mobile](design-brief/screenshots/11-settings-mobile.webp)
-
----
-
-## 8. ASCII Wireframes
-
-### Dashboard (desktop, 1440px wide — centered max-w-2xl column)
-
-```
-┌──────────────────────────────────────────────────────────┐
-│ ChallengeTracker                                [header] │
-├──────────────────────────────────────────────────────────┤
-│                                                          │
-│  Hey, Alex! 👋                                          │
-│  Wednesday, 29 April 2026                               │
-│                                                          │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │  ┌───────┐   Today's progress                    │   │
-│  │  │ Ring  │   4/10                                │   │
-│  │  │  40%  │   4 remaining                         │   │
-│  │  └───────┘                                        │   │
-│  └──────────────────────────────────────────────────┘   │
-│                                                          │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐             │
-│  │ 🎯  6   │  │ ✅  4   │  │ ⏭️  2   │             │
-│  │ Active  │  │Completed │  │ Skipped  │             │
-│  └──────────┘  └──────────┘  └──────────┘             │
-│                                                          │
-│  Quick Actions                                           │
-│  ┌────────────────────┐  ┌────────────────────┐        │
-│  │  📋 Today's Tasks  │  │  ➕ New Challenge   │        │
-│  │  [primary button]  │  │  [outline button]   │        │
-│  └────────────────────┘  └────────────────────┘        │
-│                                                          │
-│  Tasks Today                                             │
-│  ┌──────────────────────────────┬────────────┐          │
-│  │ Morning Workout   07:00      │ completed  │          │
-│  ├──────────────────────────────┼────────────┤          │
-│  │ Water Intake      09:00      │ completed  │          │
-│  ├──────────────────────────────┼────────────┤          │
-│  │ Water Intake      13:00      │  pending   │          │
-│  └──────────────────────────────┴────────────┘          │
-│  View all 15 tasks →                                     │
-│                                                          │
-├──────────────────────────────────────────────────────────┤
-│  🏠       📋        🎯        📊        ⚙️             │
-│ Home    Today  Challenges  Reports  Settings   [bot nav] │
-└──────────────────────────────────────────────────────────┘
-```
-
-### Daily Tasks
-
-```
-┌──────────────────────────────────────────────────────────┐
-│ ChallengeTracker                                         │
-├──────────────────────────────────────────────────────────┤
-│                                                          │
-│  Today's Tasks                                           │
-│  Wednesday, 29 April                                     │
-│                                                          │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │ Progress                              4/15        │   │
-│  │ ████████░░░░░░░░░░░░░░░░░░░░░░  27%             │   │
-│  └──────────────────────────────────────────────────┘   │
-│                                                          │
-│  ┌──────────────────────────────┬───────┬───────┐        │
-│  │ Water Intake     13:00       │ Skip  │ Done  │        │
-│  │ multi                        │       │       │        │
-│  ├──────────────────────────────┼───────┼───────┤        │
-│  │ Reading Habit                │ Skip  │ Done  │        │
-│  │ all day                      │       │       │        │
-│  ├──────────────────────────────┴───────┴───────┤        │
-│  │ ✓  Morning Workout   07:00        [completed] │        │
-│  ├──────────────────────────────────────────────┤        │
-│  │ ✓  Water Intake      09:00        [completed] │        │
-│  ├──────────────────────────────────────────────┤        │
-│  │     Water Intake     18:00         [skipped]  │        │
-│  └──────────────────────────────────────────────┘        │
-│                                                          │
-└──────────────────────────────────────────────────────────┘
-```
-
-### Challenge Detail
-
-```
-┌──────────────────────────────────────────────────────────┐
-│ ChallengeTracker                                         │
-├──────────────────────────────────────────────────────────┤
-│                                                          │
-│  ←  Morning Workout                         [active]    │
-│                                                          │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │ Daily exercise to boost energy                    │   │
-│  │                                                    │   │
-│  │ Progress   3 / 30 days                    10%     │   │
-│  │ ██░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░       │   │
-│  │                                                    │   │
-│  │ ┌──────────┐  ┌──────────┐  ┌──────────┐         │   │
-│  │ │  Start   │  │   End    │  │ Days left│         │   │
-│  │ │ 29 Apr   │  │ 29 May   │  │  27 📅   │         │   │
-│  │ └──────────┘  └──────────┘  └──────────┘         │   │
-│  │ ┌──────────┐  ┌──────────┐                        │   │
-│  │ │Tasks/day │  │  Times   │                        │   │
-│  │ │    1     │  │  07:00   │                        │   │
-│  │ └──────────┘  └──────────┘                        │   │
-│  └──────────────────────────────────────────────────┘   │
-│                                                          │
-│  ┌───────────────────┐  ┌───────────────────┐           │
-│  │  ✏️ Edit           │  │  📊 Report         │           │
-│  └───────────────────┘  └───────────────────┘           │
-│  ┌──────────────────────────────────────────────┐        │
-│  │  Cancel this challenge                        │        │
-│  └──────────────────────────────────────────────┘        │
-│                                                          │
-└──────────────────────────────────────────────────────────┘
-```
-
-### Create Challenge — Step 2 (form)
-
-```
-┌──────────────────────────────────────────────────────────┐
-│ ChallengeTracker                                         │
-├──────────────────────────────────────────────────────────┤
-│                                                          │
-│  ←  Customize                                            │
-│                                                          │
-│  Title *                                                 │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │ Morning Workout                                   │   │
-│  └──────────────────────────────────────────────────┘   │
-│                                                          │
-│  Description                                             │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │ Daily morning exercise session                    │   │
-│  └──────────────────────────────────────────────────┘   │
-│                                                          │
-│  Type                                                    │
-│  ┌───────────┐  ┌───────────┐  ┌───────────┐           │
-│  │ ⏰ Single │  │ 🔁 Multi  │  │🌅 All Day │           │
-│  │ [active]  │  │           │  │           │           │
-│  └───────────┘  └───────────┘  └───────────┘           │
-│                                                          │
-│  Duration (days)    Tasks/day                            │
-│  ┌──────────────┐  ┌──────────────┐                     │
-│  │      30      │  │      1       │                     │
-│  └──────────────┘  └──────────────┘                     │
-│                                                          │
-│  Scheduled times                                         │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │  07:00                                            │   │
-│  └──────────────────────────────────────────────────┘   │
-│                                                          │
-│  Start date                                              │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │  2026-04-29                                       │   │
-│  └──────────────────────────────────────────────────┘   │
-│                                                          │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │          🚀 Start Challenge                       │   │
-│  └──────────────────────────────────────────────────┘   │
-│                                                          │
-└──────────────────────────────────────────────────────────┘
-```
-
-### Reports — Monthly Heatmap
-
-```
-┌──────────────────────────────────────────────────────────┐
-│ ChallengeTracker                                         │
-├──────────────────────────────────────────────────────────┤
-│                                                          │
-│  Reports                                                 │
-│                                                          │
-│  ┌───────────────────────────────────────────────────┐  │
-│  │   ←         April 2026          →                 │  │
-│  └───────────────────────────────────────────────────┘  │
-│                                                          │
-│  ┌────────────┐  ┌────────────┐  ┌────────────┐        │
-│  │     45     │  │     12     │  │    27%      │        │
-│  │ Total tasks│  │ Completed  │  │    Rate     │        │
-│  └────────────┘  └────────────┘  └────────────┘        │
-│                                                          │
-│  Daily completion                                        │
-│  ┌───────────────────────────────────────────────────┐  │
-│  │  M   T   W   T   F   S   S                        │  │
-│  │                  1   2   3   4   5                 │  │
-│  │  6   7   8   9  10  11  12                         │  │
-│  │  ░   ░   ░   █   █   ░   ░  ← colored squares     │  │
-│  │ 13  14  15  16  17  18  19                         │  │
-│  │ 20  21  22  23  24  25  26                         │  │
-│  │ 27  28  29  30                                     │  │
-│  │                                                    │  │
-│  │ ■ 100%  ▒ 50%+  ░ <50%  □ No tasks               │  │
-│  └───────────────────────────────────────────────────┘  │
-│                                                          │
-└──────────────────────────────────────────────────────────┘
-```
+- Section headers: 11px uppercase `textTertiary`
+- Rows in Card: label (14px) + right element
+- Sections: Profile / Appearance (dark toggle) / Language (RU/EN segmented) / Notifications (push toggle) / Timezone
+- Sign Out: full-width Danger button
 
 ---
 
-## 9. Component Trees
+## 7. Icon System
 
-### Dashboard
+**Library**: Custom stroke SVG (Lucide-style)  
+**Default stroke**: 1.9px, strokeLinecap: round, strokeLinejoin: round  
+**Size**: 18–20px in nav, 15–16px in buttons, 11–12px inline  
 
-```
-Dashboard
-├── ProgressRing (SVG circle, size=90, stroke=8)
-├── StatCard × 3 (Active / Completed / Skipped)
-│   └── [emoji] + number + label
-├── [Link] → /daily  "📋 Today's Tasks" [primary button]
-├── [Link] → /challenges/new  "➕ New Challenge" [outline button]
-└── task preview list (first 3 tasks)
-    └── div × 3
-        ├── challenge_title + scheduled_time
-        └── status badge (completed/skipped/pending)
-```
+**Behavior**:
+- Inactive nav / default: `stroke` variant, color `textTertiary`
+- Active nav / filled state: `filled` variant, color `accent`
 
-### Daily Tasks
-
-```
-DailyTasks
-├── date header
-├── progress bar card
-│   └── div.h-2 (track) + div.bg-primary-600 (fill, width = % computed)
-├── [loading spinner] | [empty state] | task list
-└── task list (pending first, then done/skipped)
-    └── TaskCard × N
-        ├── challenge_title
-        ├── scheduled_time (if set)
-        ├── type label
-        └── [status = pending]
-            ├── button "Skip" → POST /tasks/:id/skip
-            └── button "Done" → POST /tasks/:id/complete
-            [status = completed] → "✓" green checkmark
-            [status = skipped] → "skip" gray text
-```
+**Required icons** (minimum set):
+`home`, `list`, `target`, `bar`, `gear`, `check`, `plus`, `arrow_left`, `arrow_right`, `eye`, `eye_off`, `bell`, `moon`, `sun`, `edit`, `trash`, `clock`, `calendar`, `flame`, `trophy`, `skip`, `chevron_right`, `x`, `rocket`
 
 ---
 
-## 10. Redesign Context & Constraints
+## 8. Dark Mode
 
-### Must preserve
-- **Route structure** — same URLs, same `RequireAuth` guard pattern
-- **PWA capability** — must work offline, installable, service worker
-- **Bilingual EN/RU** — all strings must stay in i18n files, nothing hardcoded
-- **Bottom tab navigation pattern** — 5 fixed tabs, this is the primary nav paradigm on mobile
-- **Day-centric mental model** — "Today" tab is the hero screen, not "Challenges"
-- **API contract** — backend is unchanged; frontend just needs to call the same endpoints
+Toggle: available in Settings page + sidebar (moon/sun icon) + fixed button top-right in dev/prototype.
 
-### Known UX problems in current design
-1. **Username in greeting shows email prefix** — "Hey, design-brief-active! 👋" looks technical
-2. **No visual hierarchy on Dashboard** — progress ring, stat cards, quick actions, task list all feel equal weight
-3. **Create Challenge is a 2-step flow but step indicator is not visible** — users don't know they're on step 1 of 2
-4. **Challenge Detail "Edit" reveals inline form** — the transition is abrupt, no animation
-5. **Monthly report heatmap numbers are tiny** — day numbers (12px) inside 20-30px squares are hard to read on mobile
-6. **No confirmation feedback after completing a task** — the card just changes color; no celebratory micro-interaction
-7. **Settings page has no visual section separators beyond card borders** — feels flat
-8. **Empty state on Dashboard shows 0s in stat cards** — "0 Active" with a 🎯 emoji is not motivating for new users
-9. **Bottom nav icons are emoji** — emoji rendering varies wildly across OSes; inconsistent visual weight
-
-### Technical constraints
-- **Pure SPA** — no SSR/SSG. All routing is client-side (React Router). This means full freedom for JS-driven animations.
-- **No component library** — can introduce one (shadcn/ui, Radix) if desired
-- **No icon library** — recommend replacing emoji nav icons with a real library (Lucide, Heroicons)
-- **CSS approach** — Tailwind is the constraint. Can add CSS modules or styled-components alongside, but Tailwind must remain for build to work
-- **Accessibility**: Currently minimal — no `aria-label` on icon buttons, no skip links, no focus trap in any modal-like pattern. Improving a11y is a recommended redesign goal.
-- **Mobile-first** — max-w-2xl centered column means desktop is essentially a wide-mobile view. A true responsive 2-column desktop layout would require routing/layout changes.
+All tokens listed in Section 2 have dark equivalents. Key differences:
+- Backgrounds use near-black `#0f0f13` / `#18181f` / `#222229`
+- Borders are rgba white overlays
+- Category colors are lighter/more saturated for legibility
+- Nav and header use `backdrop-filter: blur` with semi-transparent bg
+- Accent shifts from `#5b4cf5` to `#7c6dfa` (lighter for dark contrast)
+- Status colors shift to pastel versions on dark fills
 
 ---
 
-## 11. File Structure (frontend UI)
+## 9. Layout
 
-```
-frontend/src/
-├── App.tsx                    # Route definitions + RequireAuth guard
-├── main.tsx                   # Entry point, PWA registration, i18n import
-├── index.css                  # Tailwind base/components/utilities
-├── vite-env.d.ts
-│
-├── components/
-│   ├── Layout.tsx             # Header + bottom nav + <Outlet>
-│   ├── PasswordInput.tsx      # Password field with eye toggle
-│   ├── ProgressRing.tsx       # SVG circular progress indicator
-│   └── TaskCard.tsx           # Daily task card (pending/done/skipped)
-│
-├── pages/
-│   ├── Login.tsx              # Email/password sign-in
-│   ├── Register.tsx           # Email/password registration
-│   ├── Dashboard.tsx          # Home: ring + stats + quick actions + task preview
-│   ├── DailyTasks.tsx         # Full today task list with complete/skip
-│   ├── Challenges.tsx         # List of user's challenge instances
-│   ├── CreateChallenge.tsx    # 2-step: template picker → config form
-│   ├── ChallengeDetail.tsx    # View + inline edit form for one challenge
-│   ├── Reports.tsx            # Monthly heatmap calendar
-│   ├── ChallengeReport.tsx    # Per-challenge stats: streaks, completion
-│   └── Settings.tsx           # Profile, language, timezone, push, logout
-│
-├── services/
-│   ├── api.ts                 # Axios instance + all API calls grouped by domain
-│   └── push.ts                # Web Push subscription helper
-│
-├── store/
-│   ├── authStore.ts           # Zustand: user, tokens, setTokens, logout
-│   └── taskStore.ts           # Zustand: daily summary, updateTask
-│
-└── i18n/
-    ├── index.ts               # i18next init (LanguageDetector, EN/RU resources)
-    └── locales/
-        ├── en.ts              # English strings
-        └── ru.ts              # Russian strings
-```
+### Mobile (primary)
+- Viewport: 390px
+- Content padding: 16–20px horizontal
+- Fixed bottom nav: ~60px
+- Fixed sticky header: ~56px
+- Scrollable content area between header and nav
+- Max-width: none (full-bleed on mobile)
+
+### Desktop
+- Left sidebar: 240px fixed, full height
+- Content area: flex-1, max-width 672px centered, scrollable
+- No bottom nav on desktop — sidebar replaces it
+- Same screen components used on both, bottom nav hidden in desktop layout
 
 ---
 
-## Open Questions
+## 10. Motion & Transitions
 
-1. **Target platform priority** — is mobile (390px) the primary viewport, or should desktop get a real 2-column layout in the redesign? The current max-w-2xl single-column works fine for mobile but wastes space on 1440px screens.
+All animations are CSS-only (no JS animation libraries):
 
-2. **Brand identity** — is "indigo/purple" (#4f46e5) the locked brand color, or is the color palette open for redesign? Can we change the primary hue?
+| Interaction | Animation |
+|------------|-----------|
+| Button hover | `background 0.15s ease` |
+| Card hover | `box-shadow 0.15s`, `transform 0.1s` (translateY -1px) |
+| Progress bar fill | `width 0.4s ease` |
+| Task card status change | `all 0.2s ease` (bg, border, opacity) |
+| Challenge group expand | chevron `transform rotate 0.2s` |
+| Dark mode toggle | `background 0.3s` on body |
+| Toggle switch thumb | `left 0.2s`, `background 0.2s` |
+| Header blur | `backdrop-filter: blur(16–20px)` |
+| Heatmap cell hover | `transform: scale(1.1) 0.1s` |
+| Nav active pill | `background 0.15s` |
 
-3. **Component library** — is it acceptable to introduce shadcn/ui or Radix UI primitives (Dialog, Tooltip, Select, etc.)? Or must the redesign stay with hand-built components only?
+---
 
-4. **Icon strategy** — should emoji icons in the bottom nav be replaced with a vector icon library (Lucide, Heroicons)? Emoji is inconsistent across platforms.
+## 11. UX Patterns Introduced (new vs v1)
 
-5. **Desktop layout** — should the redesign introduce a true desktop layout (sidebar + main content area), or keep the centered column and improve it?
+### Daily Tasks — Two View Modes
+1. **По времени** (Timeline): all tasks from all active challenges sorted chronologically. Left column shows time, right column shows task card with challenge name badge. All-day tasks appear at bottom.
+2. **По челленджам** (Grouped): challenge sections, each collapsible. Collapsed = header + compact time pills. Expanded = inner timeline with full task cards and Done/Skip actions.
 
-6. **Gamification / motivation** — the current design is utilitarian. Should the redesign add motivational elements (streaks visualization, progress celebrations, trophy icons)?
+Multi-task challenges (e.g. Water Intake 4×/day, Meditation 2×/day) show all instances in time order with "N из M" badge.
 
-7. **Dark mode** — is dark mode a requirement for the redesign, or nice-to-have?
+### Streak Mechanic
+- 🔥 + day count shown in Dashboard header
+- Motivational, not gamified to excess — no animations/sounds
 
-8. **Onboarding flow** — new users see an empty Dashboard. Should the redesign include a proper onboarding (empty-state CTA, walkthrough, first challenge wizard)?
+### Category Color System
+Each challenge category has a dedicated color that propagates to:
+- Task card border + icon background
+- Progress bar fill (inside challenge group)
+- Category badge / chip
+- Heatmap per-challenge rows (future)
+
+### Undo Actions
+Completed and skipped tasks show ↩ button to revert to pending.
+
+### Step Indicator in Create Challenge
+Two-step flow now has visual indicator: filled circle (step 1) → connector line → outlined circle (step 2).
+
+---
+
+## 12. Known Issues / Next Steps
+
+1. **Heatmap interactivity**: clicking a day cell should show a detail popover with that day's tasks
+2. **Celebration micro-interaction**: when all daily tasks are completed, show a subtle animation (not loud)
+3. **Empty states**: new user onboarding flow with CTA card instead of zeros
+4. **Challenge templates**: step 1 template cards should pre-fill step 2 form
+5. **Reports per-challenge**: clicking a challenge row in Reports should navigate to Challenge Report screen
+6. **Accessibility**: add `aria-label` to all icon-only buttons, implement focus trap in modals
+7. **Push notifications UI**: settings toggle exists, subscription flow not designed
+8. **Offline banner**: PWA offline state indicator needed

@@ -4,7 +4,9 @@ import { registerSW } from "virtual:pwa-register";
 import App from "./App";
 import "./i18n";
 import "./index.css";
+import { initTheme } from "./store/themeStore";
 
+initTheme();
 registerSW({ onNeedRefresh() {}, onOfflineReady() {} });
 
 ReactDOM.createRoot(document.getElementById("root")!).render(

@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { ru as ruLocale, enUS } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
 import { reportsApi } from "../services/api";
+import { ChevronRightIcon, ArrowLeftIcon } from "../components/Icons";
 
 interface DayStats {
   date: string;
@@ -19,6 +20,9 @@ interface MonthlyReport {
   total_completed: number;
   completion_rate: number;
 }
+
+const DAY_HEADERS_RU = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+const DAY_HEADERS_EN = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 
 export default function Reports() {
   const { t, i18n } = useTranslation();
@@ -42,88 +46,126 @@ export default function Reports() {
   useEffect(() => { load(); }, [year, month]);
 
   const prevMonth = () => {
-    if (month === 1) { setYear(y => y - 1); setMonth(12); }
-    else setMonth(m => m - 1);
+    if (month === 1) { setYear((y) => y - 1); setMonth(12); }
+    else setMonth((m) => m - 1);
   };
   const nextMonth = () => {
-    if (month === 12) { setYear(y => y + 1); setMonth(1); }
-    else setMonth(m => m + 1);
+    if (month === 12) { setYear((y) => y + 1); setMonth(1); }
+    else setMonth((m) => m + 1);
   };
 
   const monthName = format(new Date(year, month - 1), "LLLL yyyy", { locale: dateLocale });
+  const dayHeaders = i18n.language === "ru" ? DAY_HEADERS_RU : DAY_HEADERS_EN;
+  const startOffset = (new Date(year, month - 1, 1).getDay() + 6) % 7;
 
   return (
-    <div className="space-y-4 pb-20">
-      <h2 className="text-2xl font-bold text-gray-800">{t("reports.title")}</h2>
+    <div className="space-y-4">
+      <h2 className="text-[22px] font-black text-text-primary" style={{ letterSpacing: "-0.4px" }}>
+        {t("reports.title")}
+      </h2>
 
-      <div className="flex items-center justify-between bg-white rounded-xl border border-gray-100 p-3">
-        <button onClick={prevMonth} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">←</button>
-        <span className="font-semibold text-gray-700 capitalize">{monthName}</span>
-        <button onClick={nextMonth} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">→</button>
+      {/* Month nav */}
+      <div className="flex items-center justify-between rounded-md px-4 py-3"
+        style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+        <button onClick={prevMonth}
+          className="w-8 h-8 flex items-center justify-center rounded-md transition-colors hover:bg-surface2"
+          style={{ color: "var(--color-text-secondary)" }}>
+          <ArrowLeftIcon size={15} />
+        </button>
+        <span className="font-bold text-text-primary capitalize text-[15px]">{monthName}</span>
+        <button onClick={nextMonth}
+          className="w-8 h-8 flex items-center justify-center rounded-md transition-colors hover:bg-surface2"
+          style={{ color: "var(--color-text-secondary)" }}>
+          <ChevronRightIcon size={15} strokeWidth={2.5} />
+        </button>
       </div>
 
       {loading && (
         <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+          <div className="w-7 h-7 rounded-full border-2 animate-spin"
+            style={{ borderColor: "var(--color-accent)", borderTopColor: "transparent" }} />
         </div>
       )}
 
       {report && !loading && (
         <>
-          <div className="grid grid-cols-3 gap-3">
-            <div className="bg-white rounded-xl border p-3 text-center">
-              <p className="text-lg font-bold text-gray-800">{report.total_tasks}</p>
-              <p className="text-xs text-gray-500">{t("reports.total_tasks")}</p>
-            </div>
-            <div className="bg-white rounded-xl border p-3 text-center">
-              <p className="text-lg font-bold text-green-600">{report.total_completed}</p>
-              <p className="text-xs text-gray-500">{t("reports.completed")}</p>
-            </div>
-            <div className="bg-white rounded-xl border p-3 text-center">
-              <p className="text-lg font-bold text-primary-600">
-                {Math.round(report.completion_rate * 100)}%
-              </p>
-              <p className="text-xs text-gray-500">{t("reports.rate")}</p>
-            </div>
+          {/* Summary stats */}
+          <div className="grid grid-cols-3 gap-2.5">
+            <StatCell label={t("reports.total_tasks")} value={String(report.total_tasks)} color="var(--color-text-primary)" />
+            <StatCell label={t("reports.completed")} value={String(report.total_completed)} color="var(--color-success)" />
+            <StatCell label={t("reports.rate")}
+              value={`${Math.round(report.completion_rate * 100)}%`}
+              color="var(--color-accent)" />
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-100 p-4">
-            <h3 className="font-semibold text-gray-700 mb-3">{t("reports.daily_completion")}</h3>
-            <div className="grid grid-cols-7 gap-1">
-              {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
-                <div key={i} className="text-center text-xs text-gray-400 pb-1">{d}</div>
+          {/* Heatmap */}
+          <div className="rounded-md p-4"
+            style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+            <h3 className="font-bold text-text-primary text-[14px] mb-3">{t("reports.daily_completion")}</h3>
+
+            <div className="grid grid-cols-7 gap-1 mb-2">
+              {dayHeaders.map((d) => (
+                <div key={d} className="text-center text-[10px] font-bold text-text-tertiary pb-0.5">{d}</div>
               ))}
-              {Array.from({ length: (new Date(year, month - 1, 1).getDay() + 6) % 7 }).map((_, i) => (
+            </div>
+            <div className="grid grid-cols-7 gap-1">
+              {Array.from({ length: startOffset }).map((_, i) => (
                 <div key={`pad-${i}`} />
               ))}
               {report.days.map((day) => {
                 const rate = day.total > 0 ? day.completion_rate : -1;
                 const dayNum = Number(day.date.split("-")[2]);
-                const color =
-                  rate < 0 ? "bg-gray-100"
-                  : rate >= 1 ? "bg-green-500"
-                  : rate >= 0.5 ? "bg-green-300"
-                  : "bg-red-200";
+                const isToday = day.date === format(new Date(), "yyyy-MM-dd");
+
+                let bg: string;
+                if (rate < 0) bg = "var(--color-surface2)";
+                else if (rate >= 1) bg = "var(--color-success)";
+                else if (rate >= 0.5) bg = "rgba(22,163,74,0.45)";
+                else bg = "var(--color-danger-bg)";
+
                 return (
-                  <div
-                    key={day.date}
-                    className={`aspect-square rounded-sm ${color} flex items-center justify-center`}
-                    title={`${day.date}: ${day.completed}/${day.total}`}
-                  >
-                    <span className="text-xs text-white font-medium">{dayNum}</span>
+                  <div key={day.date}
+                    className="aspect-square rounded-sm flex items-center justify-center relative"
+                    style={{ background: bg, outline: isToday ? "2px solid var(--color-accent)" : "none" }}
+                    title={`${day.date}: ${day.completed}/${day.total}`}>
+                    <span className="text-[10px] font-bold"
+                      style={{ color: rate >= 0.5 ? "white" : "var(--color-text-tertiary)" }}>
+                      {dayNum}
+                    </span>
                   </div>
                 );
               })}
             </div>
-            <div className="flex gap-3 mt-3 text-xs text-gray-500">
-              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-green-500 inline-block" /> {t("reports.legend_100")}</span>
-              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-green-300 inline-block" /> {t("reports.legend_50")}</span>
-              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-red-200 inline-block" /> {t("reports.legend_less50")}</span>
-              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-gray-100 inline-block" /> {t("reports.legend_none")}</span>
+
+            {/* Legend */}
+            <div className="flex flex-wrap gap-3 mt-3">
+              <Legend color="var(--color-success)" label={t("reports.legend_100")} />
+              <Legend color="rgba(22,163,74,0.45)" label={t("reports.legend_50")} />
+              <Legend color="var(--color-danger-bg)" label={t("reports.legend_less50")} />
+              <Legend color="var(--color-surface2)" label={t("reports.legend_none")} />
             </div>
           </div>
         </>
       )}
     </div>
+  );
+}
+
+function StatCell({ label, value, color }: { label: string; value: string; color: string }) {
+  return (
+    <div className="rounded-md px-3 py-3 text-center"
+      style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+      <p className="text-[20px] font-black" style={{ color }}>{value}</p>
+      <p className="text-[10px] text-text-tertiary mt-0.5 font-medium">{label}</p>
+    </div>
+  );
+}
+
+function Legend({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="flex items-center gap-1.5 text-[11px] text-text-tertiary">
+      <span className="w-3 h-3 rounded-sm inline-block shrink-0" style={{ background: color }} />
+      {label}
+    </span>
   );
 }

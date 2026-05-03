@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { reportsApi } from "../services/api";
+import { ArrowLeftIcon, FlameIcon, TrophyIcon } from "../components/Icons";
+import { useThemeStore } from "../store/themeStore";
+import { useCategoryStyle } from "../utils/category";
 
 interface Report {
   challenge_instance_id: number;
@@ -19,6 +22,7 @@ interface Report {
 export default function ChallengeReport() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
+  const { dark } = useThemeStore();
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -31,56 +35,115 @@ export default function ChallengeReport() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) return <div className="flex justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" /></div>;
-  if (error) return <div className="text-center text-red-500 py-16">{error}</div>;
+  if (loading) return (
+    <div className="flex justify-center py-16">
+      <div className="w-7 h-7 rounded-full border-2 animate-spin"
+        style={{ borderColor: "var(--color-accent)", borderTopColor: "transparent" }} />
+    </div>
+  );
+  if (error) return <div className="text-center py-16" style={{ color: "var(--color-danger)" }}>{error}</div>;
   if (!report) return null;
 
+  const { icon, accent, bg } = useCategoryStyle(report.challenge_title, dark);
   const rate = Math.round(report.completion_rate * 100);
+  const rateColor = rate >= 80 ? "var(--color-success)" : rate >= 50 ? "var(--color-warning)" : "var(--color-danger)";
 
   return (
-    <div className="space-y-4 pb-20">
-      <div className="flex items-center gap-3">
-        <Link to="/challenges" className="text-gray-400 hover:text-gray-600">{t("common.back")}</Link>
-        <h2 className="text-xl font-bold text-gray-800 truncate">{report.challenge_title}</h2>
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <Link to="/challenges"
+          className="flex items-center gap-1 text-[13px] font-semibold text-text-tertiary hover:text-text-secondary transition-colors">
+          <ArrowLeftIcon size={15} />
+          {t("common.back")}
+        </Link>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 p-6">
-        <div className="grid grid-cols-2 gap-4">
-          <Stat label={t("challenge_report.total_tasks")} value={report.total_tasks} />
-          <Stat label={t("challenge_report.completed")} value={report.completed_tasks} color="text-green-600" />
-          <Stat label={t("challenge_report.skipped")} value={report.skipped_tasks} color="text-gray-400" />
-          <Stat label={t("challenge_report.rate")} value={`${rate}%`} color={rate >= 80 ? "text-green-600" : rate >= 50 ? "text-yellow-600" : "text-red-500"} />
-          <Stat label={t("challenge_report.current_streak")} value={`${report.current_streak} 🔥`} />
-          <Stat label={t("challenge_report.best_streak")} value={`${report.longest_streak} 🏆`} />
+      {/* Hero */}
+      <div className="rounded-xl p-5"
+        style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0"
+            style={{ background: bg }}>
+            {icon}
+          </div>
+          <h2 className="font-black text-[18px] text-text-primary leading-tight" style={{ letterSpacing: "-0.3px" }}>
+            {report.challenge_title}
+          </h2>
+        </div>
+
+        {/* Completion bar */}
+        <div className="mb-4">
+          <div className="flex justify-between text-[12px] font-semibold mb-1.5">
+            <span className="text-text-secondary">{t("challenge_report.completion")}</span>
+            <span style={{ color: rateColor }}>{rate}%</span>
+          </div>
+          <div className="h-2.5 rounded-full overflow-hidden" style={{ background: "var(--color-surface2)" }}>
+            <div className="h-full rounded-full transition-all"
+              style={{ width: `${rate}%`, background: rateColor }} />
+          </div>
+        </div>
+
+        {/* Stats grid */}
+        <div className="grid grid-cols-2 gap-2">
+          <InfoCell label={t("challenge_report.total_tasks")} value={String(report.total_tasks)} />
+          <InfoCell label={t("challenge_report.completed")} value={String(report.completed_tasks)} color="var(--color-success)" />
+          <InfoCell label={t("challenge_report.skipped")} value={String(report.skipped_tasks)} color="var(--color-text-tertiary)" />
+          <InfoCell label={t("challenge_report.rate")} value={`${rate}%`} color={rateColor} />
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border p-4">
-        <p className="text-sm text-gray-500 mb-1">{t("challenge_report.period")}</p>
-        <p className="font-medium text-gray-800">{report.start_date} → {report.end_date}</p>
+      {/* Streak cards */}
+      <div className="grid grid-cols-2 gap-2.5">
+        <StreakCard
+          label={t("challenge_report.current_streak")}
+          value={report.current_streak}
+          Icon={<FlameIcon size={18} className="text-warning" />}
+          bg="var(--color-warning-bg)"
+        />
+        <StreakCard
+          label={t("challenge_report.best_streak")}
+          value={report.longest_streak}
+          Icon={<TrophyIcon size={18} style={{ color: accent }} />}
+          bg={bg}
+        />
       </div>
 
-      <div className="bg-white rounded-xl border p-4">
-        <div className="flex justify-between text-sm text-gray-600 mb-2">
-          <span>{t("challenge_report.completion")}</span>
-          <span className="font-semibold">{rate}%</span>
-        </div>
-        <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-primary-600 rounded-full transition-all"
-            style={{ width: `${rate}%` }}
-          />
-        </div>
+      {/* Period */}
+      <div className="rounded-md px-4 py-3"
+        style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+        <p className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider mb-1">
+          {t("challenge_report.period")}
+        </p>
+        <p className="font-bold text-text-primary text-[14px]">
+          {report.start_date} → {report.end_date}
+        </p>
       </div>
     </div>
   );
 }
 
-function Stat({ label, value, color = "text-gray-800" }: { label: string; value: string | number; color?: string }) {
+function InfoCell({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
-    <div className="text-center">
-      <p className={`text-2xl font-bold ${color}`}>{value}</p>
-      <p className="text-xs text-gray-500 mt-0.5">{label}</p>
+    <div className="rounded-md px-3 py-2.5 text-center" style={{ background: "var(--color-surface2)" }}>
+      <p className="text-[20px] font-black" style={{ color: color || "var(--color-text-primary)" }}>{value}</p>
+      <p className="text-[10px] text-text-tertiary font-medium mt-0.5">{label}</p>
+    </div>
+  );
+}
+
+function StreakCard({ label, value, Icon, bg }: {
+  label: string; value: number; Icon: React.ReactNode; bg: string;
+}) {
+  return (
+    <div className="rounded-md p-4"
+      style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+      <div className="flex items-center justify-between mb-2">
+        <div className="w-9 h-9 rounded-md flex items-center justify-center" style={{ background: bg }}>
+          {Icon}
+        </div>
+      </div>
+      <p className="text-[28px] font-black text-text-primary leading-none">{value}</p>
+      <p className="text-[11px] text-text-tertiary font-medium mt-0.5">{label}</p>
     </div>
   );
 }

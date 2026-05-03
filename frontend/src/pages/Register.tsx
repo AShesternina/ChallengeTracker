@@ -33,47 +33,62 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-indigo-100 px-4">
-      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center px-4"
+      style={{ background: "var(--color-bg)" }}>
+      <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-primary-600">{t("auth.app_name")}</h1>
-          <p className="text-gray-500 mt-1">{t("auth.register_subtitle")}</p>
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl mb-4"
+            style={{ background: "linear-gradient(135deg, var(--color-accent), #2563eb)" }}>
+            <span className="text-white text-2xl">⚡</span>
+          </div>
+          <h1 className="text-[26px] font-black text-text-primary" style={{ letterSpacing: "-0.5px" }}>
+            ChallengeTracker
+          </h1>
+          <p className="text-[14px] text-text-secondary mt-1">{t("auth.register_subtitle")}</p>
         </div>
 
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">
-            {error}
-          </div>
-        )}
+        <div className="rounded-xl p-6 shadow-md"
+          style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+          {error && (
+            <div className="mb-4 px-3 py-2.5 rounded-md text-[13px]"
+              style={{ background: "var(--color-danger-bg)", color: "var(--color-danger)" }}>
+              {error}
+            </div>
+          )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="email"
-            placeholder={t("auth.email_placeholder")}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
-          />
-          <PasswordInput
-            placeholder={t("auth.password_hint")}
-            value={password}
-            onChange={setPassword}
-            minLength={6}
-            required
-          />
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 disabled:opacity-50 transition-colors"
-          >
-            {loading ? t("auth.creating") : t("auth.create_account")}
-          </button>
-        </form>
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <input
+              type="email"
+              placeholder={t("auth.email_placeholder")}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full px-4 py-3 rounded-md text-[14px] text-text-primary placeholder-text-tertiary outline-none transition-colors"
+              style={{ background: "var(--color-surface2)", border: "1.5px solid var(--color-border)" }}
+              onFocus={(e) => (e.target.style.borderColor = "var(--color-accent)")}
+              onBlur={(e) => (e.target.style.borderColor = "var(--color-border)")}
+            />
+            <PasswordInput
+              placeholder={t("auth.password_hint")}
+              value={password}
+              onChange={setPassword}
+              minLength={6}
+              required
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 text-[14px] font-bold text-white rounded-md disabled:opacity-50 transition-opacity mt-1"
+              style={{ background: "var(--color-accent)" }}
+            >
+              {loading ? t("auth.creating") : t("auth.create_account")}
+            </button>
+          </form>
+        </div>
 
-        <p className="text-center text-sm text-gray-500 mt-6">
+        <p className="text-center text-[13px] text-text-secondary mt-5">
           {t("auth.have_account")}{" "}
-          <Link to="/login" className="text-primary-600 font-medium hover:underline">
+          <Link to="/login" className="font-semibold" style={{ color: "var(--color-accent)" }}>
             {t("auth.sign_in_link")}
           </Link>
         </p>

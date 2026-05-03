@@ -4,6 +4,9 @@ import { format } from "date-fns";
 import { ru as ruLocale, enUS } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
 import { challengesApi } from "../services/api";
+import { useThemeStore } from "../store/themeStore";
+import { useCategoryStyle } from "../utils/category";
+import { ArrowLeftIcon, EditIcon, BarChartIcon } from "../components/Icons";
 
 interface ChallengeInstance {
   id: number;
@@ -20,17 +23,18 @@ interface ChallengeInstance {
   status: string;
 }
 
-const statusColor: Record<string, string> = {
-  active: "bg-green-100 text-green-700",
-  paused: "bg-yellow-100 text-yellow-700",
-  completed: "bg-blue-100 text-blue-700",
-  cancelled: "bg-gray-100 text-gray-500",
+const STATUS_STYLE: Record<string, { bg: string; text: string }> = {
+  active:    { bg: "var(--color-success-bg)",  text: "var(--color-success)" },
+  paused:    { bg: "var(--color-warning-bg)",  text: "var(--color-warning)" },
+  completed: { bg: "var(--color-info-bg)",     text: "var(--color-info)" },
+  cancelled: { bg: "var(--color-surface2)",    text: "var(--color-text-tertiary)" },
 };
 
 export default function ChallengeDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
+  const { dark } = useThemeStore();
   const dateLocale = i18n.language === "ru" ? ruLocale : enUS;
 
   const [instance, setInstance] = useState<ChallengeInstance | null>(null);
@@ -39,7 +43,6 @@ export default function ChallengeDetail() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  // edit form state
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -49,10 +52,7 @@ export default function ChallengeDetail() {
   useEffect(() => {
     if (!id) return;
     challengesApi.getInstance(Number(id))
-      .then((r) => {
-        setInstance(r.data);
-        fillForm(r.data);
-      })
+      .then((r) => { setInstance(r.data); fillForm(r.data); })
       .catch(() => setError(t("common.error")))
       .finally(() => setLoading(false));
   }, [id]);
@@ -95,16 +95,20 @@ export default function ChallengeDetail() {
 
   if (loading) return (
     <div className="flex justify-center py-16">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+      <div className="w-7 h-7 rounded-full border-2 animate-spin"
+        style={{ borderColor: "var(--color-accent)", borderTopColor: "transparent" }} />
     </div>
   );
 
   if (!instance) return (
-    <div className="text-center py-16 text-gray-400">{error || t("common.error")}</div>
+    <div className="text-center py-16 text-text-tertiary">{error || t("common.error")}</div>
   );
 
   const { challenge } = instance;
+  const { icon, accent, bg } = useCategoryStyle(challenge.title, dark);
   const isActive = instance.status === "active";
+  const style = STATUS_STYLE[instance.status] ?? STATUS_STYLE.cancelled;
+
   const daysLeft = Math.max(0, Math.ceil(
     (new Date(instance.end_date).getTime() - Date.now()) / 86400000
   ));
@@ -114,141 +118,151 @@ export default function ChallengeDetail() {
   const daysPassed = totalDays - daysLeft;
   const progress = Math.round((daysPassed / totalDays) * 100);
 
+  const inputClass = "w-full px-4 py-3 rounded-md text-[14px] text-text-primary placeholder-text-tertiary outline-none transition-colors";
+  const inputStyle = { background: "var(--color-surface2)", border: "1.5px solid var(--color-border)" };
+
   return (
-    <div className="space-y-4 pb-20">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Link to="/challenges" className="text-gray-400 hover:text-gray-600 text-xl">{t("common.back")}</Link>
-        <h2 className="text-xl font-bold text-gray-800 flex-1 truncate">
-          {editing ? t("create_challenge.customize") : challenge.title}
-        </h2>
-        <span className={`text-xs px-2 py-1 rounded-full font-medium ${statusColor[instance.status] || "bg-gray-100"}`}>
-          {t(`challenges.status_${instance.status}` as any, { defaultValue: instance.status })}
-        </span>
+    <div className="space-y-4">
+      {/* Back header */}
+      <div className="flex items-center gap-2">
+        <Link to="/challenges"
+          className="flex items-center gap-1 text-[13px] font-semibold text-text-tertiary hover:text-text-secondary transition-colors">
+          <ArrowLeftIcon size={15} />
+          {t("common.back")}
+        </Link>
       </div>
 
       {error && (
-        <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">{error}</div>
+        <div className="px-3 py-2.5 rounded-md text-[13px]"
+          style={{ background: "var(--color-danger-bg)", color: "var(--color-danger)" }}>
+          {error}
+        </div>
       )}
 
       {!editing ? (
         <>
-          {/* Info card */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
-            {challenge.description && (
-              <p className="text-gray-600 text-sm">{challenge.description}</p>
-            )}
-
-            {/* Progress */}
-            <div>
-              <div className="flex justify-between text-sm text-gray-600 mb-1.5">
-                <span>{daysPassed} / {totalDays} {i18n.language === "ru" ? "дней" : "days"}</span>
-                <span>{progress}%</span>
+          {/* Hero card */}
+          <div className="rounded-xl p-5"
+            style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+            <div className="flex items-start gap-4 mb-4">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0"
+                style={{ background: bg }}>
+                {icon}
               </div>
-              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-primary-600 rounded-full transition-all"
-                  style={{ width: `${progress}%` }}
-                />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start gap-2">
+                  <h2 className="font-black text-[18px] text-text-primary leading-tight flex-1" style={{ letterSpacing: "-0.3px" }}>
+                    {challenge.title}
+                  </h2>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold shrink-0 mt-0.5"
+                    style={{ background: style.bg, color: style.text }}>
+                    {t(`challenges.status_${instance.status}` as any, { defaultValue: instance.status })}
+                  </span>
+                </div>
+                {challenge.description && (
+                  <p className="text-[13px] text-text-secondary mt-0.5">{challenge.description}</p>
+                )}
               </div>
             </div>
 
-            {/* Stats grid */}
-            <div className="grid grid-cols-2 gap-3">
-              <InfoRow label={i18n.language === "ru" ? "Начало" : "Start"} value={format(new Date(instance.start_date), "d MMM yyyy", { locale: dateLocale })} />
-              <InfoRow label={i18n.language === "ru" ? "Конец" : "End"} value={format(new Date(instance.end_date), "d MMM yyyy", { locale: dateLocale })} />
-              <InfoRow label={i18n.language === "ru" ? "Осталось дней" : "Days left"} value={`${daysLeft} 📅`} />
-              <InfoRow label={i18n.language === "ru" ? "Задач в день" : "Tasks/day"} value={`${challenge.tasks_per_day}`} />
-              <InfoRow
-                label={i18n.language === "ru" ? "Тип" : "Type"}
-                value={t(`create_challenge.type_${challenge.type}` as any, { defaultValue: challenge.type })}
-              />
+            {/* Progress */}
+            <div className="mb-4">
+              <div className="flex justify-between text-[12px] font-semibold mb-1.5">
+                <span className="text-text-secondary">{daysPassed} / {totalDays} {i18n.language === "ru" ? "дней" : "days"}</span>
+                <span style={{ color: accent }}>{progress}%</span>
+              </div>
+              <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--color-surface2)" }}>
+                <div className="h-full rounded-full transition-all" style={{ width: `${progress}%`, background: accent }} />
+              </div>
+            </div>
+
+            {/* Info grid */}
+            <div className="grid grid-cols-2 gap-2">
+              <InfoCell label={i18n.language === "ru" ? "Начало" : "Start"}
+                value={format(new Date(instance.start_date), "d MMM yyyy", { locale: dateLocale })} />
+              <InfoCell label={i18n.language === "ru" ? "Конец" : "End"}
+                value={format(new Date(instance.end_date), "d MMM yyyy", { locale: dateLocale })} />
+              <InfoCell label={i18n.language === "ru" ? "Осталось" : "Days left"} value={`${daysLeft} дн.`} />
+              <InfoCell label={i18n.language === "ru" ? "Задач/день" : "Tasks/day"} value={`${challenge.tasks_per_day}`} />
+              <InfoCell label={i18n.language === "ru" ? "Тип" : "Type"}
+                value={t(`create_challenge.type_${challenge.type}` as any, { defaultValue: challenge.type })} />
               {challenge.task_times && challenge.task_times.length > 0 && (
-                <InfoRow
-                  label={i18n.language === "ru" ? "Время" : "Times"}
-                  value={challenge.task_times.map(t => t.slice(0, 5)).join(", ")}
-                />
+                <InfoCell label={i18n.language === "ru" ? "Время" : "Times"}
+                  value={challenge.task_times.map((t) => t.slice(0, 5)).join(", ")} />
               )}
             </div>
           </div>
 
           {/* Actions */}
-          {isActive && (
-            <div className="flex gap-3">
-              <button
-                onClick={() => setEditing(true)}
-                className="flex-1 py-3 bg-primary-600 text-white font-medium rounded-xl hover:bg-primary-700 transition-colors"
-              >
-                ✏️ {i18n.language === "ru" ? "Редактировать" : "Edit"}
+          <div className="flex gap-2.5">
+            {isActive && (
+              <button onClick={() => setEditing(true)}
+                className="flex items-center justify-center gap-2 flex-1 py-3 rounded-md text-[13px] font-bold text-white"
+                style={{ background: "var(--color-accent)" }}>
+                <EditIcon size={14} />
+                {i18n.language === "ru" ? "Редактировать" : "Edit"}
               </button>
-              <Link
-                to={`/reports/challenge/${instance.id}`}
-                className="flex-1 py-3 bg-white border border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-colors text-center"
-              >
-                📊 {t("challenges.report")}
-              </Link>
-            </div>
-          )}
+            )}
+            <Link to={`/reports/challenge/${instance.id}`}
+              className="flex items-center justify-center gap-2 flex-1 py-3 rounded-md text-[13px] font-bold transition-colors"
+              style={{ background: "var(--color-surface)", border: "1.5px solid var(--color-border-strong)", color: "var(--color-text-secondary)" }}>
+              <BarChartIcon size={14} />
+              {t("challenges.report")}
+            </Link>
+          </div>
+
           {isActive && (
-            <button
-              onClick={handleCancel}
-              className="w-full py-2.5 border-2 border-red-200 text-red-600 font-medium rounded-xl hover:bg-red-50 transition-colors text-sm"
-            >
+            <button onClick={handleCancel}
+              className="w-full py-2.5 rounded-md text-[13px] font-semibold transition-colors"
+              style={{ border: "1.5px solid var(--color-danger)", color: "var(--color-danger)" }}>
               {t("challenges.cancel")}
             </button>
-          )}
-          {!isActive && (
-            <Link
-              to={`/reports/challenge/${instance.id}`}
-              className="block w-full py-3 bg-white border border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-colors text-center"
-            >
-              📊 {t("challenges.report")}
-            </Link>
           )}
         </>
       ) : (
         /* Edit form */
-        <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
+        <div className="rounded-xl p-5 space-y-4"
+          style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+          <h3 className="font-bold text-text-primary text-[16px]">{t("create_challenge.customize")}</h3>
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t("create_challenge.title_label")}</label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
-            />
+            <label className="block text-[12px] font-semibold text-text-secondary mb-1.5">
+              {t("create_challenge.title_label")}
+            </label>
+            <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
+              className={inputClass} style={inputStyle}
+              onFocus={(e) => (e.target.style.borderColor = "var(--color-accent)")}
+              onBlur={(e) => (e.target.style.borderColor = "var(--color-border)")} />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t("create_challenge.description_label")}</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={2}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
-            />
+            <label className="block text-[12px] font-semibold text-text-secondary mb-1.5">
+              {t("create_challenge.description_label")}
+            </label>
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)}
+              rows={2} className={inputClass + " resize-none"} style={inputStyle}
+              onFocus={(e) => (e.target.style.borderColor = "var(--color-accent)")}
+              onBlur={(e) => (e.target.style.borderColor = "var(--color-border)")} />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t("create_challenge.start_date_label").replace("начала", "окончания").replace("Start", "End")}</label>
-            <input
-              type="date"
-              value={endDate}
-              min={instance.start_date}
+            <label className="block text-[12px] font-semibold text-text-secondary mb-1.5">
+              {i18n.language === "ru" ? "Дата окончания" : "End date"}
+            </label>
+            <input type="date" value={endDate} min={instance.start_date}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
-            />
+              className={inputClass} style={inputStyle}
+              onFocus={(e) => (e.target.style.borderColor = "var(--color-accent)")}
+              onBlur={(e) => (e.target.style.borderColor = "var(--color-border)")} />
           </div>
 
           {challenge.type !== "all_day" && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t("create_challenge.tasks_per_day_label")}</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={10}
-                  value={tasksPerDay}
+                <label className="block text-[12px] font-semibold text-text-secondary mb-1.5">
+                  {t("create_challenge.tasks_per_day_label")}
+                </label>
+                <input type="number" min={1} max={10} value={tasksPerDay}
                   onChange={(e) => {
                     const n = Number(e.target.value);
                     setTasksPerDay(n);
@@ -258,45 +272,33 @@ export default function ChallengeDetail() {
                       return copy.slice(0, n);
                     });
                   }}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
+                  className={inputClass} style={inputStyle}
+                  onFocus={(e) => (e.target.style.borderColor = "var(--color-accent)")}
+                  onBlur={(e) => (e.target.style.borderColor = "var(--color-border)")} />
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t("create_challenge.times_label")}</label>
-                <div className="space-y-2">
-                  {taskTimes.slice(0, tasksPerDay).map((tm, i) => (
-                    <input
-                      key={i}
-                      type="time"
-                      value={tm}
-                      onChange={(e) =>
-                        setTaskTimes((prev) => {
-                          const copy = [...prev];
-                          copy[i] = e.target.value;
-                          return copy;
-                        })
-                      }
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    />
-                  ))}
-                </div>
+              <div className="space-y-2">
+                {taskTimes.slice(0, tasksPerDay).map((tm, i) => (
+                  <input key={i} type="time" value={tm}
+                    onChange={(e) => setTaskTimes((prev) => {
+                      const copy = [...prev]; copy[i] = e.target.value; return copy;
+                    })}
+                    className={inputClass} style={inputStyle}
+                    onFocus={(e) => (e.target.style.borderColor = "var(--color-accent)")}
+                    onBlur={(e) => (e.target.style.borderColor = "var(--color-border)")} />
+                ))}
               </div>
             </>
           )}
 
-          <div className="flex gap-3 pt-2">
-            <button
-              onClick={() => { setEditing(false); fillForm(instance); setError(""); }}
-              className="flex-1 py-3 border border-gray-300 text-gray-600 font-medium rounded-xl hover:bg-gray-50 transition-colors"
-            >
+          <div className="flex gap-2.5 pt-1">
+            <button onClick={() => { setEditing(false); fillForm(instance); setError(""); }}
+              className="flex-1 py-3 rounded-md text-[13px] font-bold transition-colors"
+              style={{ border: "1.5px solid var(--color-border-strong)", color: "var(--color-text-secondary)" }}>
               {t("common.cancel")}
             </button>
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex-1 py-3 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 disabled:opacity-50 transition-colors"
-            >
+            <button onClick={handleSave} disabled={saving}
+              className="flex-1 py-3 rounded-md text-[13px] font-bold text-white disabled:opacity-50 transition-opacity"
+              style={{ background: "var(--color-accent)" }}>
               {saving ? t("common.saving") : t("common.save")}
             </button>
           </div>
@@ -306,11 +308,11 @@ export default function ChallengeDetail() {
   );
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function InfoCell({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-gray-50 rounded-xl px-3 py-2">
-      <p className="text-xs text-gray-400">{label}</p>
-      <p className="font-medium text-gray-800 text-sm mt-0.5">{value}</p>
+    <div className="rounded-md px-3 py-2.5" style={{ background: "var(--color-surface2)" }}>
+      <p className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wide">{label}</p>
+      <p className="font-bold text-text-primary text-[13px] mt-0.5">{value}</p>
     </div>
   );
 }

@@ -1,60 +1,100 @@
 import { useTranslation } from "react-i18next";
+import { useThemeStore } from "../store/themeStore";
+import { useCategoryStyle } from "../utils/category";
 import { DailyTask } from "../store/taskStore";
+import { CheckIcon, ClockIcon, UndoIcon } from "./Icons";
 
 interface Props {
   task: DailyTask;
   onComplete: (id: number) => void;
   onSkip: (id: number) => void;
+  onUndo?: (id: number) => void;
   loading?: boolean;
+  showChallengeName?: boolean;
 }
 
-const statusColors = {
-  pending: "border-gray-200 bg-white",
-  completed: "border-green-200 bg-green-50",
-  skipped: "border-gray-200 bg-gray-50 opacity-60",
-};
-
-export default function TaskCard({ task, onComplete, onSkip, loading }: Props) {
+export default function TaskCard({ task, onComplete, onSkip, onUndo, loading, showChallengeName }: Props) {
   const { t } = useTranslation();
+  const { dark } = useThemeStore();
+  const { icon, accent, bg } = useCategoryStyle(task.challenge_title, dark);
+
   const isPending = task.status === "pending";
+  const isDone = task.status === "completed";
+  const isSkipped = task.status === "skipped";
+
+  const cardBg = isDone
+    ? "var(--color-success-bg)"
+    : isSkipped
+    ? "var(--color-surface2)"
+    : "var(--color-surface)";
+
+  const cardBorder = isDone
+    ? "var(--color-success)"
+    : isSkipped
+    ? "var(--color-border)"
+    : accent;
 
   return (
-    <div className={`rounded-xl border-2 p-4 transition-all ${statusColors[task.status]}`}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold text-gray-800 truncate">{task.challenge_title}</p>
-          {task.scheduled_time && (
-            <p className="text-sm text-gray-500 mt-0.5">
-              ⏰ {task.scheduled_time.slice(0, 5)}
-            </p>
-          )}
-          <p className="text-xs text-gray-400 mt-1 capitalize">{task.type.replace("_", " ")}</p>
+    <div
+      className="rounded-lg p-3.5 transition-all duration-200"
+      style={{
+        background: cardBg,
+        border: `1.5px solid ${isDone ? "var(--color-success-bg)" : isSkipped ? "var(--color-border)" : `${accent}35`}`,
+        opacity: isSkipped ? 0.6 : 1,
+      }}
+    >
+      <div className="flex items-center gap-3">
+        {/* Category icon or checkmark */}
+        <div className="w-10 h-10 rounded-[10px] flex items-center justify-center shrink-0 text-lg"
+          style={{ background: isDone ? "var(--color-success-bg)" : bg }}>
+          {isDone
+            ? <CheckIcon size={18} className="text-success" strokeWidth={2.5} />
+            : <span>{icon}</span>
+          }
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          {task.status === "completed" && (
-            <span className="text-green-600 font-bold text-lg">✓</span>
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          {showChallengeName && (
+            <span className="inline-block text-[10px] font-bold px-1.5 py-0.5 rounded-full mb-1"
+              style={{ background: `${accent}18`, color: accent }}>
+              {task.challenge_title}
+            </span>
           )}
-          {task.status === "skipped" && (
-            <span className="text-gray-400 text-sm">{t("common.skip").toLowerCase()}</span>
+          <p className={`text-[14px] font-bold leading-tight ${isDone ? "line-through text-text-tertiary" : "text-text-primary"}`}>
+            {task.challenge_title}
+          </p>
+          {task.scheduled_time && (
+            <p className="flex items-center gap-1 mt-0.5 text-[11px] font-semibold"
+              style={{ color: isPending ? accent : "var(--color-text-tertiary)" }}>
+              <ClockIcon size={11} strokeWidth={2} />
+              {task.scheduled_time.slice(0, 5)}
+            </p>
           )}
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-1.5 shrink-0">
           {isPending && (
             <>
-              <button
-                onClick={() => onSkip(task.id)}
-                disabled={loading}
-                className="px-3 py-1.5 text-xs text-gray-500 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 transition-colors"
-              >
+              <button onClick={() => onSkip(task.id)} disabled={loading}
+                className="px-2.5 py-1.5 text-[12px] font-semibold rounded-sm border disabled:opacity-40 transition-colors"
+                style={{ color: "var(--color-text-secondary)", borderColor: "var(--color-border-strong)", borderWidth: "1.5px" }}>
                 {t("common.skip")}
               </button>
-              <button
-                onClick={() => onComplete(task.id)}
-                disabled={loading}
-                className="px-3 py-1.5 text-xs text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50 transition-colors font-medium"
-              >
+              <button onClick={() => onComplete(task.id)} disabled={loading}
+                className="px-2.5 py-1.5 text-[12px] font-bold text-white rounded-sm disabled:opacity-40 transition-colors"
+                style={{ background: accent }}>
                 {t("common.done")}
               </button>
             </>
+          )}
+          {!isPending && onUndo && (
+            <button onClick={() => onUndo(task.id)} disabled={loading}
+              className="p-1.5 rounded-sm text-text-tertiary hover:text-text-secondary transition-colors"
+              title="Undo">
+              <UndoIcon size={14} />
+            </button>
           )}
         </div>
       </div>

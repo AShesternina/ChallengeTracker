@@ -8,7 +8,7 @@ from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.user import User
 from app.schemas.daily import DailySummary, DailyTaskOut
-from app.services.daily_task_service import complete_task, get_daily_tasks, skip_task
+from app.services.daily_task_service import complete_task, get_daily_tasks, reset_task, skip_task
 
 router = APIRouter(tags=["daily"])
 
@@ -51,5 +51,17 @@ async def skip(
 ):
     try:
         return await skip_task(db, task_id, user.id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.post("/tasks/{task_id}/reset", response_model=DailyTaskOut)
+async def reset(
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    try:
+        return await reset_task(db, task_id, user.id)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))

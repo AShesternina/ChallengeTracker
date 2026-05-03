@@ -3,16 +3,74 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --color-bg: #f5f4f2;
+    --color-surface: #ffffff;
+    --color-surface2: #f0eeeb;
+    --color-border: #e8e5e0;
+    --color-border-strong: #d4cfc8;
+    --color-text-primary: #18181b;
+    --color-text-secondary: #71717a;
+    --color-text-tertiary: #a1a1aa;
+    --color-accent: #5b4cf5;
+    --color-accent-hover: #4a3de0;
+    --color-accent-soft: #ede9fe;
+    --color-accent-mid: #c4b5fd;
+    --color-success: #16a34a;
+    --color-success-bg: #dcfce7;
+    --color-danger: #dc2626;
+    --color-danger-bg: #fee2e2;
+    --color-warning: #ca8a04;
+    --color-warning-bg: #fef9c3;
+    --color-info: #2563eb;
+    --color-info-bg: #dbeafe;
+    --color-nav-bg: #ffffff;
+    --color-header-bg: rgba(255,255,255,0.92);
+  }
+
+  :root.dark {
+    --color-bg: #0f0f13;
+    --color-surface: #18181f;
+    --color-surface2: #222229;
+    --color-border: rgba(255,255,255,0.08);
+    --color-border-strong: rgba(255,255,255,0.14);
+    --color-text-primary: #f4f4f5;
+    --color-text-secondary: #a1a1aa;
+    --color-text-tertiary: #52525b;
+    --color-accent: #7c6dfa;
+    --color-accent-hover: #6b5ef0;
+    --color-accent-soft: rgba(124,109,250,0.15);
+    --color-accent-mid: rgba(124,109,250,0.4);
+    --color-success: #4ade80;
+    --color-success-bg: rgba(74,222,128,0.12);
+    --color-danger: #f87171;
+    --color-danger-bg: rgba(248,113,113,0.12);
+    --color-warning: #fbbf24;
+    --color-warning-bg: rgba(251,191,36,0.12);
+    --color-info: #60a5fa;
+    --color-info-bg: rgba(96,165,250,0.12);
+    --color-nav-bg: rgba(15,15,19,0.92);
+    --color-header-bg: rgba(15,15,19,0.92);
+  }
+
   html {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
     -webkit-tap-highlight-color: transparent;
+    background-color: var(--color-bg);
+    color: var(--color-text-primary);
   }
 
   body {
-    @apply bg-gray-50 text-gray-900;
+    background-color: var(--color-bg);
+    color: var(--color-text-primary);
+    transition: background-color 0.3s, color 0.3s;
   }
 
-  * {
-    box-sizing: border-box;
+  * { box-sizing: border-box; }
+}
+
+@layer utilities {
+  .transition-theme {
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
   }
 }

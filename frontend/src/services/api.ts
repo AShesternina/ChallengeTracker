@@ -62,6 +62,7 @@ export const dailyApi = {
     api.get("/daily/today", { params: date ? { target_date: date } : {} }),
   complete: (taskId: number) => api.post(`/tasks/${taskId}/complete`),
   skip: (taskId: number) => api.post(`/tasks/${taskId}/skip`),
+  reset: (taskId: number) => api.post(`/tasks/${taskId}/reset`),
 };
 
 // --- Challenges ---

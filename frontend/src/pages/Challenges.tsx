@@ -4,6 +4,9 @@ import { format } from "date-fns";
 import { ru as ruLocale, enUS } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
 import { challengesApi } from "../services/api";
+import { useThemeStore } from "../store/themeStore";
+import { useCategoryStyle } from "../utils/category";
+import { PlusIcon, ChevronRightIcon } from "../components/Icons";
 
 interface ChallengeInstance {
   id: number;
@@ -13,15 +16,16 @@ interface ChallengeInstance {
   status: string;
 }
 
-const statusColorMap = {
-  active: "bg-green-100 text-green-700",
-  paused: "bg-yellow-100 text-yellow-700",
-  completed: "bg-blue-100 text-blue-700",
-  cancelled: "bg-gray-100 text-gray-500",
+const STATUS_STYLE: Record<string, { bg: string; text: string }> = {
+  active:    { bg: "var(--color-success-bg)",  text: "var(--color-success)" },
+  paused:    { bg: "var(--color-warning-bg)",  text: "var(--color-warning)" },
+  completed: { bg: "var(--color-info-bg)",     text: "var(--color-info)" },
+  cancelled: { bg: "var(--color-surface2)",    text: "var(--color-text-tertiary)" },
 };
 
 export default function Challenges() {
   const { t, i18n } = useTranslation();
+  const { dark } = useThemeStore();
   const dateLocale = i18n.language === "ru" ? ruLocale : enUS;
   const [instances, setInstances] = useState<ChallengeInstance[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,61 +40,104 @@ export default function Challenges() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-48">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+        <div className="w-7 h-7 rounded-full border-2 animate-spin"
+          style={{ borderColor: "var(--color-accent)", borderTopColor: "transparent" }} />
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 pb-20">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-800">{t("challenges.title")}</h2>
-        <Link
-          to="/challenges/new"
-          className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-xl hover:bg-primary-700 transition-colors"
-        >
+        <h2 className="text-[22px] font-black text-text-primary" style={{ letterSpacing: "-0.4px" }}>
+          {t("challenges.title")}
+        </h2>
+        <Link to="/challenges/new"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-md text-[13px] font-bold text-white"
+          style={{ background: "var(--color-accent)" }}>
+          <PlusIcon size={14} strokeWidth={2.5} />
           {t("common.new")}
         </Link>
       </div>
 
       {instances.length === 0 && (
-        <div className="text-center py-16 text-gray-400">
+        <div className="text-center py-16">
           <p className="text-5xl mb-3">🎯</p>
-          <p className="font-medium text-gray-600">{t("challenges.no_challenges")}</p>
-          <Link to="/challenges/new" className="text-sm text-primary-600 hover:underline mt-1 block">
+          <p className="font-bold text-text-primary">{t("challenges.no_challenges")}</p>
+          <Link to="/challenges/new"
+            className="text-[13px] font-semibold mt-2 block"
+            style={{ color: "var(--color-accent)" }}>
             {t("challenges.no_challenges_hint")}
           </Link>
         </div>
       )}
 
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         {instances.map((instance) => (
-          <Link
-            key={instance.id}
-            to={`/challenges/${instance.id}`}
-            className="block bg-white rounded-xl border border-gray-100 p-4 shadow-sm hover:border-primary-200 hover:shadow-md transition-all"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-semibold text-gray-800 truncate">{instance.challenge.title}</h3>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${statusColorMap[instance.status as keyof typeof statusColorMap] || "bg-gray-100"}`}>
-                    {statusLabel(instance.status)}
-                  </span>
-                </div>
-                {instance.challenge.description && (
-                  <p className="text-sm text-gray-500 mt-1 line-clamp-1">{instance.challenge.description}</p>
-                )}
-                <p className="text-xs text-gray-400 mt-2">
-                  {format(new Date(instance.start_date), "d MMM", { locale: dateLocale })} →{" "}
-                  {format(new Date(instance.end_date), "d MMM yyyy", { locale: dateLocale })}
-                </p>
-              </div>
-              <span className="text-gray-400 text-lg shrink-0">›</span>
-            </div>
-          </Link>
+          <ChallengeCard key={instance.id} instance={instance} dark={dark}
+            dateLocale={dateLocale} statusLabel={statusLabel} />
         ))}
       </div>
     </div>
+  );
+}
+
+function ChallengeCard({ instance, dark, dateLocale, statusLabel }: {
+  instance: ChallengeInstance;
+  dark: boolean;
+  dateLocale: any;
+  statusLabel: (s: string) => string;
+}) {
+  const { icon, accent, bg } = useCategoryStyle(instance.challenge.title, dark);
+  const style = STATUS_STYLE[instance.status] ?? STATUS_STYLE.cancelled;
+
+  const totalDays = Math.ceil(
+    (new Date(instance.end_date).getTime() - new Date(instance.start_date).getTime()) / 86400000
+  ) + 1;
+  const daysLeft = Math.max(0, Math.ceil(
+    (new Date(instance.end_date).getTime() - Date.now()) / 86400000
+  ));
+  const progress = Math.min(100, Math.round(((totalDays - daysLeft) / totalDays) * 100));
+
+  return (
+    <Link to={`/challenges/${instance.id}`}
+      className="block rounded-md p-4 transition-all hover:shadow-md"
+      style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-[10px] flex items-center justify-center shrink-0 text-lg"
+          style={{ background: bg }}>
+          {icon}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <h3 className="font-bold text-text-primary truncate text-[14px]">
+              {instance.challenge.title}
+            </h3>
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold shrink-0"
+              style={{ background: style.bg, color: style.text }}>
+              {statusLabel(instance.status)}
+            </span>
+          </div>
+          {instance.challenge.description && (
+            <p className="text-[12px] text-text-tertiary line-clamp-1 mb-1.5">
+              {instance.challenge.description}
+            </p>
+          )}
+          {/* Progress bar */}
+          <div className="h-1 rounded-full overflow-hidden mb-1" style={{ background: "var(--color-surface2)" }}>
+            <div className="h-full rounded-full transition-all"
+              style={{ width: `${progress}%`, background: accent }} />
+          </div>
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] text-text-tertiary">
+              {format(new Date(instance.start_date), "d MMM", { locale: dateLocale })} →{" "}
+              {format(new Date(instance.end_date), "d MMM yyyy", { locale: dateLocale })}
+            </p>
+            <p className="text-[11px] font-semibold" style={{ color: accent }}>{progress}%</p>
+          </div>
+        </div>
+        <ChevronRightIcon size={14} className="text-text-tertiary shrink-0 mt-1" />
+      </div>
+    </Link>
   );
 }

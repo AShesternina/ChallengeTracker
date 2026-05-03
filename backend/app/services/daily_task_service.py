@@ -142,6 +142,32 @@ async def skip_task(db: AsyncSession, task_id: int, user_id: int) -> DailyTaskOu
     return await _update_task_status(db, task_id, user_id, TaskStatus.skipped)
 
 
+async def reset_task(db: AsyncSession, task_id: int, user_id: int) -> DailyTaskOut:
+    result = await db.execute(
+        select(DailyTaskInstance)
+        .where(DailyTaskInstance.id == task_id, DailyTaskInstance.user_id == user_id)
+        .options(selectinload(DailyTaskInstance.challenge_instance).selectinload(ChallengeInstance.challenge))
+    )
+    task = result.scalar_one_or_none()
+    if not task:
+        raise ValueError("Task not found")
+
+    task.status = TaskStatus.pending
+    task.completed_at = None
+    await db.flush()
+
+    return DailyTaskOut(
+        id=task.id,
+        challenge_instance_id=task.challenge_instance_id,
+        challenge_title=task.challenge_instance.challenge.title,
+        date=task.date,
+        scheduled_time=task.scheduled_time,
+        type=task.type,
+        status=task.status,
+        completed_at=task.completed_at,
+    )
+
+
 async def _update_task_status(
     db: AsyncSession, task_id: int, user_id: int, new_status: TaskStatus
 ) -> DailyTaskOut:

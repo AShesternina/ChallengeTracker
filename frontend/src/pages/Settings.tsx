@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { userApi } from "../services/api";
 import { useAuthStore } from "../store/authStore";
+import { useThemeStore } from "../store/themeStore";
 import { subscribeToPush } from "../services/push";
+import { SunIcon, MoonIcon } from "../components/Icons";
 
 const TIMEZONES = [
   "UTC", "Europe/Moscow", "Europe/London", "Europe/Berlin", "America/New_York",
@@ -18,6 +20,7 @@ const LANGUAGES = [
 export default function Settings() {
   const { t, i18n } = useTranslation();
   const { user, setUser, logout } = useAuthStore();
+  const { dark, toggle } = useThemeStore();
   const [timezone, setTimezone] = useState(user?.timezone || "UTC");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -64,102 +67,119 @@ export default function Settings() {
     }
   };
 
-  const handleLanguage = (code: string) => {
-    i18n.changeLanguage(code);
-  };
+  const userName = user?.email?.split("@")[0] ?? "—";
+  const initial = userName[0]?.toUpperCase() ?? "U";
 
   return (
-    <div className="space-y-6 pb-20">
-      <h2 className="text-2xl font-bold text-gray-800">{t("settings.title")}</h2>
+    <div className="space-y-5">
+      <h2 className="text-[22px] font-black text-text-primary" style={{ letterSpacing: "-0.4px" }}>
+        {t("settings.title")}
+      </h2>
 
       {/* Profile */}
-      <section className="bg-white rounded-xl border border-gray-100 p-4 space-y-3">
-        <h3 className="font-semibold text-gray-700">{t("settings.profile")}</h3>
-        <div className="text-sm text-gray-600 space-y-1">
-          <p><span className="font-medium">{t("settings.email")}:</span> {user?.email || "—"}</p>
-          <p><span className="font-medium">{t("settings.phone")}:</span> {user?.phone || "—"}</p>
+      <Section title={t("settings.profile")}>
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-full flex items-center justify-center text-white text-[18px] font-black shrink-0"
+            style={{ background: "linear-gradient(135deg, var(--color-accent), #2563eb)" }}>
+            {initial}
+          </div>
+          <div>
+            <p className="font-bold text-text-primary text-[15px]">{userName}</p>
+            <p className="text-[12px] text-text-tertiary">{user?.email || "—"}</p>
+          </div>
         </div>
-      </section>
+      </Section>
+
+      {/* Appearance */}
+      <Section title={i18n.language === "ru" ? "Внешний вид" : "Appearance"}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            {dark ? <MoonIcon size={16} className="text-text-secondary" /> : <SunIcon size={16} className="text-text-secondary" />}
+            <span className="text-[14px] font-semibold text-text-primary">
+              {dark ? (i18n.language === "ru" ? "Тёмная тема" : "Dark mode") : (i18n.language === "ru" ? "Светлая тема" : "Light mode")}
+            </span>
+          </div>
+          <Toggle enabled={dark} onToggle={toggle} loading={false} />
+        </div>
+      </Section>
 
       {/* Language */}
-      <section className="bg-white rounded-xl border border-gray-100 p-4 space-y-3">
-        <h3 className="font-semibold text-gray-700">{t("settings.language")}</h3>
+      <Section title={t("settings.language")}>
         <div className="flex gap-2">
           {LANGUAGES.map((lang) => (
-            <button
-              key={lang.code}
-              onClick={() => handleLanguage(lang.code)}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                i18n.language === lang.code
-                  ? "border-primary-500 bg-primary-50 text-primary-700"
-                  : "border-gray-200 text-gray-600 hover:border-gray-300"
-              }`}
-            >
-              <span className="text-lg">{lang.flag}</span>
+            <button key={lang.code} onClick={() => i18n.changeLanguage(lang.code)}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-[13px] font-bold transition-all"
+              style={{
+                border: `1.5px solid ${i18n.language === lang.code ? "var(--color-accent)" : "var(--color-border)"}`,
+                background: i18n.language === lang.code ? "var(--color-accent-soft)" : "var(--color-surface2)",
+                color: i18n.language === lang.code ? "var(--color-accent)" : "var(--color-text-secondary)",
+              }}>
+              <span>{lang.flag}</span>
               {lang.label}
             </button>
           ))}
         </div>
-      </section>
+      </Section>
 
       {/* Timezone */}
-      <section className="bg-white rounded-xl border border-gray-100 p-4 space-y-3">
-        <h3 className="font-semibold text-gray-700">{t("settings.timezone")}</h3>
-        <select
-          value={timezone}
-          onChange={(e) => setTimezone(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
-        >
+      <Section title={t("settings.timezone")}>
+        <select value={timezone} onChange={(e) => setTimezone(e.target.value)}
+          className="w-full px-3 py-2.5 rounded-md text-[13px] text-text-primary outline-none mb-3"
+          style={{ background: "var(--color-surface2)", border: "1.5px solid var(--color-border)" }}>
           {TIMEZONES.map((tz) => (
             <option key={tz} value={tz}>{tz}</option>
           ))}
         </select>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="w-full py-2 bg-primary-600 text-white text-sm font-medium rounded-xl hover:bg-primary-700 disabled:opacity-50 transition-colors"
-        >
+        <button onClick={handleSave} disabled={saving}
+          className="w-full py-2.5 rounded-md text-[13px] font-bold text-white disabled:opacity-50 transition-opacity"
+          style={{ background: saved ? "var(--color-success)" : "var(--color-accent)" }}>
           {saving ? t("common.saving") : saved ? t("common.saved") : t("common.save")}
         </button>
-      </section>
+      </Section>
 
       {/* Push notifications */}
-      <section className="bg-white rounded-xl border border-gray-100 p-4 space-y-3">
-        <h3 className="font-semibold text-gray-700">{t("settings.push_notifications")}</h3>
+      <Section title={t("settings.push_notifications")}>
         {"PushManager" in window ? (
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">{t("settings.web_push")}</p>
-              <p className="text-xs text-gray-400">
+              <p className="text-[14px] font-semibold text-text-primary">{t("settings.web_push")}</p>
+              <p className="text-[12px] text-text-tertiary mt-0.5">
                 {pushEnabled ? t("settings.push_enabled") : t("settings.push_disabled")}
               </p>
             </div>
-            <button
-              onClick={handlePushToggle}
-              disabled={pushLoading}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                pushEnabled ? "bg-primary-600" : "bg-gray-300"
-              } disabled:opacity-50`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  pushEnabled ? "translate-x-6" : "translate-x-1"
-                }`}
-              />
-            </button>
+            <Toggle enabled={pushEnabled} onToggle={handlePushToggle} loading={pushLoading} />
           </div>
         ) : (
-          <p className="text-sm text-gray-400">{t("settings.push_not_supported")}</p>
+          <p className="text-[13px] text-text-tertiary">{t("settings.push_not_supported")}</p>
         )}
-      </section>
+      </Section>
 
       {/* Logout */}
-      <button
-        onClick={logout}
-        className="w-full py-3 border-2 border-red-200 text-red-600 font-medium rounded-xl hover:bg-red-50 transition-colors"
-      >
+      <button onClick={logout}
+        className="w-full py-3 rounded-md text-[14px] font-bold transition-colors"
+        style={{ border: "1.5px solid var(--color-danger)", color: "var(--color-danger)" }}>
         {t("settings.sign_out")}
       </button>
     </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-md p-4 space-y-3"
+      style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+      <p className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider">{title}</p>
+      {children}
+    </div>
+  );
+}
+
+function Toggle({ enabled, onToggle, loading }: { enabled: boolean; onToggle: () => void; loading: boolean }) {
+  return (
+    <button onClick={onToggle} disabled={loading}
+      className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+      style={{ background: enabled ? "var(--color-accent)" : "var(--color-border-strong)" }}>
+      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${enabled ? "translate-x-6" : "translate-x-1"}`} />
+    </button>
   );
 }
