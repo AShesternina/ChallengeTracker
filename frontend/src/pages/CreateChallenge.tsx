@@ -270,8 +270,9 @@ function groupTemplatesByCategory(templates: Template[], lang: string): { catego
 
 function TemplateCard({ tpl, dark, onClick }: { tpl: Template; dark: boolean; onClick: () => void }) {
   const { t, i18n } = useTranslation();
-  const { icon, accent, bg } = useCategoryStyle(tpl.title, dark);
+  const { accent, bg } = useCategoryStyle(tpl.title, dark);
   const lang = i18n.language;
+  const icon = tpl.icon || "🎯";
 
   return (
     <button onClick={onClick}
