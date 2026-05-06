@@ -283,8 +283,8 @@ export default function Reports() {
                   bg = "var(--color-surface2)";
                   textColor = "var(--color-text-tertiary)";
                 } else if (isFutureDay) {
-                  bg = "#BFDBFE";
-                  textColor = "#1E40AF";
+                  bg = "#DBEAFE";
+                  textColor = "#60A5FA";
                 } else if (rate >= 1) {
                   bg = "var(--color-success)";
                   textColor = "white";
@@ -326,7 +326,7 @@ export default function Reports() {
               <Legend color="var(--color-success)" label={t("reports.legend_100")} />
               <Legend color="rgba(22,163,74,0.45)" label={t("reports.legend_50")} />
               <Legend color="#FED7AA" label={t("reports.legend_less50")} />
-              <Legend color="#BFDBFE" label={t("reports.legend_future")} />
+              <Legend color="#DBEAFE" label={t("reports.legend_future")} />
               <Legend color="var(--color-surface2)" label={t("reports.legend_none")} />
             </div>
             <p className="text-[10px] text-text-tertiary mt-2">
