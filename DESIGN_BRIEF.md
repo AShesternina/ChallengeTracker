@@ -89,7 +89,10 @@ Each challenge type has a semantic color used for: card border accent, icon back
 | water (💧) | `#0ea5e9` | `#f0f9ff` | `#38bdf8` | `rgba(56,189,248,0.12)` |
 | reading (📚) | `#16a34a` | `#f0fdf4` | `#4ade80` | `rgba(74,222,128,0.12)` |
 | meditation (🧘) | `#8b5cf6` | `#f5f3ff` | `#a78bfa` | `rgba(167,139,250,0.12)` |
-| nosugar (🚫) | `#71717a` | `#f4f4f5` | `#a1a1aa` | `rgba(161,161,170,0.12)` |
+| nosugar (🍭) | `#71717a` | `#f4f4f5` | `#a1a1aa` | `rgba(161,161,170,0.12)` |
+| sleep (😴) | `#6366f1` | `#eef2ff` | `#818cf8` | `rgba(129,140,248,0.12)` |
+| productivity (⚡) | `#f59e0b` | `#fffbeb` | `#fbbf24` | `rgba(251,191,36,0.12)` |
+| mental (🌿) | `#10b981` | `#ecfdf5` | `#34d399` | `rgba(52,211,153,0.12)` |
 
 ---
 
@@ -431,11 +434,16 @@ Two-step flow now has visual indicator: filled circle (step 1) → connector lin
 
 ## 12. Known Issues / Next Steps
 
+✅ = реализовано
+
 1. **Heatmap interactivity**: clicking a day cell should show a detail popover with that day's tasks
 2. **Celebration micro-interaction**: when all daily tasks are completed, show a subtle animation (not loud)
-3. **Empty states**: new user onboarding flow with CTA card instead of zeros
-4. **Challenge templates**: step 1 template cards should pre-fill step 2 form
-5. **Reports per-challenge**: clicking a challenge row in Reports should navigate to Challenge Report screen
+3. ✅ **Empty states / Onboarding**: 3-step modal for new users with no active challenges, redirects to Create Challenge
+4. ✅ **Challenge templates**: step 1 template cards pre-fill step 2 form with translated title/description
+5. ✅ **Reports per-challenge**: active challenges list with progress bars after heatmap, links to Challenge Report
 6. **Accessibility**: add `aria-label` to all icon-only buttons, implement focus trap in modals
-7. **Push notifications UI**: settings toggle exists, subscription flow not designed
+7. **Push notifications settings**: time picker for morning/evening notification times
 8. **Offline banner**: PWA offline state indicator needed
+9. ✅ **Pause/Resume challenge**: buttons on ChallengeDetail when active/paused
+10. ✅ **Delete cancelled challenge**: permanent delete button on ChallengeDetail
+11. ✅ **Weekly stats on Dashboard**: streak counter 🔥 in header

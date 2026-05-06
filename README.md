@@ -160,13 +160,17 @@ POST /api/v1/challenges/start
 GET  /api/v1/challenges/my
 GET  /api/v1/challenges/instances/{id}
 PATCH /api/v1/challenges/instances/{id}
-DELETE /api/v1/challenges/instances/{id}
+DELETE /api/v1/challenges/instances/{id}           # cancel (soft)
+POST /api/v1/challenges/instances/{id}/pause
+POST /api/v1/challenges/instances/{id}/resume
+DELETE /api/v1/challenges/instances/{id}/permanent # hard delete (cancelled only)
 
 GET  /api/v1/daily/today
 POST /api/v1/tasks/{id}/complete
 POST /api/v1/tasks/{id}/skip
-POST /api/v1/tasks/{id}/reset
+POST /api/v1/tasks/{id}/reset                      # revert to pending
 
+GET  /api/v1/reports/streak
 GET  /api/v1/reports/daily/{date}
 GET  /api/v1/reports/monthly/{year}/{month}
 GET  /api/v1/reports/challenge/{instance_id}
@@ -206,10 +210,10 @@ DELETE /api/v1/notifications/devices/{id}
 
 ## Деплой (production)
 
-- **Frontend**: Vercel (tracker.shura.pro) — автодеплой из ветки master
+- **Frontend**: Vercel — автодеплой из ветки master → tracker.shura.pro
 - **Backend + DB + Redis**: VPS 195.133.194.173, docker-compose.prod.yml
 - **SSL**: Let's Encrypt через certbot + nginx для api.tracker.shura.pro
-- **DNS**: Porkbun — A-запись api.tracker.shura.pro → 195.133.194.173
+- **DNS**: Porkbun — tracker.shura.pro → Vercel, api.tracker.shura.pro → 195.133.194.173
 
 ```bash
 # На сервере
@@ -227,4 +231,4 @@ docker exec challengetracker-backend-1 bash -c \
   "pip install -r requirements-test.txt -q && pytest tests/ -v --tb=short --cov=app --cov-report=term-missing"
 ```
 
-36 тестов, покрытие ~66%.
+53 теста: test_auth (11) · test_challenges (8) · test_daily (9) · test_reports (6) · test_new_features (19)
