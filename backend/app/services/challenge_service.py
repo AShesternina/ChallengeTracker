@@ -1,12 +1,13 @@
 import json
 from datetime import date, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.challenge import Challenge, ChallengeTemplate
 from app.models.challenge_instance import ChallengeInstance, InstanceStatus
+from app.models.daily_task_instance import DailyTaskInstance
 from app.schemas.challenge import ChallengeCreate, ChallengeInstanceUpdate, StartChallengeRequest
 
 
@@ -107,5 +108,6 @@ async def delete_instance(db: AsyncSession, instance_id: int, user_id: int) -> N
         raise ValueError("Instance not found")
     if instance.status != InstanceStatus.cancelled:
         raise ValueError("Only cancelled challenges can be deleted")
+    await db.execute(delete(DailyTaskInstance).where(DailyTaskInstance.challenge_instance_id == instance_id))
     await db.delete(instance)
     await db.flush()
