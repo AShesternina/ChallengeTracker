@@ -99,13 +99,13 @@ export default function CreateChallenge() {
           {t("create_challenge.from_scratch")}
         </button>
 
-        <div className="space-y-5">
+        <div className="space-y-4">
           {groupTemplatesByCategory(templates, i18n.language).map(({ category, items }) => (
             <div key={category}>
               <p className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider mb-2">
                 {category}
               </p>
-              <div className="space-y-2">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
                 {items.map((tpl) => (
                   <TemplateCard key={tpl.id} tpl={tpl} dark={dark} onClick={() => applyTemplate(tpl)} />
                 ))}
