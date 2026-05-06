@@ -253,9 +253,11 @@ function WeekChart({ days }: {
 }
 
 function MiniTaskRow({ task, dark }: { task: DailyTask; dark: boolean }) {
+  const { t } = useTranslation();
   const { icon, accent, bg } = useCategoryStyle(task.challenge_title, dark);
   const isDone = task.status === "completed";
   const isSkipped = task.status === "skipped";
+  const statusLabel = isDone ? t("daily.status_completed") : isSkipped ? t("daily.status_skipped") : t("daily.status_pending");
 
   return (
     <div className="flex items-center gap-3 rounded-md px-3 py-2.5"
@@ -269,14 +271,12 @@ function MiniTaskRow({ task, dark }: { task: DailyTask; dark: boolean }) {
       <p className={`flex-1 text-[13px] font-semibold truncate ${isDone ? "line-through text-text-tertiary" : "text-text-primary"}`}>
         {task.challenge_title}
       </p>
-      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-        isDone ? "text-success" : isSkipped ? "text-text-tertiary" : ""
-      }`}
+      <span className="text-[10px] px-2 py-0.5 rounded-full font-bold"
         style={{
           background: isDone ? "var(--color-success-bg)" : isSkipped ? "var(--color-surface2)" : `${accent}18`,
           color: isDone ? "var(--color-success)" : isSkipped ? "var(--color-text-tertiary)" : accent,
         }}>
-        {task.status}
+        {statusLabel}
       </span>
     </div>
   );
