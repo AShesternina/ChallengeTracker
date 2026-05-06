@@ -186,9 +186,9 @@ docker exec challengetracker-backend-1 pytest tests/ -v --tb=short
 docker exec challengetracker-backend-1 pytest tests/test_auth.py::test_login_success -v
 ```
 
-Tests use the **same PostgreSQL database** as the running app. Each test truncates all tables and reseeds 16 challenge templates. Run only on the **local Docker stack**, never on production.
+⚠️ **CRITICAL: NEVER run pytest on the production server.** Each test truncates ALL tables — this destroys all real user data. Tests must only run on a local Docker stack with a throwaway database.
 
-**Important**: when running tests on the server (no local Docker), copy updated test files into the running container first:
+To update test files on the server without running them, copy only:
 ```bash
 docker cp backend/tests/<file>.py challengetracker-backend-1:/app/tests/<file>.py
 ```
