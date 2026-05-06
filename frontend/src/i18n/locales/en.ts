@@ -145,6 +145,7 @@ const en = {
     legend_100: "100%",
     legend_50: "50%+",
     legend_less50: "<50%",
+    legend_future: "Upcoming",
     legend_none: "No tasks",
   },
   challenge_report: {

@@ -270,16 +270,31 @@ export default function Reports() {
                 <div key={`pad-${i}`} />
               ))}
               {report.days.map((day) => {
+                const todayStr = format(new Date(), "yyyy-MM-dd");
                 const rate = day.total > 0 ? day.completion_rate : -1;
                 const dayNum = Number(day.date.split("-")[2]);
-                const isToday = day.date === format(new Date(), "yyyy-MM-dd");
+                const isToday = day.date === todayStr;
+                const isFutureDay = day.date > todayStr;
                 const hasData = day.total > 0;
 
                 let bg: string;
-                if (rate < 0) bg = "var(--color-surface2)";
-                else if (rate >= 1) bg = "var(--color-success)";
-                else if (rate >= 0.5) bg = "rgba(22,163,74,0.45)";
-                else bg = "var(--color-danger-bg)";
+                let textColor: string;
+                if (rate < 0) {
+                  bg = "var(--color-surface2)";
+                  textColor = "var(--color-text-tertiary)";
+                } else if (isFutureDay) {
+                  bg = "#BFDBFE";
+                  textColor = "#1E40AF";
+                } else if (rate >= 1) {
+                  bg = "var(--color-success)";
+                  textColor = "white";
+                } else if (rate >= 0.5) {
+                  bg = "rgba(22,163,74,0.45)";
+                  textColor = "white";
+                } else {
+                  bg = "#FED7AA";
+                  textColor = "#C2410C";
+                }
 
                 return (
                   <button
@@ -288,16 +303,17 @@ export default function Reports() {
                     disabled={!hasData}
                     className="aspect-square rounded-sm flex items-center justify-center transition-transform"
                     style={{
-                      background: bg,
-                      outline: isToday ? "2px solid var(--color-accent)" : "none",
+                      background: isToday && !hasData ? "var(--color-surface2)" : bg,
+                      boxShadow: isToday ? "0 0 0 3px var(--color-accent)" : "none",
                       cursor: hasData ? "pointer" : "default",
                       transform: "scale(1)",
+                      zIndex: isToday ? 1 : "auto",
+                      position: "relative",
                     }}
                     onMouseEnter={(e) => { if (hasData) (e.currentTarget as HTMLElement).style.transform = "scale(1.15)"; }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = "scale(1)"; }}
                     title={hasData ? `${day.date}: ${Math.round(day.completion_rate * day.total)}/${day.total}` : day.date}>
-                    <span className="text-[10px] font-bold"
-                      style={{ color: rate >= 0.5 ? "white" : "var(--color-text-tertiary)" }}>
+                    <span className="text-[10px] font-bold" style={{ color: textColor }}>
                       {dayNum}
                     </span>
                   </button>
@@ -309,7 +325,8 @@ export default function Reports() {
             <div className="flex flex-wrap gap-3 mt-3">
               <Legend color="var(--color-success)" label={t("reports.legend_100")} />
               <Legend color="rgba(22,163,74,0.45)" label={t("reports.legend_50")} />
-              <Legend color="var(--color-danger-bg)" label={t("reports.legend_less50")} />
+              <Legend color="#FED7AA" label={t("reports.legend_less50")} />
+              <Legend color="#BFDBFE" label={t("reports.legend_future")} />
               <Legend color="var(--color-surface2)" label={t("reports.legend_none")} />
             </div>
             <p className="text-[10px] text-text-tertiary mt-2">

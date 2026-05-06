@@ -145,6 +145,7 @@ const ru = {
     legend_100: "100%",
     legend_50: "50%+",
     legend_less50: "<50%",
+    legend_future: "Предстоит",
     legend_none: "Нет задач",
   },
   challenge_report: {
