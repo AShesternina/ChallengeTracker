@@ -18,6 +18,11 @@ class MonthlyReport(BaseModel):
     completion_rate: float
 
 
+class StreakReport(BaseModel):
+    current_streak: int
+    longest_streak: int
+
+
 class ChallengeReport(BaseModel):
     challenge_instance_id: int
     challenge_title: str

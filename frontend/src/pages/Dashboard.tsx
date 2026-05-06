@@ -3,14 +3,13 @@ import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { ru as ruLocale, enUS } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
-import { dailyApi, challengesApi } from "../services/api";
+import { dailyApi, challengesApi, reportsApi } from "../services/api";
 import { useAuthStore } from "../store/authStore";
-import { useTaskStore } from "../store/taskStore";
+import { useTaskStore, DailyTask } from "../store/taskStore";
 import { useThemeStore } from "../store/themeStore";
 import ProgressRing from "../components/ProgressRing";
 import { FlameIcon, TargetIcon, CheckIcon } from "../components/Icons";
 import { useCategoryStyle } from "../utils/category";
-import { DailyTask } from "../store/taskStore";
 
 export default function Dashboard() {
   const { t, i18n } = useTranslation();
@@ -18,17 +17,19 @@ export default function Dashboard() {
   const { dark } = useThemeStore();
   const { summary, setSummary, setLoading } = useTaskStore();
   const [challengeCount, setChallengeCount] = useState(0);
+  const [streak, setStreak] = useState(0);
 
   const dateLocale = i18n.language === "ru" ? ruLocale : enUS;
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([dailyApi.today(), challengesApi.my()])
-      .then(([daily, challenges]) => {
+    Promise.all([dailyApi.today(), challengesApi.my(), reportsApi.streak()])
+      .then(([daily, challenges, streakData]) => {
         setSummary(daily.data);
         setChallengeCount(
           challenges.data.filter((c: { status: string }) => c.status === "active").length
         );
+        setStreak(streakData.data.current_streak);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -44,11 +45,22 @@ export default function Dashboard() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div>
-        <p className="text-[12px] font-medium text-text-tertiary capitalize">{todayStr}</p>
-        <h2 className="text-[22px] font-black text-text-primary mt-0.5" style={{ letterSpacing: "-0.4px" }}>
-          {t("dashboard.greeting", { name: userName })}
-        </h2>
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-[12px] font-medium text-text-tertiary capitalize">{todayStr}</p>
+          <h2 className="text-[22px] font-black text-text-primary mt-0.5" style={{ letterSpacing: "-0.4px" }}>
+            {t("dashboard.greeting", { name: userName })}
+          </h2>
+        </div>
+        {streak > 0 && (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full shrink-0"
+            style={{ background: "var(--color-warning-bg)" }}>
+            <FlameIcon size={14} className="text-warning" />
+            <span className="text-[13px] font-black" style={{ color: "var(--color-warning)" }}>
+              {streak}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Hero progress card */}

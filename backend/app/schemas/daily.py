@@ -12,6 +12,8 @@ class DailyTaskOut(BaseModel):
     type: TaskType
     status: TaskStatus
     completed_at: datetime | None
+    sequence_number: int | None = None  # position among sibling tasks (1-based)
+    total_count: int | None = None      # total tasks for this challenge today
 
     model_config = {"from_attributes": True}
 

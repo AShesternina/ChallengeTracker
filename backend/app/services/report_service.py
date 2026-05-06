@@ -7,7 +7,48 @@ from sqlalchemy.orm import selectinload
 
 from app.models.daily_task_instance import DailyTaskInstance, TaskStatus
 from app.models.challenge_instance import ChallengeInstance
-from app.schemas.reports import ChallengeReport, DayStats, MonthlyReport
+from app.schemas.reports import ChallengeReport, DayStats, MonthlyReport, StreakReport
+
+
+async def streak_report(db: AsyncSession, user_id: int) -> StreakReport:
+    """Global streak: consecutive days where user completed at least one task."""
+    result = await db.execute(
+        select(DailyTaskInstance.date, DailyTaskInstance.status)
+        .where(DailyTaskInstance.user_id == user_id)
+        .order_by(DailyTaskInstance.date)
+    )
+    rows = result.all()
+
+    # aggregate: date → has_any_completed
+    by_day: dict[date, bool] = {}
+    for r in rows:
+        if r.status == TaskStatus.completed:
+            by_day[r.date] = True
+        elif r.date not in by_day:
+            by_day[r.date] = False
+
+    sorted_days = sorted(by_day.keys())
+
+    # longest streak
+    longest_streak = 0
+    streak = 0
+    for d in sorted_days:
+        if by_day[d]:
+            streak += 1
+            longest_streak = max(longest_streak, streak)
+        else:
+            streak = 0
+
+    # current streak: walk back from today (skip today if no tasks yet)
+    today = date.today()
+    current_streak = 0
+    start = today if today in by_day else date.fromordinal(today.toordinal() - 1)
+    d = start
+    while d in by_day and by_day[d]:
+        current_streak += 1
+        d = date.fromordinal(d.toordinal() - 1)
+
+    return StreakReport(current_streak=current_streak, longest_streak=longest_streak)
 
 
 async def daily_report(db: AsyncSession, user_id: int, target_date: date) -> DayStats:

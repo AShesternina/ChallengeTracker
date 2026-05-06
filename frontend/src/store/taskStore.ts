@@ -9,6 +9,8 @@ export interface DailyTask {
   type: "single" | "multi" | "all_day";
   status: "pending" | "completed" | "skipped";
   completed_at: string | null;
+  sequence_number: number | null;
+  total_count: number | null;
 }
 
 export interface DailySummary {

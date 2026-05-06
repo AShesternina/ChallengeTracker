@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { ru as ruLocale, enUS } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
-import { reportsApi } from "../services/api";
+import { reportsApi, challengesApi } from "../services/api";
+import { useThemeStore } from "../store/themeStore";
+import { useCategoryStyle } from "../utils/category";
 import { ChevronRightIcon, ArrowLeftIcon } from "../components/Icons";
 
 interface DayStats {
@@ -21,23 +24,37 @@ interface MonthlyReport {
   completion_rate: number;
 }
 
+interface ChallengeInstance {
+  id: number;
+  challenge: { title: string };
+  start_date: string;
+  end_date: string;
+  status: string;
+}
+
 const DAY_HEADERS_RU = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 const DAY_HEADERS_EN = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 
 export default function Reports() {
   const { t, i18n } = useTranslation();
+  const { dark } = useThemeStore();
   const dateLocale = i18n.language === "ru" ? ruLocale : enUS;
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [report, setReport] = useState<MonthlyReport | null>(null);
+  const [challenges, setChallenges] = useState<ChallengeInstance[]>([]);
   const [loading, setLoading] = useState(false);
 
   const load = async () => {
     setLoading(true);
     try {
-      const { data } = await reportsApi.monthly(year, month);
+      const [{ data }, { data: ch }] = await Promise.all([
+        reportsApi.monthly(year, month),
+        challengesApi.my(),
+      ]);
       setReport(data);
+      setChallenges(ch.filter((c: ChallengeInstance) => c.status === "active"));
     } finally {
       setLoading(false);
     }
@@ -125,7 +142,7 @@ export default function Reports() {
 
                 return (
                   <div key={day.date}
-                    className="aspect-square rounded-sm flex items-center justify-center relative"
+                    className="aspect-square rounded-sm flex items-center justify-center"
                     style={{ background: bg, outline: isToday ? "2px solid var(--color-accent)" : "none" }}
                     title={`${day.date}: ${day.completed}/${day.total}`}>
                     <span className="text-[10px] font-bold"
@@ -145,9 +162,57 @@ export default function Reports() {
               <Legend color="var(--color-surface2)" label={t("reports.legend_none")} />
             </div>
           </div>
+
+          {/* Active challenges list */}
+          {challenges.length > 0 && (
+            <div>
+              <p className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider mb-2">
+                {i18n.language === "ru" ? "Активные челленджи" : "Active Challenges"}
+              </p>
+              <div className="space-y-2">
+                {challenges.map((ch) => (
+                  <ChallengeRow key={ch.id} instance={ch} dark={dark} dateLocale={dateLocale} />
+                ))}
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
+  );
+}
+
+function ChallengeRow({ instance, dark, dateLocale }: {
+  instance: ChallengeInstance; dark: boolean; dateLocale: any;
+}) {
+  const { icon, accent, bg } = useCategoryStyle(instance.challenge.title, dark);
+  const totalDays = Math.ceil(
+    (new Date(instance.end_date).getTime() - new Date(instance.start_date).getTime()) / 86400000
+  ) + 1;
+  const daysLeft = Math.max(0, Math.ceil(
+    (new Date(instance.end_date).getTime() - Date.now()) / 86400000
+  ));
+  const progress = Math.min(100, Math.round(((totalDays - daysLeft) / totalDays) * 100));
+
+  return (
+    <Link to={`/reports/challenge/${instance.id}`}
+      className="flex items-center gap-3 rounded-md px-4 py-3 transition-all hover:shadow-md"
+      style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+      <div className="w-8 h-8 rounded-md flex items-center justify-center text-base shrink-0"
+        style={{ background: bg }}>
+        {icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-bold text-text-primary text-[13px] truncate">{instance.challenge.title}</p>
+        <div className="flex items-center gap-2 mt-1">
+          <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "var(--color-surface2)" }}>
+            <div className="h-full rounded-full" style={{ width: `${progress}%`, background: accent }} />
+          </div>
+          <span className="text-[10px] font-bold shrink-0" style={{ color: accent }}>{progress}%</span>
+        </div>
+      </div>
+      <ChevronRightIcon size={14} className="text-text-tertiary shrink-0" />
+    </Link>
   );
 }
 

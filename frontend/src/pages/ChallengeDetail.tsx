@@ -3,10 +3,10 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { format } from "date-fns";
 import { ru as ruLocale, enUS } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
-import { challengesApi } from "../services/api";
+import { challengesApi, reportsApi } from "../services/api";
 import { useThemeStore } from "../store/themeStore";
 import { useCategoryStyle } from "../utils/category";
-import { ArrowLeftIcon, EditIcon, BarChartIcon } from "../components/Icons";
+import { ArrowLeftIcon, EditIcon, BarChartIcon, FlameIcon, TrophyIcon } from "../components/Icons";
 
 interface ChallengeInstance {
   id: number;
@@ -38,6 +38,7 @@ export default function ChallengeDetail() {
   const dateLocale = i18n.language === "ru" ? ruLocale : enUS;
 
   const [instance, setInstance] = useState<ChallengeInstance | null>(null);
+  const [streaks, setStreaks] = useState<{ current: number; longest: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -51,8 +52,15 @@ export default function ChallengeDetail() {
 
   useEffect(() => {
     if (!id) return;
-    challengesApi.getInstance(Number(id))
-      .then((r) => { setInstance(r.data); fillForm(r.data); })
+    Promise.all([
+      challengesApi.getInstance(Number(id)),
+      reportsApi.challenge(Number(id)),
+    ])
+      .then(([instRes, repRes]) => {
+        setInstance(instRes.data);
+        fillForm(instRes.data);
+        setStreaks({ current: repRes.data.current_streak, longest: repRes.data.longest_streak });
+      })
       .catch(() => setError(t("common.error")))
       .finally(() => setLoading(false));
   }, [id]);
@@ -191,6 +199,34 @@ export default function ChallengeDetail() {
                   value={challenge.task_times.map((t) => t.slice(0, 5)).join(", ")} />
               )}
             </div>
+
+            {/* Streak row */}
+            {streaks && (
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <div className="rounded-md px-3 py-2.5 flex items-center gap-2"
+                  style={{ background: "var(--color-warning-bg)" }}>
+                  <FlameIcon size={16} className="text-warning shrink-0" />
+                  <div>
+                    <p className="text-[18px] font-black" style={{ color: "var(--color-warning)" }}>
+                      {streaks.current}
+                    </p>
+                    <p className="text-[10px] font-semibold text-text-tertiary">
+                      {i18n.language === "ru" ? "Серия" : "Streak"}
+                    </p>
+                  </div>
+                </div>
+                <div className="rounded-md px-3 py-2.5 flex items-center gap-2"
+                  style={{ background: "var(--color-accent-soft)" }}>
+                  <TrophyIcon size={16} className="text-accent shrink-0" />
+                  <div>
+                    <p className="text-[18px] font-black text-accent">{streaks.longest}</p>
+                    <p className="text-[10px] font-semibold text-text-tertiary">
+                      {i18n.language === "ru" ? "Лучшая" : "Best"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Actions */}

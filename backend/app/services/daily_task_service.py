@@ -107,8 +107,17 @@ async def get_daily_tasks(db: AsyncSession, user_id: int, target_date: date) -> 
     )
     tasks = list(result.scalars().all())
 
-    task_outs = [
-        DailyTaskOut(
+    # compute sequence_number and total_count per challenge
+    counts: dict[int, int] = {}
+    for t in tasks:
+        counts[t.challenge_instance_id] = counts.get(t.challenge_instance_id, 0) + 1
+
+    seq: dict[int, int] = {}
+    task_outs = []
+    for t in tasks:
+        seq[t.challenge_instance_id] = seq.get(t.challenge_instance_id, 0) + 1
+        total = counts[t.challenge_instance_id]
+        task_outs.append(DailyTaskOut(
             id=t.id,
             challenge_instance_id=t.challenge_instance_id,
             challenge_title=t.challenge_instance.challenge.title,
@@ -117,9 +126,9 @@ async def get_daily_tasks(db: AsyncSession, user_id: int, target_date: date) -> 
             type=t.type,
             status=t.status,
             completed_at=t.completed_at,
-        )
-        for t in tasks
-    ]
+            sequence_number=seq[t.challenge_instance_id] if total > 1 else None,
+            total_count=total if total > 1 else None,
+        ))
 
     completed = sum(1 for t in tasks if t.status == TaskStatus.completed)
     skipped = sum(1 for t in tasks if t.status == TaskStatus.skipped)

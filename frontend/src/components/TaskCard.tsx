@@ -14,13 +14,15 @@ interface Props {
 }
 
 export default function TaskCard({ task, onComplete, onSkip, onUndo, loading, showChallengeName }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { dark } = useThemeStore();
   const { icon, accent, bg } = useCategoryStyle(task.challenge_title, dark);
 
   const isPending = task.status === "pending";
   const isDone = task.status === "completed";
   const isSkipped = task.status === "skipped";
+  const isAllDay = task.type === "all_day";
+  const hasSeq = task.sequence_number != null && task.total_count != null;
 
   const cardBg = isDone
     ? "var(--color-success-bg)"
@@ -58,13 +60,29 @@ export default function TaskCard({ task, onComplete, onSkip, onUndo, loading, sh
           <p className={`text-[14px] font-bold leading-tight ${isDone ? "line-through text-text-tertiary" : "text-text-primary"}`}>
             {task.challenge_title}
           </p>
-          {task.scheduled_time && (
-            <p className="flex items-center gap-1 mt-0.5 text-[11px] font-semibold"
-              style={{ color: isPending ? accent : "var(--color-text-tertiary)" }}>
-              <ClockIcon size={11} strokeWidth={2} />
-              {task.scheduled_time.slice(0, 5)}
-            </p>
-          )}
+
+          {/* Time / badges row */}
+          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+            {task.scheduled_time && (
+              <span className="flex items-center gap-1 text-[11px] font-semibold"
+                style={{ color: isPending ? accent : "var(--color-text-tertiary)" }}>
+                <ClockIcon size={11} strokeWidth={2} />
+                {task.scheduled_time.slice(0, 5)}
+              </span>
+            )}
+            {hasSeq && (
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                style={{ background: `${accent}18`, color: accent }}>
+                {task.sequence_number} {i18n.language === "ru" ? "из" : "of"} {task.total_count}
+              </span>
+            )}
+            {isAllDay && !hasSeq && (
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                style={{ background: "var(--color-surface2)", color: "var(--color-text-tertiary)" }}>
+                {i18n.language === "ru" ? "весь день" : "all day"}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Actions */}

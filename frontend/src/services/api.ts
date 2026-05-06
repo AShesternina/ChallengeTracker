@@ -82,6 +82,7 @@ export const reportsApi = {
   daily: (date: string) => api.get(`/reports/daily/${date}`),
   monthly: (year: number, month: number) => api.get(`/reports/monthly/${year}/${month}`),
   challenge: (instanceId: number) => api.get(`/reports/challenge/${instanceId}`),
+  streak: () => api.get("/reports/streak"),
 };
 
 // --- Notifications ---
