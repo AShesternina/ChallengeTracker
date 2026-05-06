@@ -18,7 +18,7 @@ async def _setup_with_completed_task(client: AsyncClient) -> tuple[dict, int]:
     r = await client.post("/api/v1/challenges", json={
         "title": "Report Test",
         "type": "single",
-        "default_duration_days": 7,
+        "default_duration_days": 1,
         "tasks_per_day": 1,
         "task_times": ["08:00"],
     }, headers=headers)
