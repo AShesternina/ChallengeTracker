@@ -14,12 +14,42 @@ from app.core.database import Base, get_db
 from app.main import app
 
 _SEED_TEMPLATES = [
-    {"title": "Morning Workout", "description": "Daily morning exercise", "type": "single",
+    # Health
+    {"title": "Healthy Sleep", "description": "Go to bed on time every night", "type": "single",
+     "default_duration_days": 21, "tasks_per_day": 1, "task_times": '["22:30"]', "icon": "😴"},
+    {"title": "8 Glasses of Water", "description": "Stay hydrated throughout the day", "type": "multi",
+     "default_duration_days": 30, "tasks_per_day": 4, "task_times": '["09:00","12:00","15:00","19:00"]', "icon": "💧"},
+    {"title": "Daily Vitamins", "description": "Take your vitamins morning and evening", "type": "multi",
+     "default_duration_days": 30, "tasks_per_day": 2, "task_times": '["08:00","20:00"]', "icon": "💊"},
+    {"title": "No Sugar", "description": "Avoid sugar for the whole day", "type": "all_day",
+     "default_duration_days": 21, "tasks_per_day": 1, "task_times": None, "icon": "🍭"},
+    # Productivity
+    {"title": "Morning Pages", "description": "Write 3 pages by hand right after waking up", "type": "single",
+     "default_duration_days": 21, "tasks_per_day": 1, "task_times": '["07:00"]', "icon": "✍️"},
+    {"title": "Pomodoro Method", "description": "Work in focused 25-minute sessions", "type": "multi",
+     "default_duration_days": 30, "tasks_per_day": 4, "task_times": '["09:00","11:00","14:00","16:00"]', "icon": "🍅"},
+    {"title": "No Social Media Until Noon", "description": "Keep your mornings free from social media", "type": "all_day",
+     "default_duration_days": 14, "tasks_per_day": 1, "task_times": None, "icon": "📵"},
+    {"title": "Evening Review", "description": "Reflect on your day: wins, lessons, tomorrow's focus", "type": "single",
+     "default_duration_days": 21, "tasks_per_day": 1, "task_times": '["21:00"]', "icon": "📝"},
+    # Sport
+    {"title": "Morning Workout", "description": "Daily morning exercise session", "type": "single",
      "default_duration_days": 30, "tasks_per_day": 1, "task_times": '["07:00"]', "icon": "💪"},
-    {"title": "Reading Habit", "description": "Read 20 pages every day", "type": "all_day",
-     "default_duration_days": 30, "tasks_per_day": 1, "task_times": None, "icon": "📚"},
-    {"title": "Meditation", "description": "Morning and evening meditation", "type": "multi",
-     "default_duration_days": 21, "tasks_per_day": 2, "task_times": '["08:00","20:00"]', "icon": "🧘"},
+    {"title": "Push-ups 3x Day", "description": "Build upper body strength with daily push-up sets", "type": "multi",
+     "default_duration_days": 21, "tasks_per_day": 3, "task_times": '["08:00","13:00","19:00"]', "icon": "🏋️"},
+    {"title": "10,000 Steps", "description": "Walk at least 10,000 steps every day", "type": "all_day",
+     "default_duration_days": 30, "tasks_per_day": 1, "task_times": None, "icon": "🚶"},
+    {"title": "Cold Shower", "description": "Start your day with a cold shower for energy and resilience", "type": "single",
+     "default_duration_days": 21, "tasks_per_day": 1, "task_times": '["07:30"]', "icon": "🚿"},
+    # Mental Health
+    {"title": "Meditation", "description": "Daily mindfulness practice", "type": "single",
+     "default_duration_days": 21, "tasks_per_day": 1, "task_times": '["08:00"]', "icon": "🧘"},
+    {"title": "Breathing Practice", "description": "Calm your mind with breathing exercises", "type": "multi",
+     "default_duration_days": 21, "tasks_per_day": 3, "task_times": '["08:00","13:00","21:00"]', "icon": "🌬️"},
+    {"title": "Gratitude Journal", "description": "Write down 3 things you are grateful for today", "type": "all_day",
+     "default_duration_days": 30, "tasks_per_day": 1, "task_times": None, "icon": "🙏"},
+    {"title": "Phone-Free Evening", "description": "No phone for one hour before bed — better sleep guaranteed", "type": "all_day",
+     "default_duration_days": 14, "tasks_per_day": 1, "task_times": None, "icon": "🌙"},
 ]
 
 
