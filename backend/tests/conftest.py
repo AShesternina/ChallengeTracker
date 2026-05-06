@@ -3,7 +3,17 @@ Engine is created INSIDE the client fixture so it lives in the same
 event loop as the test — avoids asyncpg "Future attached to different loop".
 """
 
+import os
 import pytest
+
+if not os.getenv("PYTEST_ALLOW"):
+    raise RuntimeError(
+        "\n\n"
+        "  ⛔  Tests are blocked on this environment.\n"
+        "  Running tests truncates ALL database tables and destroys real user data.\n"
+        "  Tests must only run on a local Docker stack.\n\n"
+        "  To enable: set PYTEST_ALLOW=1 in the backend service environment (docker-compose.yml).\n"
+    )
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy import text
