@@ -14,7 +14,7 @@ interface Props {
 }
 
 export default function TaskCard({ task, onComplete, onSkip, onUndo, loading, showChallengeName }: Props) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { dark } = useThemeStore();
   const { icon, accent, bg } = useCategoryStyle(task.challenge_title, dark);
 
@@ -40,7 +40,6 @@ export default function TaskCard({ task, onComplete, onSkip, onUndo, loading, sh
       }}
     >
       <div className="flex items-center gap-3">
-        {/* Category icon or checkmark */}
         <div className="w-10 h-10 rounded-[10px] flex items-center justify-center shrink-0 text-lg"
           style={{ background: isDone ? "var(--color-success-bg)" : bg }}>
           {isDone
@@ -49,7 +48,6 @@ export default function TaskCard({ task, onComplete, onSkip, onUndo, loading, sh
           }
         </div>
 
-        {/* Content */}
         <div className="flex-1 min-w-0">
           {showChallengeName && (
             <span className="inline-block text-[10px] font-bold px-1.5 py-0.5 rounded-full mb-1"
@@ -61,7 +59,6 @@ export default function TaskCard({ task, onComplete, onSkip, onUndo, loading, sh
             {task.challenge_title}
           </p>
 
-          {/* Time / badges row */}
           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
             {task.scheduled_time && (
               <span className="flex items-center gap-1 text-[11px] font-semibold"
@@ -73,19 +70,18 @@ export default function TaskCard({ task, onComplete, onSkip, onUndo, loading, sh
             {hasSeq && (
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
                 style={{ background: `${accent}18`, color: accent }}>
-                {task.sequence_number} {i18n.language === "ru" ? "из" : "of"} {task.total_count}
+                {task.sequence_number} {t("task.of")} {task.total_count}
               </span>
             )}
             {isAllDay && !hasSeq && (
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
                 style={{ background: "var(--color-surface2)", color: "var(--color-text-tertiary)" }}>
-                {i18n.language === "ru" ? "весь день" : "all day"}
+                {t("task.all_day")}
               </span>
             )}
           </div>
         </div>
 
-        {/* Actions */}
         <div className="flex items-center gap-1.5 shrink-0">
           {isPending && (
             <>
@@ -104,7 +100,7 @@ export default function TaskCard({ task, onComplete, onSkip, onUndo, loading, sh
           {!isPending && onUndo && (
             <button onClick={() => onUndo(task.id)} disabled={loading}
               className="p-1.5 rounded-sm text-text-tertiary hover:text-text-secondary transition-colors"
-              title="Undo">
+              title={t("task.undo")}>
               <UndoIcon size={14} />
             </button>
           )}

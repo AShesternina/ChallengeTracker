@@ -121,7 +121,7 @@ export default function DailyTasks() {
             onClick={() => setSelectedChallenge(null)}
             className="flex items-center gap-1 text-[13px] font-semibold text-text-tertiary hover:text-text-secondary transition-colors">
             <ArrowLeftIcon size={15} />
-            {i18n.language === "ru" ? "Челленджи" : "Challenges"}
+            {t("daily.back_to_challenges")}
           </button>
         </div>
 
@@ -210,9 +210,9 @@ export default function DailyTasks() {
         <div className="flex rounded-md p-1 gap-1"
           style={{ background: "var(--color-surface2)" }}>
           <TabBtn active={tab === "tasks"} onClick={() => setTab("tasks")}
-            label={i18n.language === "ru" ? "Задачи" : "Tasks"} />
+            label={t("daily.tasks_tab")} />
           <TabBtn active={tab === "challenges"} onClick={() => setTab("challenges")}
-            label={i18n.language === "ru" ? "Челленджи" : "Challenges"} />
+            label={t("daily.challenges_tab")} />
         </div>
       )}
 

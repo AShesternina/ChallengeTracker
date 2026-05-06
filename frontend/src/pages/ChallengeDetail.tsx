@@ -122,7 +122,7 @@ export default function ChallengeDetail() {
   };
 
   const handleDelete = async () => {
-    if (!instance || !confirm(i18n.language === "ru" ? "Удалить челлендж навсегда?" : "Delete challenge permanently?")) return;
+    if (!instance || !confirm(t("challenges.confirm_delete"))) return;
     try {
       await challengesApi.deletePermanently(instance.id);
       navigate("/challenges");
@@ -206,7 +206,7 @@ export default function ChallengeDetail() {
             {/* Progress */}
             <div className="mb-4">
               <div className="flex justify-between text-[12px] font-semibold mb-1.5">
-                <span className="text-text-secondary">{daysPassed} / {totalDays} {i18n.language === "ru" ? "дней" : "days"}</span>
+                <span className="text-text-secondary">{daysPassed} / {totalDays} {t("detail.days_of")}</span>
                 <span style={{ color: accent }}>{progress}%</span>
               </div>
               <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--color-surface2)" }}>
@@ -216,17 +216,17 @@ export default function ChallengeDetail() {
 
             {/* Info grid */}
             <div className="grid grid-cols-2 gap-2">
-              <InfoCell label={i18n.language === "ru" ? "Начало" : "Start"}
+              <InfoCell label={t("detail.start")}
                 value={format(new Date(instance.start_date), "d MMM yyyy", { locale: dateLocale })} />
-              <InfoCell label={i18n.language === "ru" ? "Конец" : "End"}
+              <InfoCell label={t("detail.end")}
                 value={format(new Date(instance.end_date), "d MMM yyyy", { locale: dateLocale })} />
-              <InfoCell label={i18n.language === "ru" ? "Осталось" : "Days left"} value={`${daysLeft} дн.`} />
-              <InfoCell label={i18n.language === "ru" ? "Задач/день" : "Tasks/day"} value={`${challenge.tasks_per_day}`} />
-              <InfoCell label={i18n.language === "ru" ? "Тип" : "Type"}
+              <InfoCell label={t("detail.days_left")} value={`${daysLeft} ${t("challenges.days_abbr")}`} />
+              <InfoCell label={t("detail.tasks_per_day")} value={`${challenge.tasks_per_day}`} />
+              <InfoCell label={t("detail.type")}
                 value={t(`create_challenge.type_${challenge.type}` as any, { defaultValue: challenge.type })} />
               {challenge.task_times && challenge.task_times.length > 0 && (
-                <InfoCell label={i18n.language === "ru" ? "Время" : "Times"}
-                  value={challenge.task_times.map((t) => t.slice(0, 5)).join(", ")} />
+                <InfoCell label={t("detail.times")}
+                  value={challenge.task_times.map((tm) => tm.slice(0, 5)).join(", ")} />
               )}
             </div>
 
@@ -241,7 +241,7 @@ export default function ChallengeDetail() {
                       {streaks.current}
                     </p>
                     <p className="text-[10px] font-semibold text-text-tertiary">
-                      {i18n.language === "ru" ? "Серия" : "Streak"}
+                      {t("detail.streak")}
                     </p>
                   </div>
                 </div>
@@ -251,7 +251,7 @@ export default function ChallengeDetail() {
                   <div>
                     <p className="text-[18px] font-black text-accent">{streaks.longest}</p>
                     <p className="text-[10px] font-semibold text-text-tertiary">
-                      {i18n.language === "ru" ? "Лучшая" : "Best"}
+                      {t("detail.best")}
                     </p>
                   </div>
                 </div>
@@ -266,7 +266,7 @@ export default function ChallengeDetail() {
                 className="flex items-center justify-center gap-2 flex-1 py-3 rounded-md text-[13px] font-bold text-white"
                 style={{ background: "var(--color-accent)" }}>
                 <EditIcon size={14} />
-                {i18n.language === "ru" ? "Редактировать" : "Edit"}
+                {t("challenges.edit")}
               </button>
             )}
             <Link to={`/reports/challenge/${instance.id}`}
@@ -281,7 +281,7 @@ export default function ChallengeDetail() {
             <button onClick={handlePause}
               className="w-full py-2.5 rounded-md text-[13px] font-semibold transition-colors"
               style={{ border: "1.5px solid var(--color-border-strong)", color: "var(--color-text-secondary)" }}>
-              ⏸ {i18n.language === "ru" ? "Приостановить" : "Pause"}
+              ⏸ {t("challenges.pause")}
             </button>
           )}
 
@@ -289,7 +289,7 @@ export default function ChallengeDetail() {
             <button onClick={handleResume}
               className="w-full py-2.5 rounded-md text-[13px] font-bold text-white transition-opacity hover:opacity-90"
               style={{ background: "var(--color-success)" }}>
-              ▶ {i18n.language === "ru" ? "Возобновить" : "Resume"}
+              ▶ {t("challenges.resume")}
             </button>
           )}
 
@@ -305,7 +305,7 @@ export default function ChallengeDetail() {
             <button onClick={handleDelete}
               className="w-full py-2.5 rounded-md text-[13px] font-bold text-white transition-opacity hover:opacity-90"
               style={{ background: "var(--color-danger)" }}>
-              {i18n.language === "ru" ? "Удалить навсегда" : "Delete permanently"}
+              {t("challenges.delete_permanently")}
             </button>
           )}
         </>
@@ -337,7 +337,7 @@ export default function ChallengeDetail() {
 
           <div>
             <label className="block text-[12px] font-semibold text-text-secondary mb-1.5">
-              {i18n.language === "ru" ? "Дата окончания" : "End date"}
+              {t("detail.end_date")}
             </label>
             <input type="date" value={endDate} min={instance.start_date}
               onChange={(e) => setEndDate(e.target.value)}

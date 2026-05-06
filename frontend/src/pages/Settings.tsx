@@ -91,12 +91,12 @@ export default function Settings() {
       </Section>
 
       {/* Appearance */}
-      <Section title={i18n.language === "ru" ? "Внешний вид" : "Appearance"}>
+      <Section title={t("settings.appearance")}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             {dark ? <MoonIcon size={16} className="text-text-secondary" /> : <SunIcon size={16} className="text-text-secondary" />}
             <span className="text-[14px] font-semibold text-text-primary">
-              {dark ? (i18n.language === "ru" ? "Тёмная тема" : "Dark mode") : (i18n.language === "ru" ? "Светлая тема" : "Light mode")}
+              {dark ? t("settings.dark_mode") : t("settings.light_mode")}
             </span>
           </div>
           <Toggle enabled={dark} onToggle={toggle} loading={false} />

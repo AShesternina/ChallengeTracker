@@ -6,6 +6,7 @@ import { challengesApi } from "../services/api";
 import { useThemeStore } from "../store/themeStore";
 import { useCategoryStyle } from "../utils/category";
 import { ArrowLeftIcon } from "../components/Icons";
+import { translateTemplateName, translateTemplateDesc } from "../utils/templateTranslations";
 
 interface Template {
   id: number;
@@ -252,7 +253,9 @@ function StepDot({ active, label }: { active: boolean; label: string }) {
 }
 
 function TemplateCard({ tpl, dark, onClick }: { tpl: Template; dark: boolean; onClick: () => void }) {
+  const { t, i18n } = useTranslation();
   const { icon, accent, bg } = useCategoryStyle(tpl.title, dark);
+  const lang = i18n.language as "ru" | "en";
 
   return (
     <button onClick={onClick}
@@ -264,12 +267,14 @@ function TemplateCard({ tpl, dark, onClick }: { tpl: Template; dark: boolean; on
           {icon}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-bold text-text-primary text-[14px]">{tpl.title}</p>
+          <p className="font-bold text-text-primary text-[14px]">{translateTemplateName(tpl.title, lang)}</p>
           {tpl.description && (
-            <p className="text-[12px] text-text-tertiary line-clamp-1 mt-0.5">{tpl.description}</p>
+            <p className="text-[12px] text-text-tertiary line-clamp-1 mt-0.5">
+              {translateTemplateDesc(tpl.description, lang)}
+            </p>
           )}
           <p className="text-[11px] font-semibold mt-1" style={{ color: accent }}>
-            {tpl.default_duration_days} дн. · {tpl.tasks_per_day}/день
+            {tpl.default_duration_days} {t("challenges.days_abbr")} · {tpl.tasks_per_day}{t("challenges.per_day_abbr")}
           </p>
         </div>
       </div>
