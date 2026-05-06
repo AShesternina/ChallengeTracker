@@ -135,3 +135,62 @@ async def test_cancel_instance(client: AsyncClient):
         headers=auth_headers(tokens),
     )
     assert r.json()["status"] == "cancelled"
+
+
+async def test_start_challenge_past_date_backfills_tasks(client: AsyncClient):
+    """Starting with a past date should create tasks for past days (backfill)."""
+    tokens = await register_and_login(client)
+    headers = auth_headers(tokens)
+    past_date = (date.today() - timedelta(days=2)).isoformat()
+
+    r = await client.post("/api/v1/challenges", json={
+        "title": "Backfill Test",
+        "type": "single",
+        "default_duration_days": 7,
+        "tasks_per_day": 1,
+        "task_times": ["08:00"],
+    }, headers=headers)
+    cid = r.json()["id"]
+    r = await client.post("/api/v1/challenges/start", json={
+        "challenge_id": cid, "start_date": past_date,
+    }, headers=headers)
+    assert r.status_code == 201
+
+    r = await client.get(f"/api/v1/reports/daily/{past_date}", headers=headers)
+    assert r.status_code == 200
+    assert r.json()["total"] == 1
+
+
+async def test_update_instance_period_regenerates_tasks(client: AsyncClient):
+    """Extending end_date should regenerate tasks for the new period."""
+    tokens = await register_and_login(client)
+    headers = auth_headers(tokens)
+    instance = await _create_and_start(client, headers)
+
+    old_end = date.fromisoformat(instance["end_date"])
+    new_end = (old_end + timedelta(days=3)).isoformat()
+
+    r = await client.patch(
+        f"/api/v1/challenges/instances/{instance['id']}",
+        json={"end_date": new_end},
+        headers=headers,
+    )
+    assert r.status_code == 200
+    assert r.json()["end_date"] == new_end
+
+    r = await client.get(f"/api/v1/reports/daily/{new_end}", headers=headers)
+    assert r.json()["total"] == 1
+
+
+async def test_update_instance_type_change(client: AsyncClient):
+    """Changing challenge type should be accepted and reflected in the response."""
+    tokens = await register_and_login(client)
+    instance = await _create_and_start(client, auth_headers(tokens))
+
+    r = await client.patch(
+        f"/api/v1/challenges/instances/{instance['id']}",
+        json={"type": "all_day", "task_times": None, "tasks_per_day": 1},
+        headers=auth_headers(tokens),
+    )
+    assert r.status_code == 200
+    assert r.json()["challenge"]["type"] == "all_day"

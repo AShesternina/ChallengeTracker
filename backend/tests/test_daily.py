@@ -109,6 +109,27 @@ async def test_complete_other_user_task(client: AsyncClient):
     assert r.status_code == 404
 
 
+async def test_daily_with_target_date(client: AsyncClient):
+    """GET /daily/today?target_date=... should return tasks for that specific date."""
+    _, headers = await _setup_challenge(client)
+    r = await client.get(f"/api/v1/daily/today?target_date={TODAY}", headers=headers)
+    assert r.status_code == 200
+    assert r.json()["total"] == 1
+
+
+async def test_task_times_invalid_format(client: AsyncClient):
+    """task_times entries without ':' separator should be rejected."""
+    tokens = await register_and_login(client)
+    r = await client.post("/api/v1/challenges", json={
+        "title": "Bad Times",
+        "type": "single",
+        "default_duration_days": 7,
+        "tasks_per_day": 1,
+        "task_times": ["invalid"],
+    }, headers=auth_headers(tokens))
+    assert r.status_code == 422
+
+
 async def test_multi_task_challenge(client: AsyncClient):
     tokens = await register_and_login(client)
     headers = auth_headers(tokens)

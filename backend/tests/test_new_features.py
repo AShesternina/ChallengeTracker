@@ -212,3 +212,33 @@ async def test_single_task_no_sequence(client: AsyncClient):
     task = r.json()["tasks"][0]
     assert task["sequence_number"] is None
     assert task["total_count"] is None
+
+
+# ── challenge_status field in DailyTaskOut ────────────────────────────────────
+
+async def test_challenge_status_active_in_tasks(client: AsyncClient):
+    """Active challenge tasks should have challenge_status='active'."""
+    _, headers, _ = await _setup(client)
+    r = await client.get("/api/v1/daily/today", headers=headers)
+    assert r.json()["tasks"][0]["challenge_status"] == "active"
+
+
+async def test_challenge_status_cancelled_in_tasks(client: AsyncClient):
+    """Tasks of a cancelled challenge should report challenge_status='cancelled'."""
+    _, headers, instance = await _setup(client)
+    await client.get("/api/v1/daily/today", headers=headers)
+
+    await client.delete(f"/api/v1/challenges/instances/{instance['id']}", headers=headers)
+
+    r = await client.get("/api/v1/daily/today", headers=headers)
+    assert r.json()["tasks"][0]["challenge_status"] == "cancelled"
+
+
+async def test_challenge_status_paused_in_tasks(client: AsyncClient):
+    """Tasks of a paused challenge should report challenge_status='paused'."""
+    _, headers, instance = await _setup(client)
+
+    await client.post(f"/api/v1/challenges/instances/{instance['id']}/pause", headers=headers)
+
+    r = await client.get("/api/v1/daily/today", headers=headers)
+    assert r.json()["tasks"][0]["challenge_status"] == "paused"

@@ -95,3 +95,30 @@ async def test_challenge_report_other_user(client: AsyncClient):
     tokens2 = await register_and_login(client, "other@example.com", "pass9999")
     r = await client.get(f"/api/v1/reports/challenge/{instance_id}", headers=auth_headers(tokens2))
     assert r.status_code == 404
+
+
+async def test_daily_report_partial_completion(client: AsyncClient):
+    """Daily report with 1 completed and 1 skipped task should have completion_rate=0.5."""
+    tokens = await register_and_login(client)
+    headers = auth_headers(tokens)
+
+    r = await client.post("/api/v1/challenges", json={
+        "title": "Mixed Status",
+        "type": "multi",
+        "default_duration_days": 7,
+        "tasks_per_day": 2,
+        "task_times": ["08:00", "20:00"],
+    }, headers=headers)
+    cid = r.json()["id"]
+    await client.post("/api/v1/challenges/start", json={"challenge_id": cid, "start_date": TODAY}, headers=headers)
+
+    r = await client.get("/api/v1/daily/today", headers=headers)
+    tasks = r.json()["tasks"]
+    await client.post(f"/api/v1/tasks/{tasks[0]['id']}/complete", headers=headers)
+    await client.post(f"/api/v1/tasks/{tasks[1]['id']}/skip", headers=headers)
+
+    r = await client.get(f"/api/v1/reports/daily/{TODAY}", headers=headers)
+    data = r.json()
+    assert data["total"] == 2
+    assert data["completed"] == 1
+    assert data["completion_rate"] == 0.5
