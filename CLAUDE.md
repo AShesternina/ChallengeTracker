@@ -36,7 +36,18 @@ URLs: Frontend → http://localhost:5173 | API → http://localhost:8000 | Docs 
 
 **Day → tasks ← challenges** (NOT challenge → tasks)
 
-`DailyTaskInstance` rows are generated lazily on `GET /api/v1/daily/today` (idempotent) and also nightly by Celery beat at 00:05 UTC. Never create tasks directly from challenge logic — always go through `daily_task_service.ensure_daily_tasks()`.
+`DailyTaskInstance` rows are generated via `daily_task_service.ensure_daily_tasks()` — always go through this function, never create tasks directly.
+
+**When tasks are generated:**
+1. `POST /challenges/start` — immediately generates tasks for the **entire challenge period** (past + future). If start_date is in the past, all past days are backfilled.
+2. `GET /api/v1/daily/today` — lazy idempotent generation for that specific date (catches any missed days).
+3. Celery beat at 00:05 UTC — nightly generation for all active challenges.
+
+**Task visibility rules (in Reports heatmap day detail):**
+- Past days / today + active challenge → fully editable (Done / Skip / Undo)
+- Future days → read-only (no action buttons, "Future · read only" badge)
+- Cancelled challenge tasks → read-only, dimmed, "cancelled" label
+- Deleted challenge → all its `DailyTaskInstance` rows are hard-deleted
 
 ## Backend structure
 
@@ -120,6 +131,12 @@ docker exec challengetracker-backend-1 alembic revision --autogenerate -m "descr
 Migrations: `0001_initial` → `0002_seed_templates` → `0003_update_templates` → `0004_add_templates`
 
 PostgreSQL enums require explicit `CAST(:value AS enumtype)` — do NOT use `op.bulk_insert()` with enum columns.
+
+## DailyTaskOut schema
+
+Key fields in `schemas/daily.py`:
+- `sequence_number` / `total_count` — position among sibling tasks for multi-type challenges (null for single/all_day)
+- `challenge_status` — status of the parent ChallengeInstance (`active | paused | completed | cancelled`). Used by frontend to determine editability.
 
 ## Category system (frontend)
 
