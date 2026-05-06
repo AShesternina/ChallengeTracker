@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 import pytz
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -18,7 +18,7 @@ def _user_today(user: User) -> date:
         tz = pytz.timezone(user.timezone)
     except Exception:
         tz = pytz.UTC
-    return date.today()  # server-side date; clients can pass ?date= to override
+    return datetime.now(tz).date()
 
 
 @router.get("/daily/today", response_model=DailySummary)

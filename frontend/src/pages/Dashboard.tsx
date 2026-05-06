@@ -223,7 +223,7 @@ function WeekChart({ days }: {
           if (d.total === 0) color = "var(--color-surface2)";
           else if (pct >= 1) color = "var(--color-success)";
           else if (pct >= 0.5) color = "rgba(22,163,74,0.5)";
-          else color = "var(--color-danger-bg)";
+          else color = "#FED7AA";
 
           const dayOfWeek = new Date(d.date).getDay();
           const labelIdx = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
@@ -237,8 +237,7 @@ function WeekChart({ days }: {
                 style={{
                   height: barH,
                   background: color,
-                  outline: isToday ? "2px solid var(--color-accent)" : "none",
-                  outlineOffset: "1px",
+                  boxShadow: isToday ? "0 0 0 2px var(--color-accent)" : "none",
                 }} />
               <span className="text-[9px] font-bold"
                 style={{ color: isToday ? "var(--color-accent)" : "var(--color-text-tertiary)" }}>
