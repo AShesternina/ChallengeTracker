@@ -30,8 +30,9 @@ export default function DailyTasks() {
 
   useEffect(() => {
     setLoading(true);
+    const todayDate = format(new Date(), "yyyy-MM-dd");
     dailyApi
-      .today()
+      .today(todayDate)
       .then((r) => setSummary(r.data))
       .catch(() => setError(t("common.error")))
       .finally(() => setLoading(false));

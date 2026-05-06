@@ -27,8 +27,9 @@ export default function Dashboard() {
   useEffect(() => {
     setLoading(true);
     const now = new Date();
+    const todayDate = format(now, "yyyy-MM-dd");
     Promise.all([
-      dailyApi.today(),
+      dailyApi.today(todayDate),
       challengesApi.my(),
       reportsApi.streak(),
       reportsApi.monthly(now.getFullYear(), now.getMonth() + 1),
