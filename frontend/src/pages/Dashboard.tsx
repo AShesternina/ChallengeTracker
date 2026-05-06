@@ -138,7 +138,7 @@ export default function Dashboard() {
 
       {/* Weekly chart */}
       {weekDays.length > 0 && weekDays.some((d) => d.total > 0) && (
-        <WeekChart days={weekDays} dateLocale={dateLocale} />
+        <WeekChart days={weekDays} />
       )}
 
       {/* Quick actions */}
@@ -202,9 +202,8 @@ function StatCard({ label, value, Icon, color }: {
 const DAY_LABELS_RU = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 const DAY_LABELS_EN = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 
-function WeekChart({ days, dateLocale }: {
+function WeekChart({ days }: {
   days: { date: string; rate: number; total: number }[];
-  dateLocale: any;
 }) {
   const { i18n } = useTranslation();
   const today = format(new Date(), "yyyy-MM-dd");
