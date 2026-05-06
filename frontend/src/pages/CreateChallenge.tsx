@@ -6,7 +6,7 @@ import { challengesApi } from "../services/api";
 import { useThemeStore } from "../store/themeStore";
 import { useCategoryStyle } from "../utils/category";
 import { ArrowLeftIcon } from "../components/Icons";
-import { translateTemplateName, translateTemplateDesc } from "../utils/templateTranslations";
+import { translateTemplateName, translateTemplateDesc, getTemplateCategory } from "../utils/templateTranslations";
 
 interface Template {
   id: number;
@@ -24,7 +24,7 @@ const inputClass = "w-full px-4 py-3 rounded-md text-[14px] text-text-primary pl
 const inputStyle = { background: "var(--color-surface2)", border: "1.5px solid var(--color-border)" };
 
 export default function CreateChallenge() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { dark } = useThemeStore();
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -99,12 +99,18 @@ export default function CreateChallenge() {
           {t("create_challenge.from_scratch")}
         </button>
 
-        <p className="text-[12px] font-bold text-text-tertiary uppercase tracking-wider">
-          {t("create_challenge.templates")}
-        </p>
-        <div className="space-y-2.5">
-          {templates.map((tpl) => (
-            <TemplateCard key={tpl.id} tpl={tpl} dark={dark} onClick={() => applyTemplate(tpl)} />
+        <div className="space-y-5">
+          {groupTemplatesByCategory(templates, i18n.language).map(({ category, items }) => (
+            <div key={category}>
+              <p className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider mb-2">
+                {category}
+              </p>
+              <div className="space-y-2">
+                {items.map((tpl) => (
+                  <TemplateCard key={tpl.id} tpl={tpl} dark={dark} onClick={() => applyTemplate(tpl)} />
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       </div>
@@ -252,10 +258,20 @@ function StepDot({ active, label }: { active: boolean; label: string }) {
   );
 }
 
+function groupTemplatesByCategory(templates: Template[], lang: string): { category: string; items: Template[] }[] {
+  const groups: Record<string, Template[]> = {};
+  for (const tpl of templates) {
+    const cat = getTemplateCategory(tpl.title, lang) || "Other";
+    if (!groups[cat]) groups[cat] = [];
+    groups[cat].push(tpl);
+  }
+  return Object.entries(groups).map(([category, items]) => ({ category, items }));
+}
+
 function TemplateCard({ tpl, dark, onClick }: { tpl: Template; dark: boolean; onClick: () => void }) {
   const { t, i18n } = useTranslation();
   const { icon, accent, bg } = useCategoryStyle(tpl.title, dark);
-  const lang = i18n.language as "ru" | "en";
+  const lang = i18n.language;
 
   return (
     <button onClick={onClick}
