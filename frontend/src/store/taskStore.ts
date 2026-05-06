@@ -11,6 +11,7 @@ export interface DailyTask {
   completed_at: string | null;
   sequence_number: number | null;
   total_count: number | null;
+  challenge_status: string;
 }
 
 export interface DailySummary {

@@ -128,6 +128,7 @@ async def get_daily_tasks(db: AsyncSession, user_id: int, target_date: date) -> 
             completed_at=t.completed_at,
             sequence_number=seq[t.challenge_instance_id] if total > 1 else None,
             total_count=total if total > 1 else None,
+            challenge_status=t.challenge_instance.status.value,
         ))
 
     completed = sum(1 for t in tasks if t.status == TaskStatus.completed)

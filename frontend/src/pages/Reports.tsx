@@ -40,6 +40,7 @@ interface DayTask {
   status: "pending" | "completed" | "skipped";
   sequence_number: number | null;
   total_count: number | null;
+  challenge_status: string;
 }
 
 const DAY_HEADERS_RU = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
@@ -139,6 +140,8 @@ export default function Reports() {
     const dateLabel = format(dateObj, "d MMMM yyyy", { locale: dateLocale });
     const rate = d.total > 0 ? Math.round(d.completion_rate * 100) : 0;
     const completed = Math.round(d.completion_rate * d.total);
+    const today = format(new Date(), "yyyy-MM-dd");
+    const isFuture = d.date > today;
 
     return (
       <div className="space-y-4">
@@ -151,11 +154,19 @@ export default function Reports() {
         {/* Day header */}
         <div className="rounded-xl p-4"
           style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
-          <p className="text-[12px] font-medium text-text-tertiary capitalize mb-0.5">{dateLabel}</p>
+          <div className="flex items-center justify-between mb-0.5">
+            <p className="text-[12px] font-medium text-text-tertiary capitalize">{dateLabel}</p>
+            {isFuture && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                style={{ background: "var(--color-info-bg)", color: "var(--color-info)" }}>
+                {i18n.language.startsWith("ru") ? "Будущее · только просмотр" : "Future · read only"}
+              </span>
+            )}
+          </div>
           <div className="flex items-center justify-between mb-3">
             <p className="text-[20px] font-black text-text-primary"
               style={{ letterSpacing: "-0.3px" }}>
-              {completed}/{d.total} {i18n.language.startsWith("ru") ? "задач" : "tasks"}
+              {isFuture ? `0/${d.total}` : `${completed}/${d.total}`} {i18n.language.startsWith("ru") ? "задач" : "tasks"}
             </p>
             <span className="text-[13px] font-black px-2.5 py-1 rounded-full"
               style={{
@@ -186,13 +197,17 @@ export default function Reports() {
             <p className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider">
               {i18n.language.startsWith("ru") ? "Задачи" : "Tasks"}
             </p>
-            {dayTasks.map((task) => (
-              <DayTaskRow key={task.id} task={task} dark={dark} lang={i18n.language}
-                loading={actionLoading === task.id}
-                onComplete={() => handleTaskAction(task.id, "complete")}
-                onSkip={() => handleTaskAction(task.id, "skip")}
-                onUndo={() => handleTaskAction(task.id, "reset")} />
-            ))}
+            {dayTasks.map((task) => {
+              const isEditable = !isFuture && task.challenge_status !== "cancelled";
+              return (
+                <DayTaskRow key={task.id} task={task} dark={dark} lang={i18n.language}
+                  loading={actionLoading === task.id}
+                  editable={isEditable}
+                  onComplete={() => handleTaskAction(task.id, "complete")}
+                  onSkip={() => handleTaskAction(task.id, "skip")}
+                  onUndo={() => handleTaskAction(task.id, "reset")} />
+              );
+            })}
           </div>
         )}
       </div>
@@ -321,22 +336,23 @@ export default function Reports() {
   );
 }
 
-function DayTaskRow({ task, dark, lang, loading, onComplete, onSkip, onUndo }: {
-  task: DayTask; dark: boolean; lang: string; loading: boolean;
+function DayTaskRow({ task, dark, lang, loading, editable, onComplete, onSkip, onUndo }: {
+  task: DayTask; dark: boolean; lang: string; loading: boolean; editable: boolean;
   onComplete: () => void; onSkip: () => void; onUndo: () => void;
 }) {
   const { icon, accent, bg } = useCategoryStyle(task.challenge_title, dark);
   const isDone = task.status === "completed";
   const isSkipped = task.status === "skipped";
   const isPending = task.status === "pending";
+  const isCancelled = task.challenge_status === "cancelled";
   const isRu = lang.startsWith("ru");
 
   return (
     <div className="rounded-md p-3.5 transition-all"
       style={{
         background: isDone ? "var(--color-success-bg)" : isSkipped ? "var(--color-surface2)" : "var(--color-surface)",
-        border: `1.5px solid ${isDone ? "var(--color-success-bg)" : isSkipped ? "var(--color-border)" : `${accent}35`}`,
-        opacity: isSkipped ? 0.65 : 1,
+        border: `1.5px solid ${isDone ? "var(--color-success-bg)" : isSkipped ? "var(--color-border)" : isCancelled ? "var(--color-border)" : `${accent}35`}`,
+        opacity: isSkipped || isCancelled ? 0.55 : 1,
       }}>
       <div className="flex items-center gap-3">
         <div className="w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0 text-base"
@@ -369,30 +385,37 @@ function DayTaskRow({ task, dark, lang, loading, onComplete, onSkip, onUndo }: {
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          {isPending && (
-            <>
-              <button onClick={onSkip} disabled={loading}
-                className="px-2.5 py-1.5 text-[11px] font-semibold rounded-sm disabled:opacity-40 transition-colors"
-                style={{ border: "1.5px solid var(--color-border-strong)", color: "var(--color-text-secondary)" }}>
-                {isRu ? "Пропуск" : "Skip"}
+        {/* Actions — only if editable and not cancelled */}
+        {editable && !isCancelled && (
+          <div className="flex items-center gap-1.5 shrink-0">
+            {isPending && (
+              <>
+                <button onClick={onSkip} disabled={loading}
+                  className="px-2.5 py-1.5 text-[11px] font-semibold rounded-sm disabled:opacity-40 transition-colors"
+                  style={{ border: "1.5px solid var(--color-border-strong)", color: "var(--color-text-secondary)" }}>
+                  {isRu ? "Пропуск" : "Skip"}
+                </button>
+                <button onClick={onComplete} disabled={loading}
+                  className="px-2.5 py-1.5 text-[11px] font-bold text-white rounded-sm disabled:opacity-40"
+                  style={{ background: accent }}>
+                  {isRu ? "Готово" : "Done"}
+                </button>
+              </>
+            )}
+            {!isPending && (
+              <button onClick={onUndo} disabled={loading}
+                className="p-1.5 rounded-sm text-text-tertiary hover:text-text-secondary transition-colors"
+                title={isRu ? "Отменить" : "Undo"}>
+                <UndoIcon size={14} />
               </button>
-              <button onClick={onComplete} disabled={loading}
-                className="px-2.5 py-1.5 text-[11px] font-bold text-white rounded-sm disabled:opacity-40"
-                style={{ background: accent }}>
-                {isRu ? "Готово" : "Done"}
-              </button>
-            </>
-          )}
-          {!isPending && (
-            <button onClick={onUndo} disabled={loading}
-              className="p-1.5 rounded-sm text-text-tertiary hover:text-text-secondary transition-colors"
-              title={isRu ? "Отменить" : "Undo"}>
-              <UndoIcon size={14} />
-            </button>
-          )}
-        </div>
+            )}
+          </div>
+        )}
+        {isCancelled && (
+          <span className="text-[10px] font-bold text-text-tertiary shrink-0">
+            {isRu ? "отменён" : "cancelled"}
+          </span>
+        )}
       </div>
     </div>
   );

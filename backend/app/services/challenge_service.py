@@ -59,13 +59,11 @@ async def start_challenge(db: AsyncSession, user_id: int, data: StartChallengeRe
     db.add(instance)
     await db.flush()
 
-    # Backfill past days if start_date is before today
-    today = date.today()
-    if data.start_date < today:
-        d = data.start_date
-        while d <= min(today, end_date):
-            await ensure_daily_tasks(db, user_id, d)
-            d += timedelta(days=1)
+    # Generate tasks for the entire challenge period (past + future)
+    d = data.start_date
+    while d <= end_date:
+        await ensure_daily_tasks(db, user_id, d)
+        d += timedelta(days=1)
 
     await db.refresh(instance, ["challenge"])
     return instance
