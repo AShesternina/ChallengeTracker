@@ -9,6 +9,7 @@ from app.models.challenge import Challenge, ChallengeTemplate
 from app.models.challenge_instance import ChallengeInstance, InstanceStatus
 from app.models.daily_task_instance import DailyTaskInstance
 from app.schemas.challenge import ChallengeCreate, ChallengeInstanceUpdate, StartChallengeRequest
+from app.services.daily_task_service import ensure_daily_tasks
 
 
 async def list_templates(db: AsyncSession) -> list[ChallengeTemplate]:
@@ -57,6 +58,15 @@ async def start_challenge(db: AsyncSession, user_id: int, data: StartChallengeRe
     )
     db.add(instance)
     await db.flush()
+
+    # Backfill past days if start_date is before today
+    today = date.today()
+    if data.start_date < today:
+        d = data.start_date
+        while d <= min(today, end_date):
+            await ensure_daily_tasks(db, user_id, d)
+            d += timedelta(days=1)
+
     await db.refresh(instance, ["challenge"])
     return instance
 

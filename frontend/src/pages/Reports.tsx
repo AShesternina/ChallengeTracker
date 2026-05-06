@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { reportsApi, challengesApi, dailyApi } from "../services/api";
 import { useThemeStore } from "../store/themeStore";
 import { useCategoryStyle } from "../utils/category";
-import { ChevronRightIcon, ArrowLeftIcon, CheckIcon, ClockIcon } from "../components/Icons";
+import { ChevronRightIcon, ArrowLeftIcon, CheckIcon, ClockIcon, UndoIcon } from "../components/Icons";
 
 interface DayStats {
   date: string;
@@ -60,6 +60,7 @@ export default function Reports() {
   const [selectedDay, setSelectedDay] = useState<DayStats | null>(null);
   const [dayTasks, setDayTasks] = useState<DayTask[]>([]);
   const [dayLoading, setDayLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState<number | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -86,6 +87,33 @@ export default function Reports() {
       setDayTasks(data.tasks);
     } finally {
       setDayLoading(false);
+    }
+  };
+
+  const handleTaskAction = async (id: number, action: "complete" | "skip" | "reset") => {
+    setActionLoading(id);
+    try {
+      const { data } = await (
+        action === "complete" ? dailyApi.complete(id) :
+        action === "skip" ? dailyApi.skip(id) :
+        dailyApi.reset(id)
+      );
+      setDayTasks((prev) => prev.map((t) => t.id === id ? { ...t, ...data } : t));
+      // refresh day stats in report
+      if (selectedDay && report) {
+        const completed = action === "complete"
+          ? selectedDay.completed + 1
+          : action === "reset" ? Math.max(0, selectedDay.completed - 1)
+          : selectedDay.completed;
+        const updated = { ...selectedDay, completed, completion_rate: selectedDay.total > 0 ? completed / selectedDay.total : 0 };
+        setSelectedDay(updated);
+        setReport((r) => r ? {
+          ...r,
+          days: r.days.map((d) => d.date === selectedDay.date ? updated : d),
+        } : r);
+      }
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -159,7 +187,11 @@ export default function Reports() {
               {i18n.language.startsWith("ru") ? "Задачи" : "Tasks"}
             </p>
             {dayTasks.map((task) => (
-              <DayTaskRow key={task.id} task={task} dark={dark} lang={i18n.language} />
+              <DayTaskRow key={task.id} task={task} dark={dark} lang={i18n.language}
+                loading={actionLoading === task.id}
+                onComplete={() => handleTaskAction(task.id, "complete")}
+                onSkip={() => handleTaskAction(task.id, "skip")}
+                onUndo={() => handleTaskAction(task.id, "reset")} />
             ))}
           </div>
         )}
@@ -289,55 +321,79 @@ export default function Reports() {
   );
 }
 
-function DayTaskRow({ task, dark, lang }: { task: DayTask; dark: boolean; lang: string }) {
+function DayTaskRow({ task, dark, lang, loading, onComplete, onSkip, onUndo }: {
+  task: DayTask; dark: boolean; lang: string; loading: boolean;
+  onComplete: () => void; onSkip: () => void; onUndo: () => void;
+}) {
   const { icon, accent, bg } = useCategoryStyle(task.challenge_title, dark);
   const isDone = task.status === "completed";
   const isSkipped = task.status === "skipped";
+  const isPending = task.status === "pending";
   const isRu = lang.startsWith("ru");
 
   return (
-    <div className="flex items-center gap-3 rounded-md px-3.5 py-3"
+    <div className="rounded-md p-3.5 transition-all"
       style={{
         background: isDone ? "var(--color-success-bg)" : isSkipped ? "var(--color-surface2)" : "var(--color-surface)",
-        border: `1px solid ${isDone ? "var(--color-success-bg)" : "var(--color-border)"}`,
+        border: `1.5px solid ${isDone ? "var(--color-success-bg)" : isSkipped ? "var(--color-border)" : `${accent}35`}`,
         opacity: isSkipped ? 0.65 : 1,
       }}>
-      <div className="w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0 text-base"
-        style={{ background: isDone ? "var(--color-success-bg)" : bg }}>
-        {isDone ? <CheckIcon size={16} strokeWidth={2.5} className="text-success" /> : <span>{icon}</span>}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className={`text-[13px] font-bold truncate ${isDone ? "line-through text-text-tertiary" : "text-text-primary"}`}>
-          {task.challenge_title}
-        </p>
-        <div className="flex items-center gap-1.5 mt-0.5">
-          {task.scheduled_time && (
-            <span className="flex items-center gap-1 text-[11px] font-semibold text-text-tertiary">
-              <ClockIcon size={10} strokeWidth={2} />
-              {task.scheduled_time.slice(0, 5)}
-            </span>
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0 text-base"
+          style={{ background: isDone ? "var(--color-success-bg)" : bg }}>
+          {isDone ? <CheckIcon size={16} strokeWidth={2.5} className="text-success" /> : <span>{icon}</span>}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className={`text-[13px] font-bold truncate ${isDone ? "line-through text-text-tertiary" : "text-text-primary"}`}>
+            {task.challenge_title}
+          </p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            {task.scheduled_time && (
+              <span className="flex items-center gap-1 text-[11px] font-semibold text-text-tertiary">
+                <ClockIcon size={10} strokeWidth={2} />
+                {task.scheduled_time.slice(0, 5)}
+              </span>
+            )}
+            {task.sequence_number != null && task.total_count != null && (
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                style={{ background: `${accent}18`, color: accent }}>
+                {task.sequence_number} {isRu ? "из" : "of"} {task.total_count}
+              </span>
+            )}
+            {task.type === "all_day" && task.sequence_number == null && (
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                style={{ background: "var(--color-surface2)", color: "var(--color-text-tertiary)" }}>
+                {isRu ? "весь день" : "all day"}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {isPending && (
+            <>
+              <button onClick={onSkip} disabled={loading}
+                className="px-2.5 py-1.5 text-[11px] font-semibold rounded-sm disabled:opacity-40 transition-colors"
+                style={{ border: "1.5px solid var(--color-border-strong)", color: "var(--color-text-secondary)" }}>
+                {isRu ? "Пропуск" : "Skip"}
+              </button>
+              <button onClick={onComplete} disabled={loading}
+                className="px-2.5 py-1.5 text-[11px] font-bold text-white rounded-sm disabled:opacity-40"
+                style={{ background: accent }}>
+                {isRu ? "Готово" : "Done"}
+              </button>
+            </>
           )}
-          {task.sequence_number != null && task.total_count != null && (
-            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-              style={{ background: `${accent}18`, color: accent }}>
-              {task.sequence_number} {isRu ? "из" : "of"} {task.total_count}
-            </span>
-          )}
-          {task.type === "all_day" && task.sequence_number == null && (
-            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-              style={{ background: "var(--color-surface2)", color: "var(--color-text-tertiary)" }}>
-              {isRu ? "весь день" : "all day"}
-            </span>
+          {!isPending && (
+            <button onClick={onUndo} disabled={loading}
+              className="p-1.5 rounded-sm text-text-tertiary hover:text-text-secondary transition-colors"
+              title={isRu ? "Отменить" : "Undo"}>
+              <UndoIcon size={14} />
+            </button>
           )}
         </div>
       </div>
-      <span className="text-[10px] font-bold px-2 py-1 rounded-full shrink-0"
-        style={{
-          background: isDone ? "var(--color-success-bg)" : isSkipped ? "var(--color-surface2)" : `${accent}18`,
-          color: isDone ? "var(--color-success)" : isSkipped ? "var(--color-text-tertiary)" : accent,
-        }}>
-        {isDone ? (isRu ? "✓ Готово" : "✓ Done") : isSkipped ? (isRu ? "Пропущено" : "Skipped") : (isRu ? "Ожидает" : "Pending")}
-      </span>
     </div>
   );
 }
