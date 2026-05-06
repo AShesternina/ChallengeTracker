@@ -23,12 +23,15 @@ const STATUS_STYLE: Record<string, { bg: string; text: string }> = {
   cancelled: { bg: "var(--color-surface2)",    text: "var(--color-text-tertiary)" },
 };
 
+type Filter = "active" | "archive" | "all";
+
 export default function Challenges() {
   const { t, i18n } = useTranslation();
   const { dark } = useThemeStore();
   const dateLocale = i18n.language === "ru" ? ruLocale : enUS;
   const [instances, setInstances] = useState<ChallengeInstance[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<Filter>("active");
 
   useEffect(() => {
     challengesApi.my().then((r) => setInstances(r.data)).finally(() => setLoading(false));
@@ -36,6 +39,18 @@ export default function Challenges() {
 
   const statusLabel = (status: string) =>
     t(`challenges.status_${status}` as any, { defaultValue: status });
+
+  const filtered = instances.filter((i) => {
+    if (filter === "active") return i.status === "active" || i.status === "paused";
+    if (filter === "archive") return i.status === "completed" || i.status === "cancelled";
+    return true;
+  });
+
+  const FILTERS: { key: Filter; label: string }[] = [
+    { key: "active",  label: i18n.language.startsWith("ru") ? "Активные"    : "Active" },
+    { key: "archive", label: i18n.language.startsWith("ru") ? "Завершённые" : "Completed" },
+    { key: "all",     label: i18n.language.startsWith("ru") ? "Все"         : "All" },
+  ];
 
   if (loading) {
     return (
@@ -60,20 +75,63 @@ export default function Challenges() {
         </Link>
       </div>
 
-      {instances.length === 0 && (
+      {/* Filter tabs */}
+      {instances.length > 0 && (
+        <div className="flex rounded-md p-1 gap-1"
+          style={{ background: "var(--color-surface2)" }}>
+          {FILTERS.map(({ key, label }) => {
+            const count = instances.filter((i) => {
+              if (key === "active") return i.status === "active" || i.status === "paused";
+              if (key === "archive") return i.status === "completed" || i.status === "cancelled";
+              return true;
+            }).length;
+            return (
+              <button key={key} onClick={() => setFilter(key)}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[12px] font-bold rounded-sm transition-all"
+                style={{
+                  background: filter === key ? "var(--color-surface)" : "transparent",
+                  color: filter === key ? "var(--color-text-primary)" : "var(--color-text-tertiary)",
+                  boxShadow: filter === key ? "0 1px 4px rgba(0,0,0,0.06)" : "none",
+                }}>
+                {label}
+                {count > 0 && (
+                  <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full"
+                    style={{
+                      background: filter === key ? "var(--color-accent-soft)" : "var(--color-surface)",
+                      color: filter === key ? "var(--color-accent)" : "var(--color-text-tertiary)",
+                    }}>
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Empty state */}
+      {filtered.length === 0 && (
         <div className="text-center py-16">
-          <p className="text-5xl mb-3">🎯</p>
-          <p className="font-bold text-text-primary">{t("challenges.no_challenges")}</p>
-          <Link to="/challenges/new"
-            className="text-[13px] font-semibold mt-2 block"
-            style={{ color: "var(--color-accent)" }}>
-            {t("challenges.no_challenges_hint")}
-          </Link>
+          <p className="text-5xl mb-3">
+            {filter === "archive" ? "📦" : "🎯"}
+          </p>
+          <p className="font-bold text-text-primary">
+            {filter === "archive"
+              ? (i18n.language.startsWith("ru") ? "Нет завершённых челленджей" : "No completed challenges")
+              : t("challenges.no_challenges")}
+          </p>
+          {filter === "active" && (
+            <Link to="/challenges/new"
+              className="text-[13px] font-semibold mt-2 block"
+              style={{ color: "var(--color-accent)" }}>
+              {t("challenges.no_challenges_hint")}
+            </Link>
+          )}
         </div>
       )}
 
       <div className="space-y-2.5">
-        {instances.map((instance) => (
+        {filtered.map((instance) => (
           <ChallengeCard key={instance.id} instance={instance} dark={dark}
             dateLocale={dateLocale} statusLabel={statusLabel} />
         ))}
@@ -90,6 +148,7 @@ function ChallengeCard({ instance, dark, dateLocale, statusLabel }: {
 }) {
   const { icon, accent, bg } = useCategoryStyle(instance.challenge.title, dark);
   const style = STATUS_STYLE[instance.status] ?? STATUS_STYLE.cancelled;
+  const isArchived = instance.status === "completed" || instance.status === "cancelled";
 
   const totalDays = Math.ceil(
     (new Date(instance.end_date).getTime() - new Date(instance.start_date).getTime()) / 86400000
@@ -102,7 +161,11 @@ function ChallengeCard({ instance, dark, dateLocale, statusLabel }: {
   return (
     <Link to={`/challenges/${instance.id}`}
       className="block rounded-md p-4 transition-all hover:shadow-md"
-      style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+      style={{
+        background: "var(--color-surface)",
+        border: "1px solid var(--color-border)",
+        opacity: isArchived ? 0.8 : 1,
+      }}>
       <div className="flex items-start gap-3">
         <div className="w-10 h-10 rounded-[10px] flex items-center justify-center shrink-0 text-lg"
           style={{ background: bg }}>
@@ -123,17 +186,19 @@ function ChallengeCard({ instance, dark, dateLocale, statusLabel }: {
               {instance.challenge.description}
             </p>
           )}
-          {/* Progress bar */}
           <div className="h-1 rounded-full overflow-hidden mb-1" style={{ background: "var(--color-surface2)" }}>
             <div className="h-full rounded-full transition-all"
-              style={{ width: `${progress}%`, background: accent }} />
+              style={{ width: `${progress}%`, background: isArchived ? "var(--color-border-strong)" : accent }} />
           </div>
           <div className="flex items-center justify-between">
             <p className="text-[11px] text-text-tertiary">
               {format(new Date(instance.start_date), "d MMM", { locale: dateLocale })} →{" "}
               {format(new Date(instance.end_date), "d MMM yyyy", { locale: dateLocale })}
             </p>
-            <p className="text-[11px] font-semibold" style={{ color: accent }}>{progress}%</p>
+            <p className="text-[11px] font-semibold"
+              style={{ color: isArchived ? "var(--color-text-tertiary)" : accent }}>
+              {progress}%
+            </p>
           </div>
         </div>
         <ChevronRightIcon size={14} className="text-text-tertiary shrink-0 mt-1" />

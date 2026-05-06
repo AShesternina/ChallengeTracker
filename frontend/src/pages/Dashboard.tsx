@@ -20,13 +20,20 @@ export default function Dashboard() {
   const [challengeCount, setChallengeCount] = useState(0);
   const [streak, setStreak] = useState(0);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [weekDays, setWeekDays] = useState<{ date: string; rate: number; total: number }[]>([]);
 
   const dateLocale = i18n.language === "ru" ? ruLocale : enUS;
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([dailyApi.today(), challengesApi.my(), reportsApi.streak()])
-      .then(([daily, challenges, streakData]) => {
+    const now = new Date();
+    Promise.all([
+      dailyApi.today(),
+      challengesApi.my(),
+      reportsApi.streak(),
+      reportsApi.monthly(now.getFullYear(), now.getMonth() + 1),
+    ])
+      .then(([daily, challenges, streakData, monthly]) => {
         setSummary(daily.data);
         const active = challenges.data.filter((c: { status: string }) => c.status === "active").length;
         setChallengeCount(active);
@@ -34,6 +41,13 @@ export default function Dashboard() {
         if (active === 0 && !localStorage.getItem("ct_onboarded")) {
           setShowOnboarding(true);
         }
+        // last 7 days
+        const today = format(now, "yyyy-MM-dd");
+        const last7 = monthly.data.days
+          .filter((d: any) => d.date <= today)
+          .slice(-7)
+          .map((d: any) => ({ date: d.date, rate: d.completion_rate, total: d.total }));
+        setWeekDays(last7);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -122,6 +136,11 @@ export default function Dashboard() {
         />
       </div>
 
+      {/* Weekly chart */}
+      {weekDays.length > 0 && weekDays.some((d) => d.total > 0) && (
+        <WeekChart days={weekDays} dateLocale={dateLocale} />
+      )}
+
       {/* Quick actions */}
       <div className="grid grid-cols-2 gap-2.5">
         <Link to="/daily"
@@ -176,6 +195,60 @@ function StatCard({ label, value, Icon, color }: {
       </div>
       <p className="text-[18px] font-black text-text-primary leading-none">{value}</p>
       <p className="text-[10px] text-text-tertiary mt-0.5 font-medium">{label}</p>
+    </div>
+  );
+}
+
+const DAY_LABELS_RU = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+const DAY_LABELS_EN = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+
+function WeekChart({ days, dateLocale }: {
+  days: { date: string; rate: number; total: number }[];
+  dateLocale: any;
+}) {
+  const { i18n } = useTranslation();
+  const today = format(new Date(), "yyyy-MM-dd");
+
+  return (
+    <div className="rounded-md px-4 py-3"
+      style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+      <p className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider mb-3">
+        {i18n.language.startsWith("ru") ? "Последние 7 дней" : "Last 7 days"}
+      </p>
+      <div className="flex items-end gap-1.5 h-14">
+        {days.map((d) => {
+          const isToday = d.date === today;
+          const pct = d.total === 0 ? 0 : d.rate;
+          const barH = d.total === 0 ? 4 : Math.max(8, Math.round(pct * 52));
+          let color: string;
+          if (d.total === 0) color = "var(--color-surface2)";
+          else if (pct >= 1) color = "var(--color-success)";
+          else if (pct >= 0.5) color = "rgba(22,163,74,0.5)";
+          else color = "var(--color-danger-bg)";
+
+          const dayOfWeek = new Date(d.date).getDay();
+          const labelIdx = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+          const label = i18n.language.startsWith("ru")
+            ? DAY_LABELS_RU[labelIdx]
+            : DAY_LABELS_EN[labelIdx];
+
+          return (
+            <div key={d.date} className="flex-1 flex flex-col items-center gap-1">
+              <div className="w-full rounded-sm transition-all"
+                style={{
+                  height: barH,
+                  background: color,
+                  outline: isToday ? "2px solid var(--color-accent)" : "none",
+                  outlineOffset: "1px",
+                }} />
+              <span className="text-[9px] font-bold"
+                style={{ color: isToday ? "var(--color-accent)" : "var(--color-text-tertiary)" }}>
+                {label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
