@@ -75,7 +75,7 @@ docker compose up --build
 
 ### 📊 Отчёты (Reports)
 
-**Месячный:** навигация по месяцам, 3 статы, тепловая карта (🟩 100% / 🟢 50%+ / 🟥 <50% / ⬜ нет задач), список активных челленджей с прогресс-барами.
+**Месячный:** навигация по месяцам, 3 статы, тепловая карта (🟩 100% / 🟢 50%+ / 🟠 <50% прошлые / 🔵 предстоящие / ⬜ нет задач), список активных челленджей с прогресс-барами.
 
 **Кликабельные дни:** любой день с задачами открывает детальный вид:
 - Прошлое / сегодня → полное редактирование (Готово / Пропуск / ↩ Отмена)
@@ -244,4 +244,4 @@ docker exec challengetracker-backend-1 bash -c \
   "pip install -r requirements-test.txt -q && pytest tests/ -v --tb=short --cov=app --cov-report=term-missing"
 ```
 
-53 теста: test_auth (11) · test_challenges (8) · test_daily (9) · test_reports (6) · test_new_features (19)
+62 теста: test_auth (11) · test_challenges (12) · test_daily (11) · test_reports (8) · test_new_features (20)

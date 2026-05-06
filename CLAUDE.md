@@ -178,7 +178,7 @@ Copy `backend/.env.example` → `backend/.env`. Key variables:
 ## Running tests
 
 ```bash
-# Install test deps and run all 53 tests (inside running local container)
+# Install test deps and run all 62 tests (inside running local container)
 docker exec challengetracker-backend-1 pip install -r requirements-test.txt -q
 docker exec challengetracker-backend-1 pytest tests/ -v --tb=short
 
@@ -188,7 +188,12 @@ docker exec challengetracker-backend-1 pytest tests/test_auth.py::test_login_suc
 
 Tests use the **same PostgreSQL database** as the running app. Each test truncates all tables and reseeds 16 challenge templates. Run only on the **local Docker stack**, never on production.
 
-Test files: `test_auth.py` (11) · `test_challenges.py` (8) · `test_daily.py` (9) · `test_reports.py` (6) · `test_new_features.py` (19)
+**Important**: when running tests on the server (no local Docker), copy updated test files into the running container first:
+```bash
+docker cp backend/tests/<file>.py challengetracker-backend-1:/app/tests/<file>.py
+```
+
+Test files: `test_auth.py` (11) · `test_challenges.py` (12) · `test_daily.py` (11) · `test_reports.py` (8) · `test_new_features.py` (20)
 
 ## Deployment (production)
 
