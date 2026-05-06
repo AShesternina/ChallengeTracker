@@ -47,8 +47,8 @@ export default function CreateChallenge() {
 
   const applyTemplate = (tpl: Template) => {
     setSelectedTemplate(tpl);
-    setTitle(tpl.title);
-    setDescription(tpl.description || "");
+    setTitle(translateTemplateName(tpl.title, i18n.language));
+    setDescription(translateTemplateDesc(tpl.description || "", i18n.language));
     setType(tpl.type as ChallengeType);
     setDuration(tpl.default_duration_days);
     setTasksPerDay(tpl.tasks_per_day);
