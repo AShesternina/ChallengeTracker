@@ -102,6 +102,28 @@ async def cancel_instance(db: AsyncSession, instance_id: int, user_id: int) -> C
     return instance
 
 
+async def pause_instance(db: AsyncSession, instance_id: int, user_id: int) -> ChallengeInstance:
+    instance = await get_instance(db, instance_id, user_id)
+    if not instance:
+        raise ValueError("Instance not found")
+    if instance.status != InstanceStatus.active:
+        raise ValueError("Only active challenges can be paused")
+    instance.status = InstanceStatus.paused
+    await db.flush()
+    return instance
+
+
+async def resume_instance(db: AsyncSession, instance_id: int, user_id: int) -> ChallengeInstance:
+    instance = await get_instance(db, instance_id, user_id)
+    if not instance:
+        raise ValueError("Instance not found")
+    if instance.status != InstanceStatus.paused:
+        raise ValueError("Only paused challenges can be resumed")
+    instance.status = InstanceStatus.active
+    await db.flush()
+    return instance
+
+
 async def delete_instance(db: AsyncSession, instance_id: int, user_id: int) -> None:
     instance = await get_instance(db, instance_id, user_id)
     if not instance:

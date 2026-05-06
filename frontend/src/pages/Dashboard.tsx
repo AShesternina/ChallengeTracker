@@ -8,6 +8,7 @@ import { useAuthStore } from "../store/authStore";
 import { useTaskStore, DailyTask } from "../store/taskStore";
 import { useThemeStore } from "../store/themeStore";
 import ProgressRing from "../components/ProgressRing";
+import Onboarding from "../components/Onboarding";
 import { FlameIcon, TargetIcon, CheckIcon } from "../components/Icons";
 import { useCategoryStyle } from "../utils/category";
 
@@ -18,6 +19,7 @@ export default function Dashboard() {
   const { summary, setSummary, setLoading } = useTaskStore();
   const [challengeCount, setChallengeCount] = useState(0);
   const [streak, setStreak] = useState(0);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const dateLocale = i18n.language === "ru" ? ruLocale : enUS;
 
@@ -26,10 +28,12 @@ export default function Dashboard() {
     Promise.all([dailyApi.today(), challengesApi.my(), reportsApi.streak()])
       .then(([daily, challenges, streakData]) => {
         setSummary(daily.data);
-        setChallengeCount(
-          challenges.data.filter((c: { status: string }) => c.status === "active").length
-        );
+        const active = challenges.data.filter((c: { status: string }) => c.status === "active").length;
+        setChallengeCount(active);
         setStreak(streakData.data.current_streak);
+        if (active === 0 && !localStorage.getItem("ct_onboarded")) {
+          setShowOnboarding(true);
+        }
       })
       .finally(() => setLoading(false));
   }, []);
@@ -42,8 +46,14 @@ export default function Dashboard() {
   const userName = user?.email?.split("@")[0] || "there";
   const todayStr = format(new Date(), "EEEE, d MMMM", { locale: dateLocale });
 
+  const handleOnboardingDone = () => {
+    localStorage.setItem("ct_onboarded", "1");
+    setShowOnboarding(false);
+  };
+
   return (
     <div className="space-y-4">
+      {showOnboarding && <Onboarding onDone={handleOnboardingDone} />}
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>

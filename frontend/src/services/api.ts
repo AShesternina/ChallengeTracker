@@ -75,6 +75,8 @@ export const challengesApi = {
   getInstance: (instanceId: number) => api.get(`/challenges/instances/${instanceId}`),
   updateInstance: (instanceId: number, data: unknown) => api.patch(`/challenges/instances/${instanceId}`, data),
   cancel: (instanceId: number) => api.delete(`/challenges/instances/${instanceId}`),
+  pause: (instanceId: number) => api.post(`/challenges/instances/${instanceId}/pause`),
+  resume: (instanceId: number) => api.post(`/challenges/instances/${instanceId}/resume`),
   deletePermanently: (instanceId: number) => api.delete(`/challenges/instances/${instanceId}/permanent`),
 };
 

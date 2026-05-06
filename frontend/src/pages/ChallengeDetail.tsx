@@ -95,6 +95,26 @@ export default function ChallengeDetail() {
     }
   };
 
+  const handlePause = async () => {
+    if (!instance) return;
+    try {
+      const { data } = await challengesApi.pause(instance.id);
+      setInstance(data);
+    } catch (e: any) {
+      setError(e.response?.data?.detail || t("common.error"));
+    }
+  };
+
+  const handleResume = async () => {
+    if (!instance) return;
+    try {
+      const { data } = await challengesApi.resume(instance.id);
+      setInstance(data);
+    } catch (e: any) {
+      setError(e.response?.data?.detail || t("common.error"));
+    }
+  };
+
   const handleCancel = async () => {
     if (!instance || !confirm(t("common.confirm_cancel"))) return;
     await challengesApi.cancel(instance.id);
@@ -256,6 +276,22 @@ export default function ChallengeDetail() {
               {t("challenges.report")}
             </Link>
           </div>
+
+          {isActive && (
+            <button onClick={handlePause}
+              className="w-full py-2.5 rounded-md text-[13px] font-semibold transition-colors"
+              style={{ border: "1.5px solid var(--color-border-strong)", color: "var(--color-text-secondary)" }}>
+              ⏸ {i18n.language === "ru" ? "Приостановить" : "Pause"}
+            </button>
+          )}
+
+          {instance.status === "paused" && (
+            <button onClick={handleResume}
+              className="w-full py-2.5 rounded-md text-[13px] font-bold text-white transition-opacity hover:opacity-90"
+              style={{ background: "var(--color-success)" }}>
+              ▶ {i18n.language === "ru" ? "Возобновить" : "Resume"}
+            </button>
+          )}
 
           {isActive && (
             <button onClick={handleCancel}
