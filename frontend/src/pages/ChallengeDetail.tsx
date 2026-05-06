@@ -103,8 +103,12 @@ export default function ChallengeDetail() {
 
   const handleDelete = async () => {
     if (!instance || !confirm(i18n.language === "ru" ? "Удалить челлендж навсегда?" : "Delete challenge permanently?")) return;
-    await challengesApi.deletePermanently(instance.id);
-    navigate("/challenges");
+    try {
+      await challengesApi.deletePermanently(instance.id);
+      navigate("/challenges");
+    } catch (e: any) {
+      setError(e.response?.data?.detail || t("common.error"));
+    }
   };
 
   if (loading) return (
