@@ -75,6 +75,7 @@ export const challengesApi = {
   getInstance: (instanceId: number) => api.get(`/challenges/instances/${instanceId}`),
   updateInstance: (instanceId: number, data: unknown) => api.patch(`/challenges/instances/${instanceId}`, data),
   cancel: (instanceId: number) => api.delete(`/challenges/instances/${instanceId}`),
+  deletePermanently: (instanceId: number) => api.delete(`/challenges/instances/${instanceId}/permanent`),
 };
 
 // --- Reports ---

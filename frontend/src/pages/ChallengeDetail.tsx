@@ -101,6 +101,12 @@ export default function ChallengeDetail() {
     navigate("/challenges");
   };
 
+  const handleDelete = async () => {
+    if (!instance || !confirm(i18n.language === "ru" ? "Удалить челлендж навсегда?" : "Delete challenge permanently?")) return;
+    await challengesApi.deletePermanently(instance.id);
+    navigate("/challenges");
+  };
+
   if (loading) return (
     <div className="flex justify-center py-16">
       <div className="w-7 h-7 rounded-full border-2 animate-spin"
@@ -252,6 +258,14 @@ export default function ChallengeDetail() {
               className="w-full py-2.5 rounded-md text-[13px] font-semibold transition-colors"
               style={{ border: "1.5px solid var(--color-danger)", color: "var(--color-danger)" }}>
               {t("challenges.cancel")}
+            </button>
+          )}
+
+          {instance.status === "cancelled" && (
+            <button onClick={handleDelete}
+              className="w-full py-2.5 rounded-md text-[13px] font-bold text-white transition-opacity hover:opacity-90"
+              style={{ background: "var(--color-danger)" }}>
+              {i18n.language === "ru" ? "Удалить навсегда" : "Delete permanently"}
             </button>
           )}
         </>
