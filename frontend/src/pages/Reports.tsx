@@ -171,7 +171,7 @@ export default function Reports() {
               </p>
               <div className="space-y-2">
                 {challenges.map((ch) => (
-                  <ChallengeRow key={ch.id} instance={ch} dark={dark} dateLocale={dateLocale} />
+                  <ChallengeRow key={ch.id} instance={ch} dark={dark} />
                 ))}
               </div>
             </div>
@@ -182,8 +182,8 @@ export default function Reports() {
   );
 }
 
-function ChallengeRow({ instance, dark, dateLocale }: {
-  instance: ChallengeInstance; dark: boolean; dateLocale: any;
+function ChallengeRow({ instance, dark }: {
+  instance: ChallengeInstance; dark: boolean;
 }) {
   const { icon, accent, bg } = useCategoryStyle(instance.challenge.title, dark);
   const totalDays = Math.ceil(
