@@ -86,18 +86,42 @@ async def update_instance(
         raise ValueError("Instance not found")
 
     challenge = instance.challenge
+    period_changed = False
+
     if data.title is not None:
         challenge.title = data.title
     if data.description is not None:
         challenge.description = data.description
-    if data.end_date is not None:
+    if data.type is not None:
+        challenge.type = data.type
+    if data.start_date is not None and data.start_date != instance.start_date:
+        instance.start_date = data.start_date
+        period_changed = True
+    if data.end_date is not None and data.end_date != instance.end_date:
         instance.end_date = data.end_date
+        period_changed = True
     if data.task_times is not None:
         challenge.task_times = json.dumps(data.task_times)
-    if data.tasks_per_day is not None:
+        period_changed = True
+    if data.tasks_per_day is not None and data.tasks_per_day != challenge.tasks_per_day:
         challenge.tasks_per_day = data.tasks_per_day
+        period_changed = True
 
     await db.flush()
+
+    # Regenerate all tasks if period, schedule, or task count changed
+    if period_changed:
+        await db.execute(
+            delete(DailyTaskInstance).where(
+                DailyTaskInstance.challenge_instance_id == instance_id
+            )
+        )
+        await db.flush()
+        d = instance.start_date
+        while d <= instance.end_date:
+            await ensure_daily_tasks(db, user_id, d)
+            d += timedelta(days=1)
+
     return instance
 
 

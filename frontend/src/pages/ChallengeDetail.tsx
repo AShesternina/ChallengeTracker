@@ -46,9 +46,11 @@ export default function ChallengeDetail() {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [tasksPerDay, setTasksPerDay] = useState(1);
   const [taskTimes, setTaskTimes] = useState<string[]>([]);
+  const [type, setType] = useState<"single" | "multi" | "all_day">("single");
 
   useEffect(() => {
     if (!id) return;
@@ -68,9 +70,11 @@ export default function ChallengeDetail() {
   const fillForm = (inst: ChallengeInstance) => {
     setTitle(inst.challenge.title);
     setDescription(inst.challenge.description || "");
+    setStartDate(inst.start_date);
     setEndDate(inst.end_date);
     setTasksPerDay(inst.challenge.tasks_per_day);
     setTaskTimes(inst.challenge.task_times || []);
+    setType(inst.challenge.type as "single" | "multi" | "all_day");
   };
 
   const handleSave = async () => {
@@ -81,9 +85,11 @@ export default function ChallengeDetail() {
       const { data } = await challengesApi.updateInstance(instance.id, {
         title,
         description: description || null,
+        start_date: startDate,
         end_date: endDate,
         tasks_per_day: tasksPerDay,
-        task_times: instance.challenge.type !== "all_day" ? taskTimes.slice(0, tasksPerDay) : null,
+        task_times: type !== "all_day" ? taskTimes.slice(0, tasksPerDay) : null,
+        type,
       });
       setInstance(data);
       fillForm(data);
@@ -335,18 +341,51 @@ export default function ChallengeDetail() {
               onBlur={(e) => (e.target.style.borderColor = "var(--color-border)")} />
           </div>
 
+          {/* Type */}
+          <div>
+            <label className="block text-[12px] font-semibold text-text-secondary mb-1.5">
+              {t("create_challenge.type_label")}
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {(["single", "multi", "all_day"] as const).map((tp) => (
+                <button key={tp} type="button" onClick={() => setType(tp)}
+                  className="py-2.5 text-[12px] font-bold rounded-md transition-colors"
+                  style={{
+                    border: `1.5px solid ${type === tp ? "var(--color-accent)" : "var(--color-border)"}`,
+                    background: type === tp ? "var(--color-accent-soft)" : "var(--color-surface2)",
+                    color: type === tp ? "var(--color-accent)" : "var(--color-text-secondary)",
+                  }}>
+                  {t(`create_challenge.type_${tp}` as any)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Start date */}
+          <div>
+            <label className="block text-[12px] font-semibold text-text-secondary mb-1.5">
+              {t("create_challenge.start_date_label")}
+            </label>
+            <input type="date" value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className={inputClass} style={inputStyle}
+              onFocus={(e) => (e.target.style.borderColor = "var(--color-accent)")}
+              onBlur={(e) => (e.target.style.borderColor = "var(--color-border)")} />
+          </div>
+
+          {/* End date */}
           <div>
             <label className="block text-[12px] font-semibold text-text-secondary mb-1.5">
               {t("detail.end_date")}
             </label>
-            <input type="date" value={endDate} min={instance.start_date}
+            <input type="date" value={endDate} min={startDate}
               onChange={(e) => setEndDate(e.target.value)}
               className={inputClass} style={inputStyle}
               onFocus={(e) => (e.target.style.borderColor = "var(--color-accent)")}
               onBlur={(e) => (e.target.style.borderColor = "var(--color-border)")} />
           </div>
 
-          {challenge.type !== "all_day" && (
+          {type !== "all_day" && (
             <>
               <div>
                 <label className="block text-[12px] font-semibold text-text-secondary mb-1.5">
