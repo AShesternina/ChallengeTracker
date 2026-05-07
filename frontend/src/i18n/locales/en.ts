@@ -126,6 +126,7 @@ const en = {
     title_placeholder: "e.g. Morning Workout",
     description_label: "Description",
     type_label: "Type",
+    type_timed: "⏰ Scheduled",
     type_single: "⏰ Single",
     type_multi: "🔁 Multi",
     type_all_day: "🌅 All Day",

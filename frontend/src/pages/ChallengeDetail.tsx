@@ -59,7 +59,7 @@ export default function ChallengeDetail() {
   const [endDate, setEndDate] = useState("");
   const [tasksPerDay, setTasksPerDay] = useState(1);
   const [taskTimes, setTaskTimes] = useState<string[]>([]);
-  const [type, setType] = useState<"single" | "multi" | "all_day">("single");
+  const [uiType, setUiType] = useState<"timed" | "all_day">("timed");
 
   useEffect(() => {
     if (!id) return;
@@ -84,7 +84,7 @@ export default function ChallengeDetail() {
     setEndDate(inst.end_date);
     setTasksPerDay(inst.challenge.tasks_per_day);
     setTaskTimes(inst.challenge.task_times || []);
-    setType(inst.challenge.type as "single" | "multi" | "all_day");
+    setUiType(inst.challenge.type === "all_day" ? "all_day" : "timed");
   };
 
   const doSave = async () => {
@@ -98,8 +98,8 @@ export default function ChallengeDetail() {
         start_date: startDate,
         end_date: endDate,
         tasks_per_day: tasksPerDay,
-        task_times: type !== "all_day" ? taskTimes.slice(0, tasksPerDay) : null,
-        type,
+        task_times: uiType !== "all_day" ? taskTimes.slice(0, tasksPerDay) : null,
+        type: uiType === "all_day" ? "all_day" : tasksPerDay > 1 ? "multi" : "single",
       });
       setInstance(data);
       fillForm(data);
@@ -251,7 +251,7 @@ export default function ChallengeDetail() {
               <InfoCell label={t("detail.days_left")} value={`${daysLeft} ${t("challenges.days_abbr")}`} />
               <InfoCell label={t("detail.tasks_per_day")} value={`${challenge.tasks_per_day}`} />
               <InfoCell label={t("detail.type")}
-                value={t(`create_challenge.type_${challenge.type}` as any, { defaultValue: challenge.type })} />
+                value={t(`create_challenge.type_${challenge.type === "all_day" ? "all_day" : "timed"}` as any)} />
               {challenge.task_times && challenge.task_times.length > 0 && (
                 <InfoCell label={t("detail.times")}
                   value={challenge.task_times.map((tm) => tm.slice(0, 5)).join(", ")} />
@@ -379,14 +379,17 @@ export default function ChallengeDetail() {
             <label className="block text-[12px] font-semibold text-text-secondary mb-1.5">
               {t("create_challenge.type_label")}
             </label>
-            <div className="grid grid-cols-3 gap-2">
-              {(["single", "multi", "all_day"] as const).map((tp) => (
-                <button key={tp} type="button" onClick={() => setType(tp)}
+            <div className="grid grid-cols-2 gap-2">
+              {(["timed", "all_day"] as const).map((tp) => (
+                <button key={tp} type="button" onClick={() => {
+                  setUiType(tp);
+                  if (tp === "all_day") setTasksPerDay(1);
+                }}
                   className="py-2.5 text-[12px] font-bold rounded-md transition-colors"
                   style={{
-                    border: `1.5px solid ${type === tp ? "var(--color-accent)" : "var(--color-border)"}`,
-                    background: type === tp ? "var(--color-accent-soft)" : "var(--color-surface2)",
-                    color: type === tp ? "var(--color-accent)" : "var(--color-text-secondary)",
+                    border: `1.5px solid ${uiType === tp ? "var(--color-accent)" : "var(--color-border)"}`,
+                    background: uiType === tp ? "var(--color-accent-soft)" : "var(--color-surface2)",
+                    color: uiType === tp ? "var(--color-accent)" : "var(--color-text-secondary)",
                   }}>
                   {t(`create_challenge.type_${tp}` as any)}
                 </button>
@@ -418,7 +421,7 @@ export default function ChallengeDetail() {
               onBlur={(e) => (e.target.style.borderColor = "var(--color-border)")} />
           </div>
 
-          {type !== "all_day" && (
+          {uiType === "timed" && (
             <>
               <div>
                 <label className="block text-[12px] font-semibold text-text-secondary mb-1.5">

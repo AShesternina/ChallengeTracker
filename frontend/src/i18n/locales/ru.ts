@@ -126,6 +126,7 @@ const ru = {
     title_placeholder: "например, Утренняя зарядка",
     description_label: "Описание",
     type_label: "Тип",
+    type_timed: "⏰ По расписанию",
     type_single: "⏰ Одна задача",
     type_multi: "🔁 Несколько задач",
     type_all_day: "🌅 На весь день",

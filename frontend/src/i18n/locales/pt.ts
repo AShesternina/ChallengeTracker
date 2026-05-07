@@ -126,6 +126,7 @@ const pt = {
     title_placeholder: "ex. Treino matinal",
     description_label: "Descrição",
     type_label: "Tipo",
+    type_timed: "⏰ Agendado",
     type_single: "⏰ Único",
     type_multi: "🔁 Múltiplo",
     type_all_day: "🌅 Dia todo",

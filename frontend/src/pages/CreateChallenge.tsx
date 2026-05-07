@@ -19,7 +19,12 @@ interface Template {
   icon: string | null;
 }
 
-type ChallengeType = "single" | "multi" | "all_day";
+type UIType = "timed" | "all_day";
+
+function toBackendType(uiType: UIType, tasksPerDay: number): "single" | "multi" | "all_day" {
+  if (uiType === "all_day") return "all_day";
+  return tasksPerDay > 1 ? "multi" : "single";
+}
 
 const inputClass = "w-full px-4 py-3 rounded-md text-[14px] text-text-primary placeholder-text-tertiary outline-none transition-colors";
 const inputStyle = { background: "var(--color-surface2)", border: "1.5px solid var(--color-border)" };
@@ -41,7 +46,7 @@ export default function CreateChallenge() {
     restartFrom ? translateTemplateName(restartFrom.challenge.title, i18n.language) : ""
   );
   const [description, setDescription] = useState(restartFrom?.challenge.description ?? "");
-  const [type, setType] = useState<ChallengeType>((restartFrom?.challenge.type ?? "single") as ChallengeType);
+  const [uiType, setUiType] = useState<UIType>(restartFrom?.challenge.type === "all_day" ? "all_day" : "timed");
   const [duration, setDuration] = useState(restartFrom?.challenge.default_duration_days ?? 30);
   const [tasksPerDay, setTasksPerDay] = useState(restartFrom?.challenge.tasks_per_day ?? 1);
   const [taskTimes, setTaskTimes] = useState<string[]>(restartFrom?.challenge.task_times ?? ["07:00"]);
@@ -59,7 +64,7 @@ export default function CreateChallenge() {
     setTitle(tpl.title);  // store English canonical — translateTemplateName works for any language
     setDisplayTitle(translateTemplateName(tpl.title, i18n.language));  // show translated in input
     setDescription(translateTemplateDesc(tpl.description || "", i18n.language));
-    setType(tpl.type as ChallengeType);
+    setUiType(tpl.type === "all_day" ? "all_day" : "timed");
     setDuration(tpl.default_duration_days);
     setTasksPerDay(tpl.tasks_per_day);
     setStep("configure");
@@ -69,11 +74,12 @@ export default function CreateChallenge() {
     setError("");
     setLoading(true);
     try {
-      const times = type === "all_day" ? null : taskTimes.slice(0, tasksPerDay);
+      const backendType = toBackendType(uiType, tasksPerDay);
+      const times = uiType === "all_day" ? null : taskTimes.slice(0, tasksPerDay);
       const { data: challenge } = await challengesApi.create({
         title,
         description: description || null,
-        type,
+        type: backendType,
         default_duration_days: duration,
         tasks_per_day: tasksPerDay,
         task_times: times,
@@ -187,14 +193,17 @@ export default function CreateChallenge() {
         </Field>
 
         <Field label={t("create_challenge.type_label")}>
-          <div className="grid grid-cols-3 gap-2">
-            {(["single", "multi", "all_day"] as const).map((tp) => (
-              <button key={tp} type="button" onClick={() => setType(tp)}
+          <div className="grid grid-cols-2 gap-2">
+            {(["timed", "all_day"] as const).map((tp) => (
+              <button key={tp} type="button" onClick={() => {
+                setUiType(tp);
+                if (tp === "all_day") setTasksPerDay(1);
+              }}
                 className="py-2.5 text-[12px] font-bold rounded-md transition-colors"
                 style={{
-                  border: `1.5px solid ${type === tp ? "var(--color-accent)" : "var(--color-border)"}`,
-                  background: type === tp ? "var(--color-accent-soft)" : "var(--color-surface2)",
-                  color: type === tp ? "var(--color-accent)" : "var(--color-text-secondary)",
+                  border: `1.5px solid ${uiType === tp ? "var(--color-accent)" : "var(--color-border)"}`,
+                  background: uiType === tp ? "var(--color-accent-soft)" : "var(--color-surface2)",
+                  color: uiType === tp ? "var(--color-accent)" : "var(--color-text-secondary)",
                 }}>
                 {t(`create_challenge.type_${tp}` as any)}
               </button>
@@ -210,7 +219,7 @@ export default function CreateChallenge() {
               onFocus={(e) => (e.target.style.borderColor = "var(--color-accent)")}
               onBlur={(e) => (e.target.style.borderColor = "var(--color-border)")} />
           </Field>
-          {type !== "all_day" && (
+          {uiType === "timed" && (
             <Field label={t("create_challenge.tasks_per_day_label")}>
               <input type="number" min={1} max={10} value={tasksPerDay}
                 onChange={(e) => {
@@ -229,7 +238,7 @@ export default function CreateChallenge() {
           )}
         </div>
 
-        {type !== "all_day" && (
+        {uiType === "timed" && (
           <Field label={t("create_challenge.times_label")}>
             <div className="space-y-2">
               {taskTimes.slice(0, tasksPerDay).map((tm, i) => (

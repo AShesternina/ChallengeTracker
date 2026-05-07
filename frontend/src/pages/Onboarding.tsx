@@ -9,7 +9,12 @@ import { useCategoryStyle } from "../utils/category";
 import { translateTemplateName, translateTemplateDesc, getTemplateCategory } from "../utils/templateTranslations";
 
 type Step = "welcome" | "pick" | "configure";
-type ChallengeType = "single" | "multi" | "all_day";
+type UIType = "timed" | "all_day";
+
+function toBackendType(uiType: UIType, tasksPerDay: number): "single" | "multi" | "all_day" {
+  if (uiType === "all_day") return "all_day";
+  return tasksPerDay > 1 ? "multi" : "single";
+}
 
 interface Template {
   id: number;
@@ -37,7 +42,7 @@ export default function OnboardingPage() {
   const today = format(new Date(), "yyyy-MM-dd");
   const [title, setTitle] = useState("");
   const [displayTitle, setDisplayTitle] = useState("");
-  const [type, setType] = useState<ChallengeType>("single");
+  const [uiType, setUiType] = useState<UIType>("timed");
   const [duration, setDuration] = useState(30);
   const [tasksPerDay, setTasksPerDay] = useState(1);
   const [taskTimes, setTaskTimes] = useState<string[]>(["07:00"]);
@@ -68,7 +73,7 @@ export default function OnboardingPage() {
     setSelectedTemplate(tpl);
     setTitle(tpl.title);
     setDisplayTitle(translateTemplateName(tpl.title, i18n.language));
-    setType(tpl.type as ChallengeType);
+    setUiType(tpl.type === "all_day" ? "all_day" : "timed");
     setDuration(tpl.default_duration_days);
     setTasksPerDay(tpl.tasks_per_day);
     setStep("configure");
@@ -78,10 +83,11 @@ export default function OnboardingPage() {
     setError("");
     setLoading(true);
     try {
-      const times = type === "all_day" ? null : taskTimes.slice(0, tasksPerDay);
+      const backendType = toBackendType(uiType, tasksPerDay);
+      const times = uiType === "all_day" ? null : taskTimes.slice(0, tasksPerDay);
       const { data: challenge } = await challengesApi.create({
         title,
-        type,
+        type: backendType,
         default_duration_days: duration,
         tasks_per_day: tasksPerDay,
         task_times: times,
@@ -187,14 +193,17 @@ export default function OnboardingPage() {
           </Field>
 
           <Field label={t("create_challenge.type_label")}>
-            <div className="grid grid-cols-3 gap-2">
-              {(["single", "multi", "all_day"] as const).map((tp) => (
-                <button key={tp} type="button" onClick={() => setType(tp)}
+            <div className="grid grid-cols-2 gap-2">
+              {(["timed", "all_day"] as const).map((tp) => (
+                <button key={tp} type="button" onClick={() => {
+                  setUiType(tp);
+                  if (tp === "all_day") setTasksPerDay(1);
+                }}
                   className="py-2.5 text-[12px] font-bold rounded-md transition-colors"
                   style={{
-                    border: `1.5px solid ${type === tp ? "var(--color-accent)" : "var(--color-border)"}`,
-                    background: type === tp ? "var(--color-accent-soft)" : "var(--color-surface2)",
-                    color: type === tp ? "var(--color-accent)" : "var(--color-text-secondary)",
+                    border: `1.5px solid ${uiType === tp ? "var(--color-accent)" : "var(--color-border)"}`,
+                    background: uiType === tp ? "var(--color-accent-soft)" : "var(--color-surface2)",
+                    color: uiType === tp ? "var(--color-accent)" : "var(--color-text-secondary)",
                   }}>
                   {t(`create_challenge.type_${tp}` as any)}
                 </button>
@@ -210,7 +219,7 @@ export default function OnboardingPage() {
                 onFocus={(e) => (e.target.style.borderColor = "var(--color-accent)")}
                 onBlur={(e) => (e.target.style.borderColor = "var(--color-border)")} />
             </Field>
-            {type !== "all_day" && (
+            {uiType === "timed" && (
               <Field label={t("create_challenge.tasks_per_day_label")}>
                 <input type="number" min={1} max={10} value={tasksPerDay}
                   onChange={(e) => {
@@ -229,7 +238,7 @@ export default function OnboardingPage() {
             )}
           </div>
 
-          {type !== "all_day" && (
+          {uiType === "timed" && (
             <Field label={t("create_challenge.times_label")}>
               <div className="space-y-2">
                 {taskTimes.slice(0, tasksPerDay).map((tm, i) => (
