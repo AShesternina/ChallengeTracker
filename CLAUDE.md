@@ -244,7 +244,7 @@ Copy `backend/.env.example` → `backend/.env`. Key variables:
 ## Running tests
 
 ```bash
-# Install test deps and run all 74 tests (local Docker only)
+# Install test deps and run all 76 tests (local Docker only)
 docker exec challengetracker-backend-1 pip install -r requirements-test.txt -q
 docker exec challengetracker-backend-1 pytest tests/ -v --tb=short
 
@@ -258,7 +258,7 @@ docker exec challengetracker-backend-1 pytest tests/test_auth.py::test_login_suc
 - Production server does NOT have `PYTEST_ALLOW=1` — pytest is blocked at import time with a clear error
 - `pytest` is also not installed in the production image (double protection)
 
-Test files: `test_auth.py` (20) · `test_challenges.py` (13) · `test_daily.py` (11) · `test_reports.py` (8) · `test_new_features.py` (22)
+Test files: `test_auth.py` (20) · `test_challenges.py` (15) · `test_daily.py` (11) · `test_reports.py` (8) · `test_new_features.py` (22)
 
 ## Deployment (production)
 
