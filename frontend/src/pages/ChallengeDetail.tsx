@@ -176,7 +176,6 @@ export default function ChallengeDetail() {
   const { icon, accent, bg } = useCategoryStyle(challenge.title, dark);
   const isActive = instance.status === "active";
   const isCancelled = instance.status === "cancelled";
-  const isCompleted = instance.status === "completed";
   const style = STATUS_STYLE[instance.status] ?? STATUS_STYLE.cancelled;
 
   const daysLeft = Math.max(0, Math.ceil(
