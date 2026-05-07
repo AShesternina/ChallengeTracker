@@ -38,6 +38,14 @@ export default function App() {
     setServiceWorkerLanguage(lang);
   }, []);
 
+  // Auto-reload when a new Service Worker takes control (new deploy)
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    const reload = () => window.location.reload();
+    navigator.serviceWorker.addEventListener("controllerchange", reload);
+    return () => navigator.serviceWorker.removeEventListener("controllerchange", reload);
+  }, []);
+
   return (
     <BrowserRouter>
       <Routes>

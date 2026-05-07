@@ -6,6 +6,9 @@ declare const self: ServiceWorkerGlobalScope;
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);
 
+self.addEventListener("install", () => self.skipWaiting());
+self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
+
 // ── Notification translations ────────────────────────────────────────────────
 // Adding a new language: add its code to each entry below. No other changes needed.
 
