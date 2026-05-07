@@ -7,6 +7,7 @@ import { challengesApi, reportsApi } from "../services/api";
 import { useThemeStore } from "../store/themeStore";
 import { useCategoryStyle } from "../utils/category";
 import { ArrowLeftIcon, EditIcon, BarChartIcon, FlameIcon, TrophyIcon } from "../components/Icons";
+import ConfirmModal from "../components/ConfirmModal";
 
 interface ChallengeInstance {
   id: number;
@@ -44,6 +45,7 @@ export default function ChallengeDetail() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -129,7 +131,7 @@ export default function ChallengeDetail() {
   };
 
   const handleDelete = async () => {
-    if (!instance || !confirm(t("challenges.confirm_delete"))) return;
+    if (!instance) return;
     try {
       await challengesApi.deletePermanently(instance.id);
       navigate("/challenges");
@@ -309,43 +311,34 @@ export default function ChallengeDetail() {
           )}
 
           {showCancelModal && (
-            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-              style={{ background: "rgba(0,0,0,0.5)" }}
-              onClick={() => setShowCancelModal(false)}>
-              <div className="w-full max-w-sm rounded-2xl p-6 space-y-4"
-                style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
-                onClick={(e) => e.stopPropagation()}>
-                <div className="text-center">
-                  <div className="text-3xl mb-3">⚠️</div>
-                  <h3 className="font-black text-[17px] text-text-primary" style={{ letterSpacing: "-0.3px" }}>
-                    {t("common.confirm_cancel")}
-                  </h3>
-                  <p className="text-[13px] text-text-secondary mt-2">
-                    {t("common.confirm_cancel_body")}
-                  </p>
-                </div>
-                <div className="flex flex-col gap-2 pt-1">
-                  <button onClick={handleCancel}
-                    className="w-full py-3 rounded-md text-[13px] font-bold text-white"
-                    style={{ background: "var(--color-danger)" }}>
-                    {t("common.confirm_cancel_yes")}
-                  </button>
-                  <button onClick={() => setShowCancelModal(false)}
-                    className="w-full py-3 rounded-md text-[13px] font-bold"
-                    style={{ border: "1.5px solid var(--color-border-strong)", color: "var(--color-text-secondary)" }}>
-                    {t("common.confirm_cancel_no")}
-                  </button>
-                </div>
-              </div>
-            </div>
+            <ConfirmModal
+              title={t("common.confirm_cancel")}
+              body={t("common.confirm_cancel_body")}
+              confirmLabel={t("common.confirm_cancel_yes")}
+              cancelLabel={t("common.confirm_cancel_no")}
+              onConfirm={handleCancel}
+              onCancel={() => setShowCancelModal(false)}
+            />
           )}
 
           {instance.status === "cancelled" && (
-            <button onClick={handleDelete}
+            <button onClick={() => setShowDeleteModal(true)}
               className="w-full py-2.5 rounded-md text-[13px] font-bold text-white transition-opacity hover:opacity-90"
               style={{ background: "var(--color-danger)" }}>
               {t("challenges.delete_permanently")}
             </button>
+          )}
+
+          {showDeleteModal && (
+            <ConfirmModal
+              emoji="🗑️"
+              title={t("challenges.confirm_delete")}
+              body={t("challenges.confirm_delete_body")}
+              confirmLabel={t("challenges.confirm_delete_yes")}
+              cancelLabel={t("challenges.confirm_delete_no")}
+              onConfirm={handleDelete}
+              onCancel={() => setShowDeleteModal(false)}
+            />
           )}
         </>
       ) : (
