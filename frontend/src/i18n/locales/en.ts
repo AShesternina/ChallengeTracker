@@ -176,6 +176,11 @@ const en = {
     dark_mode: "Dark mode",
     light_mode: "Light mode",
     sign_out: "Sign Out",
+    delete_account: "Delete Account",
+    confirm_delete_account: "Delete your account?",
+    confirm_delete_account_body: "All your data — challenges, tasks, and progress — will be permanently erased. This cannot be undone.",
+    confirm_delete_account_yes: "Yes, delete everything",
+    confirm_delete_account_no: "Cancel",
   },
   onboarding: {
     welcome_title: "Welcome to ChallengeTracker!",

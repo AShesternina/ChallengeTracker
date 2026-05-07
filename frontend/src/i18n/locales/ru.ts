@@ -176,6 +176,11 @@ const ru = {
     dark_mode: "Тёмная тема",
     light_mode: "Светлая тема",
     sign_out: "Выйти",
+    delete_account: "Удалить аккаунт",
+    confirm_delete_account: "Удалить аккаунт?",
+    confirm_delete_account_body: "Все данные — челленджи, задачи и прогресс — будут удалены навсегда. Это действие необратимо.",
+    confirm_delete_account_yes: "Да, удалить всё",
+    confirm_delete_account_no: "Отмена",
   },
   onboarding: {
     welcome_title: "Добро пожаловать!",

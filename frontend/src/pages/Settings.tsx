@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { userApi } from "../services/api";
 import { useAuthStore } from "../store/authStore";
@@ -6,6 +7,7 @@ import { useThemeStore } from "../store/themeStore";
 import { subscribeToPush } from "../services/push";
 import { setServiceWorkerLanguage } from "../services/sw-lang";
 import { SunIcon, MoonIcon } from "../components/Icons";
+import ConfirmModal from "../components/ConfirmModal";
 
 const TIMEZONES = [
   "UTC", "Europe/Moscow", "Europe/London", "Europe/Berlin", "America/New_York",
@@ -23,6 +25,7 @@ const LANGUAGES = [
 
 export default function Settings() {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const { user, setUser, logout } = useAuthStore();
   const { dark, toggle } = useThemeStore();
   const [timezone, setTimezone] = useState(user?.timezone || "UTC");
@@ -30,6 +33,8 @@ export default function Settings() {
   const [saved, setSaved] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if ("serviceWorker" in navigator && "PushManager" in window) {
@@ -79,6 +84,18 @@ export default function Settings() {
       console.error("Push toggle failed:", e);
     } finally {
       setPushLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      await userApi.deleteMe();
+      logout();
+      navigate("/login");
+    } catch {
+      setDeleting(false);
+      setShowDeleteModal(false);
     }
   };
 
@@ -175,6 +192,25 @@ export default function Settings() {
         style={{ border: "1.5px solid var(--color-danger)", color: "var(--color-danger)" }}>
         {t("settings.sign_out")}
       </button>
+
+      {/* Delete account */}
+      <button onClick={() => setShowDeleteModal(true)}
+        className="w-full py-3 rounded-md text-[13px] font-semibold transition-colors text-text-tertiary hover:text-text-secondary">
+        {t("settings.delete_account")}
+      </button>
+
+      {showDeleteModal && (
+        <ConfirmModal
+          emoji="⚠️"
+          title={t("settings.confirm_delete_account")}
+          body={t("settings.confirm_delete_account_body")}
+          confirmLabel={deleting ? "..." : t("settings.confirm_delete_account_yes")}
+          cancelLabel={t("settings.confirm_delete_account_no")}
+          confirmDanger={true}
+          onConfirm={handleDeleteAccount}
+          onCancel={() => setShowDeleteModal(false)}
+        />
+      )}
     </div>
   );
 }

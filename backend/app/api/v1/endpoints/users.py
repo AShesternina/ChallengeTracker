@@ -1,10 +1,16 @@
 import pytz
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
+from app.models.challenge import Challenge
+from app.models.challenge_instance import ChallengeInstance
+from app.models.daily_task_instance import DailyTaskInstance
+from app.models.notification_log import NotificationLog
 from app.models.user import User
+from app.models.user_device import UserDevice
 from app.schemas.user import UserOut, UserUpdateRequest
 from app.services.language_service import SUPPORTED_LANGUAGES
 
@@ -30,5 +36,26 @@ async def update_me(
         if data.language not in SUPPORTED_LANGUAGES:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported language")
         user.language = data.language
+    if data.onboarding_completed is not None:
+        user.onboarding_completed = data.onboarding_completed
     await db.flush()
     return user
+
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_me(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    challenge_ids = (await db.execute(
+        select(ChallengeInstance.challenge_id).where(ChallengeInstance.user_id == user.id)
+    )).scalars().all()
+
+    await db.execute(delete(DailyTaskInstance).where(DailyTaskInstance.user_id == user.id))
+    await db.execute(delete(ChallengeInstance).where(ChallengeInstance.user_id == user.id))
+    if challenge_ids:
+        await db.execute(delete(Challenge).where(Challenge.id.in_(challenge_ids)))
+    await db.execute(delete(UserDevice).where(UserDevice.user_id == user.id))
+    await db.execute(delete(NotificationLog).where(NotificationLog.user_id == user.id))
+    await db.delete(user)
+    await db.flush()

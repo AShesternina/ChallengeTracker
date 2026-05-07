@@ -176,6 +176,11 @@ const es = {
     dark_mode: "Modo oscuro",
     light_mode: "Modo claro",
     sign_out: "Cerrar sesión",
+    delete_account: "Eliminar cuenta",
+    confirm_delete_account: "¿Eliminar tu cuenta?",
+    confirm_delete_account_body: "Todos tus datos — desafíos, tareas y progreso — serán eliminados permanentemente. Esta acción no se puede deshacer.",
+    confirm_delete_account_yes: "Sí, eliminar todo",
+    confirm_delete_account_no: "Cancelar",
   },
   onboarding: {
     welcome_title: "¡Bienvenido a ChallengeTracker!",

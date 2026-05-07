@@ -54,6 +54,7 @@ export const authApi = {
 export const userApi = {
   me: () => api.get("/users/me"),
   update: (data: { timezone?: string; language?: string; onboarding_completed?: boolean }) => api.patch("/users/me", data),
+  deleteMe: () => api.delete("/users/me"),
 };
 
 // --- Daily ---
