@@ -83,7 +83,8 @@ export default function Challenges() {
           {FILTERS.map(({ key, label }) => {
             const count = instances.filter((i) => {
               if (key === "active") return i.status === "active" || i.status === "paused";
-              if (key === "archive") return i.status === "completed" || i.status === "cancelled";
+              if (key === "cancelled") return i.status === "cancelled";
+              if (key === "completed") return i.status === "completed";
               return true;
             }).length;
             return (

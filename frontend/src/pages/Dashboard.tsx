@@ -10,12 +10,12 @@ import { useThemeStore } from "../store/themeStore";
 import ProgressRing from "../components/ProgressRing";
 import Onboarding from "../components/Onboarding";
 import TaskCard from "../components/TaskCard";
-import { FlameIcon, TargetIcon } from "../components/Icons";
+import { FlameIcon, TargetIcon, CheckIcon } from "../components/Icons";
 
 export default function Dashboard() {
   const { t, i18n } = useTranslation();
   const { user } = useAuthStore();
-  const { dark } = useThemeStore();
+  useThemeStore();
   const { summary, setSummary, setLoading } = useTaskStore();
   const [challengeCount, setChallengeCount] = useState(0);
   const [streak, setStreak] = useState(0);
