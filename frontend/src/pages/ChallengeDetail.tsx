@@ -309,7 +309,6 @@ export default function ChallengeDetail() {
             </Link>
           </div>
 
-          {/* Active-only actions */}
           {isActive && (
             <button onClick={handlePause}
               className="w-full py-2.5 rounded-md text-[13px] font-semibold transition-colors"
@@ -326,7 +325,6 @@ export default function ChallengeDetail() {
             </button>
           )}
 
-          {/* Cancelled actions: restore + delete */}
           {isCancelled && (
             <button onClick={handleRestore}
               className="w-full py-2.5 rounded-md text-[13px] font-bold text-white transition-opacity hover:opacity-90"
@@ -335,13 +333,11 @@ export default function ChallengeDetail() {
             </button>
           )}
 
-          {(isCancelled || isCompleted) && (
-            <button onClick={() => setShowDeleteModal(true)}
+          <button onClick={() => setShowDeleteModal(true)}
               className="w-full py-2.5 rounded-md text-[13px] font-semibold transition-colors"
               style={{ border: "1.5px solid var(--color-danger)", color: "var(--color-danger)" }}>
               {t("challenges.delete_permanently")}
             </button>
-          )}
 
           {showDeleteModal && (
             <ConfirmModal
