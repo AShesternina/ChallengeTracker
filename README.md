@@ -163,6 +163,7 @@ frontend/src/
 POST /api/v1/auth/register/email
 POST /api/v1/auth/login/email
 POST /api/v1/auth/refresh
+POST /api/v1/auth/logout
 
 GET  /api/v1/users/me
 PATCH /api/v1/users/me
@@ -244,4 +245,4 @@ docker exec challengetracker-backend-1 bash -c \
   "pip install -r requirements-test.txt -q && pytest tests/ -v --tb=short --cov=app --cov-report=term-missing"
 ```
 
-62 теста: test_auth (11) · test_challenges (12) · test_daily (11) · test_reports (8) · test_new_features (20)
+67 тестов: test_auth (16) · test_challenges (12) · test_daily (11) · test_reports (8) · test_new_features (20)

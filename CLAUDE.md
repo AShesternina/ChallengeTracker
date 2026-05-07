@@ -30,7 +30,7 @@ docker restart challengetracker-frontend-1
 docker exec challengetracker-frontend-1 npm install <package>
 ```
 
-URLs: Frontend → http://localhost:5173 | API → http://localhost:8000 | Docs → http://localhost:8000/docs
+URLs: Frontend → http://localhost:5173 | API → http://localhost:8000 | Docs → http://localhost:8000/docs (dev only, disabled in production)
 
 ## Key architectural constraint: day-centric task model
 
@@ -109,6 +109,7 @@ This ensures all confirmations share the same visual style. Redesigning `Confirm
 POST /api/v1/auth/register/email
 POST /api/v1/auth/login/email
 POST /api/v1/auth/refresh
+POST /api/v1/auth/logout                           # revokes refresh token in Redis
 
 GET  /api/v1/users/me
 PATCH /api/v1/users/me
@@ -144,6 +145,9 @@ DELETE /api/v1/notifications/devices/{id}
 
 - Email only: `POST /auth/register/email` or `/auth/login/email` → JWT pair
 - Tokens stored in localStorage; Axios interceptor auto-refreshes on 401 using the refresh token
+- Logout: `POST /auth/logout` blacklists the refresh token in Redis (TTL = remaining token lifetime)
+- Rate limits: register 5/min, login 10/min, refresh 20/min (per IP, via `slowapi`)
+- `/docs` and `/redoc` disabled in production (`APP_ENV=production`)
 
 ## Database migrations
 
@@ -205,7 +209,7 @@ Copy `backend/.env.example` → `backend/.env`. Key variables:
 ## Running tests
 
 ```bash
-# Install test deps and run all 62 tests (inside running local container)
+# Install test deps and run all 67 tests (local Docker only)
 docker exec challengetracker-backend-1 pip install -r requirements-test.txt -q
 docker exec challengetracker-backend-1 pytest tests/ -v --tb=short
 
@@ -213,14 +217,13 @@ docker exec challengetracker-backend-1 pytest tests/ -v --tb=short
 docker exec challengetracker-backend-1 pytest tests/test_auth.py::test_login_success -v
 ```
 
-⚠️ **CRITICAL: NEVER run pytest on the production server.** Each test truncates ALL tables — this destroys all real user data. Tests must only run on a local Docker stack with a throwaway database.
+⚠️ **CRITICAL: NEVER run pytest on the production server.** Each test truncates ALL tables — this destroys all real user data. Tests must only run on a local Docker stack.
 
-To update test files on the server without running them, copy only:
-```bash
-docker cp backend/tests/<file>.py challengetracker-backend-1:/app/tests/<file>.py
-```
+- Local `docker-compose.yml` sets `PYTEST_ALLOW=1` — tests run normally
+- Production server does NOT have `PYTEST_ALLOW=1` — pytest is blocked at import time with a clear error
+- `pytest` is also not installed in the production image (double protection)
 
-Test files: `test_auth.py` (11) · `test_challenges.py` (12) · `test_daily.py` (11) · `test_reports.py` (8) · `test_new_features.py` (20)
+Test files: `test_auth.py` (16) · `test_challenges.py` (12) · `test_daily.py` (11) · `test_reports.py` (8) · `test_new_features.py` (20)
 
 ## Deployment (production)
 
@@ -236,9 +239,17 @@ cd /opt/challengetracker && git pull && docker compose -f docker-compose.prod.ym
 docker exec challengetracker-backend-1 alembic upgrade head
 ```
 
+## Security notes
+
+- **Rate limiting**: `slowapi` on auth endpoints. In tests (`PYTEST_ALLOW=1`) each request gets a unique key so limits never trigger.
+- **Token revocation**: logout blacklists refresh token in Redis. Access tokens are short-lived (30 min) and not blacklisted.
+- **Security headers**: `X-Frame-Options`, `X-Content-Type-Options`, `X-XSS-Protection`, `Referrer-Policy` added via middleware.
+- **Input validation**: `default_duration_days` 1–365, `tasks_per_day` 1–10, timezone validated against `pytz.all_timezones`.
+- **Daily backups**: cron at 03:00 UTC dumps DB to `/opt/backups/db_YYYY-MM-DD.gz` (7-day retention) on the VPS.
+
 ## Known issues / gotchas
 
 - **bcrypt compatibility**: `bcrypt` is pinned to `4.0.1` — `passlib 1.7.4` reads `bcrypt.__about__.__version__` removed in bcrypt 4.1+
 - **Vite HMR on Windows + Docker**: file watching sometimes misses changes — hard-refresh with `Ctrl+Shift+R` or restart container
 - **Port 5432**: not exposed to host. Backend connects via internal Docker network (`db:5432`)
-- **Tests on prod DB**: running pytest on production will truncate challenge_templates and reseed 16 templates — this is expected but wipes user data
+- **Frontend date**: Dashboard and DailyTasks always pass `?target_date=YYYY-MM-DD` from the browser to avoid server timezone mismatch
