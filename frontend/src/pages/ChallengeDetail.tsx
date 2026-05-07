@@ -44,7 +44,6 @@ export default function ChallengeDetail() {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [showCancelModal, setShowCancelModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showPastEndModal, setShowPastEndModal] = useState(false);
 
@@ -151,11 +150,6 @@ export default function ChallengeDetail() {
     }
   };
 
-  const handleCancel = async () => {
-    if (!instance) return;
-    await challengesApi.cancel(instance.id);
-    navigate("/challenges");
-  };
 
   const handleDelete = async () => {
     if (!instance) return;
@@ -332,14 +326,6 @@ export default function ChallengeDetail() {
             </button>
           )}
 
-          {isActive && (
-            <button onClick={() => setShowCancelModal(true)}
-              className="w-full py-2.5 rounded-md text-[13px] font-semibold transition-colors"
-              style={{ border: "1.5px solid var(--color-danger)", color: "var(--color-danger)" }}>
-              {t("challenges.cancel")}
-            </button>
-          )}
-
           {/* Cancelled actions: restore + delete */}
           {isCancelled && (
             <button onClick={handleRestore}
@@ -355,17 +341,6 @@ export default function ChallengeDetail() {
               style={{ border: "1.5px solid var(--color-danger)", color: "var(--color-danger)" }}>
               {t("challenges.delete_permanently")}
             </button>
-          )}
-
-          {showCancelModal && (
-            <ConfirmModal
-              title={t("common.confirm_cancel")}
-              body={t("common.confirm_cancel_body")}
-              confirmLabel={t("common.confirm_cancel_yes")}
-              cancelLabel={t("common.confirm_cancel_no")}
-              onConfirm={handleCancel}
-              onCancel={() => setShowCancelModal(false)}
-            />
           )}
 
           {showDeleteModal && (
