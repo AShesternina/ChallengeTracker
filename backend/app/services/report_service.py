@@ -1,35 +1,37 @@
 from datetime import date
 from calendar import monthrange
 
-from sqlalchemy import and_, select, func
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.daily_task_instance import DailyTaskInstance, TaskStatus
 from app.models.challenge_instance import ChallengeInstance
 from app.schemas.reports import ChallengeReport, DayStats, MonthlyReport, StreakReport
+from app.services.pause_utils import get_paused_dates, is_paused_on
 
 
 async def streak_report(db: AsyncSession, user_id: int) -> StreakReport:
-    """Global streak: consecutive days where user completed at least one task."""
+    """Global streak: consecutive days where user completed at least one task (paused days skipped)."""
     result = await db.execute(
-        select(DailyTaskInstance.date, DailyTaskInstance.status)
+        select(DailyTaskInstance)
         .where(DailyTaskInstance.user_id == user_id)
+        .options(selectinload(DailyTaskInstance.challenge_instance))
         .order_by(DailyTaskInstance.date)
     )
-    rows = result.all()
+    rows = list(result.scalars().all())
 
-    # aggregate: date → has_any_completed
     by_day: dict[date, bool] = {}
-    for r in rows:
-        if r.status == TaskStatus.completed:
-            by_day[r.date] = True
-        elif r.date not in by_day:
-            by_day[r.date] = False
+    for t in rows:
+        if is_paused_on(t.challenge_instance.pause_periods, t.date):
+            continue
+        if t.status == TaskStatus.completed:
+            by_day[t.date] = True
+        elif t.date not in by_day:
+            by_day[t.date] = False
 
     sorted_days = sorted(by_day.keys())
 
-    # longest streak
     longest_streak = 0
     streak = 0
     for d in sorted_days:
@@ -39,7 +41,6 @@ async def streak_report(db: AsyncSession, user_id: int) -> StreakReport:
         else:
             streak = 0
 
-    # current streak: walk back from today (skip today if no tasks yet)
     today = date.today()
     current_streak = 0
     start = today if today in by_day else date.fromordinal(today.toordinal() - 1)
@@ -53,16 +54,19 @@ async def streak_report(db: AsyncSession, user_id: int) -> StreakReport:
 
 async def daily_report(db: AsyncSession, user_id: int, target_date: date) -> DayStats:
     result = await db.execute(
-        select(DailyTaskInstance).where(
+        select(DailyTaskInstance)
+        .where(
             and_(
                 DailyTaskInstance.user_id == user_id,
                 DailyTaskInstance.date == target_date,
             )
         )
+        .options(selectinload(DailyTaskInstance.challenge_instance))
     )
     tasks = list(result.scalars().all())
-    total = len(tasks)
-    completed = sum(1 for t in tasks if t.status == TaskStatus.completed)
+    active = [t for t in tasks if not is_paused_on(t.challenge_instance.pause_periods, target_date)]
+    total = len(active)
+    completed = sum(1 for t in active if t.status == TaskStatus.completed)
     return DayStats(
         date=target_date,
         total=total,
@@ -77,19 +81,22 @@ async def monthly_report(db: AsyncSession, user_id: int, year: int, month: int) 
     end = date(year, month, days_in_month)
 
     result = await db.execute(
-        select(DailyTaskInstance).where(
+        select(DailyTaskInstance)
+        .where(
             and_(
                 DailyTaskInstance.user_id == user_id,
                 DailyTaskInstance.date >= start,
                 DailyTaskInstance.date <= end,
             )
         )
+        .options(selectinload(DailyTaskInstance.challenge_instance))
     )
     tasks = list(result.scalars().all())
 
     by_day: dict[date, list[DailyTaskInstance]] = {}
     for t in tasks:
-        by_day.setdefault(t.date, []).append(t)
+        if not is_paused_on(t.challenge_instance.pause_periods, t.date):
+            by_day.setdefault(t.date, []).append(t)
 
     days = []
     for d in (date(year, month, i) for i in range(1, days_in_month + 1)):
@@ -130,26 +137,30 @@ async def challenge_report(
         raise ValueError("Instance not found")
 
     task_result = await db.execute(
-        select(DailyTaskInstance).where(
-            DailyTaskInstance.challenge_instance_id == instance_id
-        ).order_by(DailyTaskInstance.date)
+        select(DailyTaskInstance)
+        .where(DailyTaskInstance.challenge_instance_id == instance_id)
+        .order_by(DailyTaskInstance.date)
     )
     tasks = list(task_result.scalars().all())
 
-    total = len(tasks)
-    completed = sum(1 for t in tasks if t.status == TaskStatus.completed)
-    skipped = sum(1 for t in tasks if t.status == TaskStatus.skipped)
+    paused_dates = get_paused_dates(instance.pause_periods)
+    active_tasks = [t for t in tasks if t.date not in paused_dates]
 
-    # streak calculation
-    current_streak, longest_streak, streak = 0, 0, 0
+    total = len(active_tasks)
+    completed = sum(1 for t in active_tasks if t.status == TaskStatus.completed)
+    skipped = sum(1 for t in active_tasks if t.status == TaskStatus.skipped)
+
+    # streak — группируем по дням, паузные дни пропускаем (не считаем и не ломают)
     by_day: dict[date, list] = {}
     for t in tasks:
         by_day.setdefault(t.date, []).append(t)
 
+    current_streak, longest_streak, streak = 0, 0, 0
     for d in sorted(by_day.keys()):
+        if d in paused_dates:
+            continue  # пауза не ломает стрик
         day_tasks = by_day[d]
-        day_completed = all(t.status == TaskStatus.completed for t in day_tasks)
-        if day_completed:
+        if all(t.status == TaskStatus.completed for t in day_tasks):
             streak += 1
             longest_streak = max(longest_streak, streak)
         else:

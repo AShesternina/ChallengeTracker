@@ -10,6 +10,7 @@ from app.models.challenge_instance import ChallengeInstance, InstanceStatus
 from app.models.daily_task_instance import DailyTaskInstance
 from app.schemas.challenge import ChallengeCreate, ChallengeInstanceUpdate, StartChallengeRequest
 from app.services.daily_task_service import ensure_daily_tasks
+from app.services.pause_utils import _parse_pause_periods, get_paused_dates
 
 
 async def list_templates(db: AsyncSession) -> list[ChallengeTemplate]:
@@ -146,6 +147,9 @@ async def pause_instance(db: AsyncSession, instance_id: int, user_id: int) -> Ch
     if instance.status != InstanceStatus.active:
         raise ValueError("Only active challenges can be paused")
     instance.status = InstanceStatus.paused
+    periods = _parse_pause_periods(instance.pause_periods)
+    periods.append({"start": str(date.today()), "end": None})
+    instance.pause_periods = json.dumps(periods)
     await db.flush()
     return instance
 
@@ -157,6 +161,17 @@ async def resume_instance(db: AsyncSession, instance_id: int, user_id: int) -> C
     if instance.status != InstanceStatus.paused:
         raise ValueError("Only paused challenges can be resumed")
     instance.status = InstanceStatus.active
+    periods = _parse_pause_periods(instance.pause_periods)
+    today = date.today()
+    yesterday = today - timedelta(days=1)
+    for p in periods:
+        if p.get("end") is None:
+            if yesterday >= date.fromisoformat(p["start"]):
+                p["end"] = str(yesterday)
+            else:
+                periods.remove(p)  # paused and resumed same day
+            break
+    instance.pause_periods = json.dumps(periods)
     await db.flush()
     return instance
 

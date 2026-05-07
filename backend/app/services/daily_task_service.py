@@ -18,6 +18,7 @@ from app.models.challenge import ChallengeType
 from app.models.challenge_instance import ChallengeInstance, InstanceStatus
 from app.models.daily_task_instance import DailyTaskInstance, TaskStatus, TaskType
 from app.schemas.daily import DailySummary, DailyTaskOut
+from app.services.pause_utils import is_paused_on
 
 
 def _task_type_from_challenge(ct: ChallengeType) -> TaskType:
@@ -134,15 +135,20 @@ async def get_daily_tasks(db: AsyncSession, user_id: int, target_date: date) -> 
             challenge_status=t.challenge_instance.status.value,
         ))
 
-    completed = sum(1 for t in tasks if t.status == TaskStatus.completed)
-    skipped = sum(1 for t in tasks if t.status == TaskStatus.skipped)
+    # Паузные задачи видны в списке, но не учитываются в счётчиках
+    active_for_count = [
+        t for t in tasks
+        if not is_paused_on(t.challenge_instance.pause_periods, target_date)
+    ]
+    completed = sum(1 for t in active_for_count if t.status == TaskStatus.completed)
+    skipped = sum(1 for t in active_for_count if t.status == TaskStatus.skipped)
 
     return DailySummary(
         date=target_date,
-        total=len(tasks),
+        total=len(active_for_count),
         completed=completed,
         skipped=skipped,
-        pending=len(tasks) - completed - skipped,
+        pending=len(active_for_count) - completed - skipped,
         tasks=task_outs,
     )
 

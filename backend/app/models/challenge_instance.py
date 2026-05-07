@@ -1,6 +1,6 @@
 import enum
 from datetime import date, datetime, timezone
-from sqlalchemy import Date, DateTime, Enum, ForeignKey, String
+from sqlalchemy import Date, DateTime, Enum, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -27,6 +27,7 @@ class ChallengeInstance(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
+    pause_periods: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     user: Mapped["User"] = relationship(back_populates="challenge_instances")
     challenge: Mapped["Challenge"] = relationship(back_populates="instances")
