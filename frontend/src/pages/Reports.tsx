@@ -202,7 +202,7 @@ export default function Reports() {
               {i18n.language.startsWith("ru") ? "Задачи" : "Tasks"}
             </p>
             {dayTasks.map((task) => {
-              const isEditable = !isFuture && task.challenge_status !== "cancelled" && task.challenge_status !== "paused";
+              const isEditable = !isFuture && task.challenge_status !== "paused";
               return (
                 <DayTaskRow key={task.id} task={task} dark={dark} lang={i18n.language}
                   loading={actionLoading === task.id}
@@ -365,9 +365,8 @@ function DayTaskRow({ task, dark, lang, loading, editable, onComplete, onSkip, o
   const isDone = task.status === "completed";
   const isSkipped = task.status === "skipped";
   const isPending = task.status === "pending";
-  const isCancelled = task.challenge_status === "cancelled";
   const isPaused = task.challenge_status === "paused";
-  const isInactive = isCancelled || isPaused;
+  const isInactive = isPaused;
   const isRu = lang.startsWith("ru");
 
   return (
@@ -435,7 +434,7 @@ function DayTaskRow({ task, dark, lang, loading, editable, onComplete, onSkip, o
         )}
         {isInactive && (
           <span className="text-[10px] font-bold text-text-tertiary shrink-0">
-            {isPaused ? (isRu ? "пауза" : "paused") : (isRu ? "отменён" : "cancelled")}
+            {isRu ? "пауза" : "paused"}
           </span>
         )}
       </div>

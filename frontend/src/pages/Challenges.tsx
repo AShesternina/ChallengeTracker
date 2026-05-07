@@ -22,7 +22,6 @@ const STATUS_STYLE: Record<string, { bg: string; text: string }> = {
   active:    { bg: "var(--color-success-bg)",  text: "var(--color-success)" },
   paused:    { bg: "var(--color-warning-bg)",  text: "var(--color-warning)" },
   completed: { bg: "var(--color-info-bg)",     text: "var(--color-info)" },
-  cancelled: { bg: "var(--color-surface2)",    text: "var(--color-text-tertiary)" },
 };
 
 type Filter = "active" | "paused" | "completed";
@@ -48,7 +47,7 @@ export default function Challenges() {
   const filtered = instances.filter((i) => {
     if (filter === "active") return i.status === "active";
     if (filter === "paused") return i.status === "paused";
-    if (filter === "completed") return i.status === "completed" || i.status === "cancelled";
+    if (filter === "completed") return i.status === "completed";
     return true;
   });
 
@@ -61,7 +60,7 @@ export default function Challenges() {
   const countFor = (key: Filter) => instances.filter((i) => {
     if (key === "active") return i.status === "active";
     if (key === "paused") return i.status === "paused";
-    if (key === "completed") return i.status === "completed" || i.status === "cancelled";
+    if (key === "completed") return i.status === "completed";
     return false;
   }).length;
 
@@ -157,8 +156,8 @@ function ChallengeCard({ instance, dark, dateLocale, statusLabel }: {
 }) {
   const { i18n } = useTranslation();
   const { icon, accent, bg } = useCategoryStyle(instance.challenge.title, dark);
-  const style = STATUS_STYLE[instance.status] ?? STATUS_STYLE.cancelled;
-  const isArchived = instance.status === "completed" || instance.status === "cancelled";
+  const style = STATUS_STYLE[instance.status] ?? STATUS_STYLE.completed;
+  const isArchived = instance.status === "completed";
 
   const totalDays = Math.ceil(
     (new Date(instance.end_date).getTime() - new Date(instance.start_date).getTime()) / 86400000

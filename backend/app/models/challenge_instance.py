@@ -10,7 +10,6 @@ class InstanceStatus(str, enum.Enum):
     active = "active"
     paused = "paused"
     completed = "completed"
-    cancelled = "cancelled"
 
 
 class ChallengeInstance(Base):

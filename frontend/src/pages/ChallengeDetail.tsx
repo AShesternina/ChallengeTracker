@@ -19,6 +19,8 @@ interface ChallengeInstance {
     type: string;
     tasks_per_day: number;
     task_times: string[] | null;
+    default_duration_days: number;
+    source_template_id: number | null;
   };
   start_date: string;
   end_date: string;
@@ -29,7 +31,6 @@ const STATUS_STYLE: Record<string, { bg: string; text: string }> = {
   active:    { bg: "var(--color-success-bg)",  text: "var(--color-success)" },
   paused:    { bg: "var(--color-warning-bg)",  text: "var(--color-warning)" },
   completed: { bg: "var(--color-info-bg)",     text: "var(--color-info)" },
-  cancelled: { bg: "var(--color-surface2)",    text: "var(--color-text-tertiary)" },
 };
 
 export default function ChallengeDetail() {
@@ -171,7 +172,8 @@ export default function ChallengeDetail() {
   const { challenge } = instance;
   const { icon, accent, bg } = useCategoryStyle(challenge.title, dark);
   const isActive = instance.status === "active";
-  const style = STATUS_STYLE[instance.status] ?? STATUS_STYLE.cancelled;
+  const isCompleted = instance.status === "completed";
+  const style = STATUS_STYLE[instance.status] ?? STATUS_STYLE.completed;
 
   const daysLeft = Math.max(0, Math.ceil(
     (new Date(instance.end_date).getTime() - Date.now()) / 86400000
@@ -319,6 +321,13 @@ export default function ChallengeDetail() {
             </button>
           )}
 
+          {isCompleted && (
+            <button onClick={() => navigate("/challenges/new", { state: { restartFrom: instance } })}
+              className="w-full py-2.5 rounded-md text-[13px] font-bold transition-opacity hover:opacity-90"
+              style={{ background: "var(--color-accent)", color: "white" }}>
+              🔄 {t("challenges.restart")}
+            </button>
+          )}
 
           <button onClick={() => setShowDeleteModal(true)}
               className="w-full py-2.5 rounded-md text-[13px] font-semibold transition-colors"

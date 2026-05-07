@@ -47,7 +47,6 @@ URLs: Frontend → http://localhost:5173 | API → http://localhost:8000 | Docs 
 - Active challenge + today/past → fully editable (Done / Skip / Undo)
 - Future days → read-only (no action buttons, "Future · read only" badge) — Reports only
 - Paused challenge → task visible but dimmed, "paused" badge, no action buttons — handled via `challenge_status`
-- Cancelled challenge → task visible but dimmed, "cancelled" badge, no action buttons — handled via `challenge_status`
 - Deleted challenge → all its `DailyTaskInstance` rows are hard-deleted
 
 **Paused days are excluded from all statistics** (daily report, monthly report, challenge report, streak). The `pause_periods` JSON field on `ChallengeInstance` tracks historical pause intervals: `[{"start": "YYYY-MM-DD", "end": "YYYY-MM-DD|null"}]`. Use `pause_utils.is_paused_on()` and `pause_utils.get_paused_dates()` — never inline this logic.
@@ -55,7 +54,7 @@ URLs: Frontend → http://localhost:5173 | API → http://localhost:8000 | Docs 
 **`TaskCard` is the only component for rendering tasks** — use it everywhere tasks appear:
 - `readOnly` prop: status badge instead of action buttons (Dashboard preview)
 - Default (interactive): Done / Skip / Undo buttons
-- `challenge_status === "cancelled"` or `"paused"` → dimmed, no buttons, status badge
+- `challenge_status === "paused"` → dimmed, no buttons, status badge
 
 Never create separate task row components (e.g. MiniTaskRow). All task display logic lives in `TaskCard`.
 
@@ -134,7 +133,6 @@ POST /api/v1/challenges/start
 GET  /api/v1/challenges/my
 GET  /api/v1/challenges/instances/{id}
 PATCH /api/v1/challenges/instances/{id}
-DELETE /api/v1/challenges/instances/{id}          # soft cancel (API-only, no UI button)
 POST /api/v1/challenges/instances/{id}/pause
 POST /api/v1/challenges/instances/{id}/resume
 DELETE /api/v1/challenges/instances/{id}/permanent  # hard delete — any status, deletes tasks too
@@ -173,7 +171,7 @@ docker exec challengetracker-backend-1 alembic upgrade head
 docker exec challengetracker-backend-1 alembic revision --autogenerate -m "description"
 ```
 
-Migrations: `0001_initial` → `0002_seed_templates` → `0003_update_templates` → `0004_add_templates` → `0005_add_pause_periods` → `0006_add_user_language` → `0007_add_source_template_id`
+Migrations: `0001_initial` → `0002_seed_templates` → `0003_update_templates` → `0004_add_templates` → `0005_add_pause_periods` → `0006_add_user_language` → `0007_add_source_template_id` → `0008_remove_cancelled_status`
 
 PostgreSQL enums require explicit `CAST(:value AS enumtype)` — do NOT use `op.bulk_insert()` with enum columns.
 
@@ -181,7 +179,7 @@ PostgreSQL enums require explicit `CAST(:value AS enumtype)` — do NOT use `op.
 
 Key fields in `schemas/daily.py`:
 - `sequence_number` / `total_count` — position among sibling tasks for multi-type challenges (null for single/all_day)
-- `challenge_status` — status of the parent ChallengeInstance (`active | paused | completed | cancelled`). Used by frontend to determine editability.
+- `challenge_status` — status of the parent ChallengeInstance (`active | paused | completed`). Used by frontend to determine editability.
 
 ## Category system (frontend)
 

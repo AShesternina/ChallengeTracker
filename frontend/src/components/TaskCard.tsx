@@ -26,13 +26,10 @@ export default function TaskCard({ task, onComplete, onSkip, onUndo, loading, sh
   const isSkipped = task.status === "skipped";
   const isAllDay = task.type === "all_day";
   const hasSeq = task.sequence_number != null && task.total_count != null;
-  const isCancelled = task.challenge_status === "cancelled";
   const isPaused = task.challenge_status === "paused";
-  const isInactive = isCancelled || isPaused;
+  const isInactive = isPaused;
 
-  const statusLabel = isCancelled
-    ? t("task.cancelled")
-    : isPaused ? t("task.paused")
+  const statusLabel = isPaused ? t("task.paused")
     : isDone ? t("daily.status_completed")
     : isSkipped ? t("daily.status_skipped")
     : t("daily.status_pending");

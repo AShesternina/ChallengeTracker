@@ -63,7 +63,7 @@ docker compose up --build
 
 ### 🎯 Челленджи (Challenges)
 
-**Фильтр:** три таба — Активные / Пауза / Завершённые (completed + cancelled). Счётчик на каждом табе.
+**Фильтр:** три таба — Активные / Пауза / Завершённые. Счётчик на каждом табе.
 
 **Список:** карточки с иконкой категории, статус-бейджем, прогресс-баром (% дней), диапазоном дат.
 
@@ -71,7 +71,7 @@ docker compose up --build
 - Шаг 1 — выбор шаблона (Morning Workout 💪 / Reading 📚 / Meditation 🧘 / Water 💧 / No Sugar 🚫) или с нуля
 - Шаг 2 — название, описание, тип (⏰ single / 🔁 multi / 🌅 all_day), длительность, время, дата начала
 
-**Детали:** прогресс дней, инфо-сетка, текущая серия 🔥 и лучшая серия 🏆, кнопки Редактировать / Отчёт / Приостановить (или Возобновить) / Удалить навсегда.
+**Детали:** прогресс дней, инфо-сетка, текущая серия 🔥 и лучшая серия 🏆, кнопки Редактировать / Отчёт / Приостановить (или Возобновить) / Повторить (для завершённых) / Удалить навсегда.
 
 ### 📊 Отчёты (Reports)
 
@@ -115,7 +115,6 @@ docker compose up --build
 | `active` | 🟢 | Идёт, задачи генерируются |
 | `paused` | 🟡 | Приостановлен |
 | `completed` | 🔵 | Все дни пройдены |
-| `cancelled` | ⚫ | Отменён |
 
 ## Статусы задач
 
@@ -148,7 +147,7 @@ backend/app/
   schemas/            — Pydantic schemas
   services/           — вся бизнес-логика (в т.ч. language_service, notifications_i18n)
   workers/            — Celery app + scheduled tasks
-alembic/              — миграции (0001 → ... → 0007)
+alembic/              — миграции (0001 → ... → 0008)
 
 frontend/src/
   components/         — Layout, TaskCard, ProgressRing, Icons, PasswordInput, ConfirmModal
@@ -179,7 +178,6 @@ POST /api/v1/challenges/start
 GET  /api/v1/challenges/my
 GET  /api/v1/challenges/instances/{id}
 PATCH /api/v1/challenges/instances/{id}
-DELETE /api/v1/challenges/instances/{id}           # soft cancel (API-only, no UI button)
 POST /api/v1/challenges/instances/{id}/pause
 POST /api/v1/challenges/instances/{id}/resume
 DELETE /api/v1/challenges/instances/{id}/permanent # hard delete — any status, tasks removed

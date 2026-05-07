@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { challengesApi } from "../services/api";
@@ -26,19 +26,25 @@ const inputStyle = { background: "var(--color-surface2)", border: "1.5px solid v
 export default function CreateChallenge() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
+  const restartFrom = (location.state as any)?.restartFrom ?? null;
   const { dark } = useThemeStore();
   const [templates, setTemplates] = useState<Template[]>([]);
-  const [step, setStep] = useState<"select" | "configure">("select");
+  const [step, setStep] = useState<"select" | "configure">(restartFrom ? "configure" : "select");
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
 
-  const [title, setTitle] = useState("");         // canonical value submitted to backend
-  const [displayTitle, setDisplayTitle] = useState(""); // what user sees in the input
-  const [description, setDescription] = useState("");
-  const [type, setType] = useState<ChallengeType>("single");
-  const [duration, setDuration] = useState(30);
-  const [tasksPerDay, setTasksPerDay] = useState(1);
-  const [taskTimes, setTaskTimes] = useState<string[]>(["07:00"]);
-  const [startDate, setStartDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const today = format(new Date(), "yyyy-MM-dd");
+
+  const [title, setTitle] = useState(restartFrom?.challenge.title ?? "");
+  const [displayTitle, setDisplayTitle] = useState(
+    restartFrom ? translateTemplateName(restartFrom.challenge.title, i18n.language) : ""
+  );
+  const [description, setDescription] = useState(restartFrom?.challenge.description ?? "");
+  const [type, setType] = useState<ChallengeType>((restartFrom?.challenge.type ?? "single") as ChallengeType);
+  const [duration, setDuration] = useState(restartFrom?.challenge.default_duration_days ?? 30);
+  const [tasksPerDay, setTasksPerDay] = useState(restartFrom?.challenge.tasks_per_day ?? 1);
+  const [taskTimes, setTaskTimes] = useState<string[]>(restartFrom?.challenge.task_times ?? ["07:00"]);
+  const [startDate, setStartDate] = useState(today);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -70,7 +76,7 @@ export default function CreateChallenge() {
         default_duration_days: duration,
         tasks_per_day: tasksPerDay,
         task_times: times,
-        source_template_id: selectedTemplate?.id ?? null,
+        source_template_id: selectedTemplate?.id ?? restartFrom?.challenge.source_template_id ?? null,
       });
       await challengesApi.start(challenge.id, startDate);
       navigate("/challenges");
@@ -123,22 +129,23 @@ export default function CreateChallenge() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <button onClick={() => setStep("select")}
+        <button onClick={() => restartFrom ? navigate(`/challenges/${restartFrom.id}`) : setStep("select")}
           className="flex items-center gap-1 text-[13px] font-semibold text-text-tertiary hover:text-text-secondary transition-colors">
           <ArrowLeftIcon size={15} />
           {t("common.back")}
         </button>
       </div>
 
-      {/* Step indicator */}
-      <div className="flex items-center gap-2">
-        <StepDot active label="1" />
-        <div className="flex-1 h-0.5 rounded-full" style={{ background: "var(--color-accent)" }} />
-        <StepDot active label="2" />
-      </div>
+      {!restartFrom && (
+        <div className="flex items-center gap-2">
+          <StepDot active label="1" />
+          <div className="flex-1 h-0.5 rounded-full" style={{ background: "var(--color-accent)" }} />
+          <StepDot active label="2" />
+        </div>
+      )}
 
       <h2 className="text-[20px] font-black text-text-primary" style={{ letterSpacing: "-0.3px" }}>
-        {selectedTemplate ? t("create_challenge.customize") : t("create_challenge.title")}
+        {restartFrom ? t("challenges.restart") : selectedTemplate ? t("create_challenge.customize") : t("create_challenge.title")}
       </h2>
 
       {error && (
