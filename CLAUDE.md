@@ -79,10 +79,10 @@ All business logic lives in `services/`. Endpoints only validate input, call ser
 
 ```
 frontend/src/
-  components/    Layout, TaskCard, ProgressRing, Icons, PasswordInput, Onboarding, ConfirmModal
+  components/    Layout, TaskCard, ProgressRing, Icons, PasswordInput, ConfirmModal
   pages/         Dashboard, DailyTasks, Challenges, CreateChallenge, ChallengeDetail,
-                 ChallengeReport, Reports, Settings, Login, Register
-  store/         authStore (user + tokens + language), taskStore (daily summary), themeStore (dark mode)
+                 ChallengeReport, Reports, Settings, Login, Register, Onboarding
+  store/         authStore (user + tokens + language + onboarding_completed), taskStore (daily summary), themeStore (dark mode)
   services/      api.ts (Axios + JWT auto-refresh), push.ts (Web Push), sw-lang.ts (SW language sync)
   utils/         category.ts (category detection from title), templateTranslations.ts (16 templates × 4 langs)
   i18n/locales/  en.ts, ru.ts, es.ts, pt.ts
@@ -125,7 +125,8 @@ POST /api/v1/auth/refresh
 POST /api/v1/auth/logout                           # revokes refresh token in Redis
 
 GET  /api/v1/users/me
-PATCH /api/v1/users/me
+PATCH /api/v1/users/me                              # accepts timezone, language, onboarding_completed
+DELETE /api/v1/users/me                             # hard delete user + all data (cascades)
 
 GET  /api/v1/challenges/templates
 POST /api/v1/challenges
@@ -153,6 +154,29 @@ GET  /api/v1/notifications/devices
 DELETE /api/v1/notifications/devices/{id}
 ```
 
+## Onboarding flow
+
+New users are redirected to `/onboarding` after registration (and on login if `onboarding_completed=false`).
+
+- `User.onboarding_completed` (bool, default `false`) — set to `true` via `PATCH /users/me {onboarding_completed: true}`
+- `RequireOnboarded` guard in `App.tsx` redirects unonboarded users from all Layout routes to `/onboarding`
+- Onboarding page (`pages/Onboarding.tsx`): 3 steps — Welcome → Template pick → Configure & launch
+- Skip button available only on the last step (configure)
+- After completing or skipping: local store updated **before** API call to prevent redirect loop
+- Existing users have `onboarding_completed=true` (set in migration 0009)
+
+## Account deletion
+
+`DELETE /api/v1/users/me` — hard deletes the authenticated user and all their data in order:
+1. `DailyTaskInstance` (user_id)
+2. `ChallengeInstance` (user_id)
+3. `Challenge` (ids collected from instances)
+4. `UserDevice` (user_id)
+5. `NotificationLog` (user_id)
+6. `User`
+
+Frontend: Settings page has a "Delete Account" button (below logout) with `ConfirmModal` confirmation. After deletion: `logout()` + `navigate("/login")`.
+
 ## Auth flow
 
 - Email only: `POST /auth/register/email` or `/auth/login/email` → JWT pair
@@ -171,9 +195,22 @@ docker exec challengetracker-backend-1 alembic upgrade head
 docker exec challengetracker-backend-1 alembic revision --autogenerate -m "description"
 ```
 
-Migrations: `0001_initial` → `0002_seed_templates` → `0003_update_templates` → `0004_add_templates` → `0005_add_pause_periods` → `0006_add_user_language` → `0007_add_source_template_id` → `0008_remove_cancelled_status`
+Migrations: `0001_initial` → `0002_seed_templates` → `0003_update_templates` → `0004_add_templates` → `0005_add_pause_periods` → `0006_add_user_language` → `0007_add_source_template_id` → `0008_remove_cancelled_status` → `0009_add_onboarding_completed`
 
 PostgreSQL enums require explicit `CAST(:value AS enumtype)` — do NOT use `op.bulk_insert()` with enum columns.
+
+## Challenge type — UI vs backend
+
+The form UI exposes **2 type buttons**: `timed` and `all_day`.
+The backend stores **3 types**: `single`, `multi`, `all_day`.
+
+Mapping (frontend → backend at submit):
+- `timed` + `tasks_per_day = 1` → `single`
+- `timed` + `tasks_per_day > 1` → `multi`
+- `all_day` → `all_day`
+
+When loading an existing challenge into the edit form: `single/multi → "timed"`, `all_day → "all_day"`.
+This applies to `CreateChallenge.tsx`, `ChallengeDetail.tsx` (edit), and `Onboarding.tsx`.
 
 ## DailyTaskOut schema
 
@@ -244,7 +281,7 @@ Copy `backend/.env.example` → `backend/.env`. Key variables:
 ## Running tests
 
 ```bash
-# Install test deps and run all 76 tests (local Docker only)
+# Install test deps and run all 81 tests (local Docker only)
 docker exec challengetracker-backend-1 pip install -r requirements-test.txt -q
 docker exec challengetracker-backend-1 pytest tests/ -v --tb=short
 
@@ -258,7 +295,7 @@ docker exec challengetracker-backend-1 pytest tests/test_auth.py::test_login_suc
 - Production server does NOT have `PYTEST_ALLOW=1` — pytest is blocked at import time with a clear error
 - `pytest` is also not installed in the production image (double protection)
 
-Test files: `test_auth.py` (20) · `test_challenges.py` (15) · `test_daily.py` (11) · `test_reports.py` (8) · `test_new_features.py` (22)
+Test files: `test_auth.py` (25) · `test_challenges.py` (15) · `test_daily.py` (11) · `test_reports.py` (8) · `test_new_features.py` (22)
 
 ## Deployment (production)
 

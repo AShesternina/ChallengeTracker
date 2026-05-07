@@ -38,6 +38,8 @@ docker compose up --build
 
 ## Разделы приложения
 
+**Онбординг:** новый пользователь после регистрации попадает на 3-шаговый визард — Приветствие → Выбор шаблона → Настройка и запуск. На последнем шаге есть кнопка «Пропустить». После онбординга флаг `onboarding_completed` сохраняется в профиле.
+
 Навигация: **5 вкладок** — Главная / Сегодня / Челленджи / Отчёты / Настройки.
 
 ### 🏠 Главная (Dashboard)
@@ -69,7 +71,7 @@ docker compose up --build
 
 **Создание (2 шага):**
 - Шаг 1 — выбор шаблона (Morning Workout 💪 / Reading 📚 / Meditation 🧘 / Water 💧 / No Sugar 🚫) или с нуля
-- Шаг 2 — название, описание, тип (⏰ single / 🔁 multi / 🌅 all_day), длительность, время, дата начала
+- Шаг 2 — название, описание, тип (⏰ По расписанию / 🌅 На весь день), длительность, количество задач в день, время, дата начала
 - Если дата окончания уже прошла — показывается confirm; челлендж сразу попадает в Завершённые
 
 **Повторить:** кнопка на странице завершённого челленджа открывает предзаполненную форму (шаг 2) с датой начала = сегодня. Все параметры можно изменить перед запуском.
@@ -90,6 +92,8 @@ docker compose up --build
 ### ⚙️ Настройки (Settings)
 
 Профиль, тёмная тема, язык (English / Español / Português / Русский), часовой пояс, web push уведомления, выход. Язык сохраняется в аккаунте и применяется на всех устройствах.
+
+**Удаление аккаунта** — кнопка внизу настроек. После подтверждения удаляет пользователя и все его данные (челленджи, задачи, прогресс) без возможности восстановления.
 
 ---
 
@@ -150,12 +154,12 @@ backend/app/
   schemas/            — Pydantic schemas
   services/           — вся бизнес-логика (в т.ч. language_service, notifications_i18n)
   workers/            — Celery app + scheduled tasks
-alembic/              — миграции (0001 → ... → 0008)
+alembic/              — миграции (0001 → ... → 0009)
 
 frontend/src/
   components/         — Layout, TaskCard, ProgressRing, Icons, PasswordInput, ConfirmModal
-  pages/              — все экраны
-  store/              — authStore (+ language), taskStore, themeStore
+  pages/              — все экраны (+ Onboarding)
+  store/              — authStore (+ language + onboarding_completed), taskStore, themeStore
   services/           — api.ts, push.ts, sw-lang.ts
   utils/              — category.ts, templateTranslations.ts (16 шаблонов × 4 языка)
   i18n/locales/       — en.ts, ru.ts, es.ts, pt.ts
@@ -173,7 +177,8 @@ POST /api/v1/auth/refresh
 POST /api/v1/auth/logout
 
 GET  /api/v1/users/me
-PATCH /api/v1/users/me
+PATCH /api/v1/users/me                             # timezone, language, onboarding_completed
+DELETE /api/v1/users/me                            # удалить аккаунт и все данные
 
 GET  /api/v1/challenges/templates
 POST /api/v1/challenges
@@ -266,4 +271,4 @@ docker exec challengetracker-backend-1 bash -c \
   "pip install -r requirements-test.txt -q && pytest tests/ -v --tb=short --cov=app --cov-report=term-missing"
 ```
 
-76 тестов: test_auth (20) · test_challenges (15) · test_daily (11) · test_reports (8) · test_new_features (22)
+81 тест: test_auth (25) · test_challenges (15) · test_daily (11) · test_reports (8) · test_new_features (22)
