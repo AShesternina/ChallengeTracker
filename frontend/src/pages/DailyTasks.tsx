@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
-import { ru as ruLocale, enUS } from "date-fns/locale";
+import { ru as ruLocale, es as esLocale, ptBR as ptLocale, enUS } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
 import { dailyApi } from "../services/api";
 import { useTaskStore, DailyTask } from "../store/taskStore";
@@ -8,6 +8,7 @@ import { useThemeStore } from "../store/themeStore";
 import { useCategoryStyle } from "../utils/category";
 import { ArrowLeftIcon, CheckIcon } from "../components/Icons";
 import TaskCard from "../components/TaskCard";
+import { translateTemplateName } from "../utils/templateTranslations";
 
 type Tab = "tasks" | "challenges";
 
@@ -26,7 +27,10 @@ export default function DailyTasks() {
   const [tab, setTab] = useState<Tab>("tasks");
   const [selectedChallenge, setSelectedChallenge] = useState<ChallengeGroup | null>(null);
 
-  const dateLocale = i18n.language === "ru" ? ruLocale : enUS;
+  const dateLocale = i18n.language.startsWith("ru") ? ruLocale
+    : i18n.language.startsWith("es") ? esLocale
+    : i18n.language.startsWith("pt") ? ptLocale
+    : enUS;
 
   useEffect(() => {
     setLoading(true);
@@ -82,7 +86,7 @@ export default function DailyTasks() {
       if (!map.has(task.challenge_instance_id)) {
         map.set(task.challenge_instance_id, {
           instanceId: task.challenge_instance_id,
-          title: task.challenge_title,
+          title: translateTemplateName(task.challenge_title, i18n.language),
           tasks: [],
         });
       }

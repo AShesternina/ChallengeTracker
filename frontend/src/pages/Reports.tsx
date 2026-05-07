@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
-import { ru as ruLocale, enUS } from "date-fns/locale";
+import { ru as ruLocale, es as esLocale, ptBR as ptLocale, enUS } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
 import { reportsApi, challengesApi, dailyApi } from "../services/api";
 import { useThemeStore } from "../store/themeStore";
@@ -50,7 +50,10 @@ const DAY_HEADERS_EN = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 export default function Reports() {
   const { t, i18n } = useTranslation();
   const { dark } = useThemeStore();
-  const dateLocale = i18n.language === "ru" ? ruLocale : enUS;
+  const dateLocale = i18n.language.startsWith("ru") ? ruLocale
+    : i18n.language.startsWith("es") ? esLocale
+    : i18n.language.startsWith("pt") ? ptLocale
+    : enUS;
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);

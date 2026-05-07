@@ -12,6 +12,7 @@ from app.models.user import User
 from app.models.user_device import UserDevice
 from app.services.email_service import email_adapter, MORNING_SUMMARY_HTML, DAILY_REPORT_HTML
 from app.services.push_service import send_push
+from app.services.notifications_i18n import get_morning_summary, get_daily_report
 
 logger = logging.getLogger(__name__)
 
@@ -80,11 +81,12 @@ async def dispatch(
 
 
 async def send_morning_summary(db: AsyncSession, user: User, total_tasks: int) -> None:
+    title, body = get_morning_summary(user.language, total_tasks)
     await dispatch(
         db, user,
         NotificationType.morning_summary,
-        "Good morning! ☀️",
-        f"You have {total_tasks} tasks today. Let's go!",
+        title,
+        body,
         {"total_tasks": total_tasks},
     )
 
@@ -93,10 +95,11 @@ async def send_daily_report(
     db: AsyncSession, user: User, completed: int, total: int
 ) -> None:
     rate = round(completed / total * 100) if total else 0
+    title, body = get_daily_report(user.language, completed, total, rate)
     await dispatch(
         db, user,
         NotificationType.daily_report,
-        "Daily Report 📊",
-        f"You completed {completed}/{total} tasks today ({rate}%).",
+        title,
+        body,
         {"completed": completed, "total": total},
     )

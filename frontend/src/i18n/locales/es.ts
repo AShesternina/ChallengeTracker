@@ -144,20 +144,6 @@ const es = {
     submitting: "Creando...",
     failed: "No se pudo crear el desafío",
   },
-  template_titles: {
-    "Morning Workout": "Entrenamiento matutino",
-    "Reading Habit": "Hábito de lectura",
-    "Meditation": "Meditación",
-    "Water Intake": "Hidratación",
-    "No Sugar": "Sin azúcar",
-  },
-  template_descs: {
-    "Daily morning exercise session": "Sesión de ejercicio matutino diario",
-    "Read every day to expand your knowledge": "Lee cada día para ampliar tu conocimiento",
-    "Daily mindfulness practice": "Práctica diaria de atención plena",
-    "Stay hydrated throughout the day": "Mantente hidratado durante todo el día",
-    "Eliminate sugar from your diet": "Elimina el azúcar de tu dieta",
-  },
   reports: {
     title: "Informes",
     total_tasks: "Total de tareas",

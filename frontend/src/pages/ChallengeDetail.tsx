@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { format } from "date-fns";
-import { ru as ruLocale, enUS } from "date-fns/locale";
+import { ru as ruLocale, es as esLocale, ptBR as ptLocale, enUS } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
 import { challengesApi, reportsApi } from "../services/api";
 import { useThemeStore } from "../store/themeStore";
@@ -37,7 +37,10 @@ export default function ChallengeDetail() {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const { dark } = useThemeStore();
-  const dateLocale = i18n.language === "ru" ? ruLocale : enUS;
+  const dateLocale = i18n.language.startsWith("ru") ? ruLocale
+    : i18n.language.startsWith("es") ? esLocale
+    : i18n.language.startsWith("pt") ? ptLocale
+    : enUS;
 
   const [instance, setInstance] = useState<ChallengeInstance | null>(null);
   const [streaks, setStreaks] = useState<{ current: number; longest: number } | null>(null);

@@ -3,6 +3,7 @@ import { useThemeStore } from "../store/themeStore";
 import { useCategoryStyle } from "../utils/category";
 import { DailyTask } from "../store/taskStore";
 import { CheckIcon, ClockIcon, UndoIcon } from "./Icons";
+import { translateTemplateName } from "../utils/templateTranslations";
 
 interface Props {
   task: DailyTask;
@@ -15,8 +16,9 @@ interface Props {
 }
 
 export default function TaskCard({ task, onComplete, onSkip, onUndo, loading, showChallengeName, readOnly }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { dark } = useThemeStore();
+  const challengeTitle = translateTemplateName(task.challenge_title, i18n.language);
   const { icon, accent, bg } = useCategoryStyle(task.challenge_title, dark);
 
   const isPending = task.status === "pending";
@@ -68,11 +70,11 @@ export default function TaskCard({ task, onComplete, onSkip, onUndo, loading, sh
           {showChallengeName && (
             <span className="inline-block text-[10px] font-bold px-1.5 py-0.5 rounded-full mb-1"
               style={{ background: `${accent}18`, color: accent }}>
-              {task.challenge_title}
+              {challengeTitle}
             </span>
           )}
           <p className={`text-[14px] font-bold leading-tight ${isDone ? "line-through text-text-tertiary" : "text-text-primary"}`}>
-            {task.challenge_title}
+            {challengeTitle}
           </p>
 
           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">

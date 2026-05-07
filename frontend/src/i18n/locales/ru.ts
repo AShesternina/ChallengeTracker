@@ -144,20 +144,6 @@ const ru = {
     submitting: "Создание...",
     failed: "Не удалось создать челлендж",
   },
-  template_titles: {
-    "Morning Workout": "Утренняя тренировка",
-    "Reading Habit": "Привычка читать",
-    "Meditation": "Медитация",
-    "Water Intake": "Питьевой режим",
-    "No Sugar": "Без сахара",
-  },
-  template_descs: {
-    "Daily morning exercise session": "Ежедневная утренняя тренировка",
-    "Read every day to expand your knowledge": "Читайте каждый день, чтобы расширять знания",
-    "Daily mindfulness practice": "Ежедневная практика осознанности",
-    "Stay hydrated throughout the day": "Пейте достаточно воды в течение дня",
-    "Eliminate sugar from your diet": "Исключите сахар из своего рациона",
-  },
   reports: {
     title: "Отчёты",
     total_tasks: "Всего задач",
