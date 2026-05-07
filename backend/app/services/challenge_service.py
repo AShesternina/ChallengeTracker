@@ -122,6 +122,11 @@ async def update_instance(
             await ensure_daily_tasks(db, user_id, d)
             d += timedelta(days=1)
 
+    # Auto-complete if end_date moved to the past
+    if instance.status == InstanceStatus.active and instance.end_date < date.today():
+        instance.status = InstanceStatus.completed
+        await db.flush()
+
     return instance
 
 

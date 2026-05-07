@@ -46,6 +46,7 @@ export default function ChallengeDetail() {
   const [error, setError] = useState("");
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showPastEndModal, setShowPastEndModal] = useState(false);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -80,7 +81,7 @@ export default function ChallengeDetail() {
     setType(inst.challenge.type as "single" | "multi" | "all_day");
   };
 
-  const handleSave = async () => {
+  const doSave = async () => {
     if (!instance) return;
     setSaving(true);
     setError("");
@@ -102,6 +103,21 @@ export default function ChallengeDetail() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSave = async () => {
+    if (!instance) return;
+    const today = new Date().toISOString().slice(0, 10);
+    if (endDate < today) {
+      setShowPastEndModal(true);
+      return;
+    }
+    await doSave();
+  };
+
+  const handleSaveConfirmed = async () => {
+    setShowPastEndModal(false);
+    await doSave();
   };
 
   const handlePause = async () => {
@@ -349,6 +365,19 @@ export default function ChallengeDetail() {
               cancelLabel={t("common.confirm_cancel_no")}
               onConfirm={handleCancel}
               onCancel={() => setShowCancelModal(false)}
+            />
+          )}
+
+          {showPastEndModal && (
+            <ConfirmModal
+              emoji="📅"
+              title={t("common.confirm_past_end")}
+              body={t("common.confirm_past_end_body")}
+              confirmLabel={t("common.confirm_past_end_yes")}
+              cancelLabel={t("common.confirm_past_end_no")}
+              confirmDanger={false}
+              onConfirm={handleSaveConfirmed}
+              onCancel={() => setShowPastEndModal(false)}
             />
           )}
 
