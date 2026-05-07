@@ -177,3 +177,32 @@ async def test_update_instance_type_change(client: AsyncClient):
     )
     assert r.status_code == 200
     assert r.json()["challenge"]["type"] == "all_day"
+
+
+async def test_create_challenge_with_source_template_id(client: AsyncClient):
+    """source_template_id is stored and returned in ChallengeOut."""
+    tokens = await register_and_login(client)
+    r = await client.post("/api/v1/challenges", json={
+        "title": "Healthy Sleep",
+        "type": "single",
+        "default_duration_days": 21,
+        "tasks_per_day": 1,
+        "task_times": ["22:30"],
+        "source_template_id": 1,
+    }, headers=auth_headers(tokens))
+    assert r.status_code == 201
+    assert r.json()["source_template_id"] == 1
+
+
+async def test_create_challenge_no_source_template_id(client: AsyncClient):
+    """Custom challenge (no template) has source_template_id=None."""
+    tokens = await register_and_login(client)
+    r = await client.post("/api/v1/challenges", json={
+        "title": "My custom challenge",
+        "type": "single",
+        "default_duration_days": 7,
+        "tasks_per_day": 1,
+        "task_times": ["08:00"],
+    }, headers=auth_headers(tokens))
+    assert r.status_code == 201
+    assert r.json()["source_template_id"] is None

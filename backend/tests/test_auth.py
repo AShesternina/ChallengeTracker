@@ -123,6 +123,41 @@ async def test_register_duplicate_email_does_not_leak(client: AsyncClient):
     assert "already registered" not in r.json().get("detail", "")
 
 
+async def test_get_me_includes_language(client: AsyncClient):
+    tokens = await register_and_login(client)
+    r = await client.get("/api/v1/users/me", headers=auth_headers(tokens))
+    assert r.status_code == 200
+    data = r.json()
+    assert "language" in data
+    assert data["language"] in ("en", "ru", "es", "pt")
+
+
+async def test_register_default_language(client: AsyncClient):
+    """Newly registered user gets language='en' (test client IP → fallback to Accept-Language → 'en')."""
+    await client.post("/api/v1/auth/register/email", json={
+        "email": "langtest@example.com", "password": "pass123", "timezone": "UTC",
+    })
+    r = await client.post("/api/v1/auth/login/email", json={
+        "email": "langtest@example.com", "password": "pass123",
+    })
+    tokens = r.json()
+    r = await client.get("/api/v1/users/me", headers=auth_headers(tokens))
+    assert r.json()["language"] == "en"
+
+
+async def test_update_language(client: AsyncClient):
+    tokens = await register_and_login(client)
+    r = await client.patch("/api/v1/users/me", json={"language": "ru"}, headers=auth_headers(tokens))
+    assert r.status_code == 200
+    assert r.json()["language"] == "ru"
+
+
+async def test_update_language_invalid(client: AsyncClient):
+    tokens = await register_and_login(client)
+    r = await client.patch("/api/v1/users/me", json={"language": "zh"}, headers=auth_headers(tokens))
+    assert r.status_code == 400
+
+
 async def test_create_challenge_invalid_duration(client: AsyncClient):
     tokens = await register_and_login(client)
     r = await client.post("/api/v1/challenges", json={
