@@ -126,18 +126,6 @@ async def test_pause_other_user_instance(client: AsyncClient):
 
 # ── permanent delete ──────────────────────────────────────────────────────────
 
-async def test_delete_cancelled_instance(client: AsyncClient):
-    _, headers, instance = await _setup(client)
-    await client.delete(f"/api/v1/challenges/instances/{instance['id']}", headers=headers)
-
-    r = await client.delete(f"/api/v1/challenges/instances/{instance['id']}/permanent",
-                            headers=headers)
-    assert r.status_code == 204
-
-    r = await client.get(f"/api/v1/challenges/instances/{instance['id']}", headers=headers)
-    assert r.status_code == 404
-
-
 async def test_delete_active_instance(client: AsyncClient):
     """Active challenges can be permanently deleted directly."""
     _, headers, instance = await _setup(client)
@@ -147,9 +135,9 @@ async def test_delete_active_instance(client: AsyncClient):
 
 
 async def test_delete_cleans_up_tasks(client: AsyncClient):
+    """Permanent delete must remove all DailyTaskInstance rows for the challenge."""
     _, headers, instance = await _setup(client)
     await client.get("/api/v1/daily/today", headers=headers)  # generate tasks
-    await client.delete(f"/api/v1/challenges/instances/{instance['id']}", headers=headers)
     await client.delete(f"/api/v1/challenges/instances/{instance['id']}/permanent",
                         headers=headers)
 
@@ -224,17 +212,6 @@ async def test_challenge_status_active_in_tasks(client: AsyncClient):
     assert r.json()["tasks"][0]["challenge_status"] == "active"
 
 
-async def test_challenge_status_cancelled_in_tasks(client: AsyncClient):
-    """Tasks of a cancelled challenge should report challenge_status='cancelled'."""
-    _, headers, instance = await _setup(client)
-    await client.get("/api/v1/daily/today", headers=headers)
-
-    await client.delete(f"/api/v1/challenges/instances/{instance['id']}", headers=headers)
-
-    r = await client.get("/api/v1/daily/today", headers=headers)
-    assert r.json()["tasks"][0]["challenge_status"] == "cancelled"
-
-
 async def test_challenge_status_paused_in_tasks(client: AsyncClient):
     """Tasks of a paused challenge should report challenge_status='paused'."""
     _, headers, instance = await _setup(client)
@@ -245,51 +222,52 @@ async def test_challenge_status_paused_in_tasks(client: AsyncClient):
     assert r.json()["tasks"][0]["challenge_status"] == "paused"
 
 
-async def test_restore_cancelled_instance(client: AsyncClient):
-    """Restoring a cancelled challenge sets it back to active."""
+# ── pause periods affect daily summary and reports ────────────────────────────
+
+async def test_paused_tasks_visible_but_not_counted_in_daily(client: AsyncClient):
+    """Tasks of a paused challenge appear in /daily/today but are excluded from total/completed/pending."""
     _, headers, instance = await _setup(client)
-    await client.delete(f"/api/v1/challenges/instances/{instance['id']}", headers=headers)
-    r = await client.post(f"/api/v1/challenges/instances/{instance['id']}/restore", headers=headers)
-    assert r.status_code == 200
-    assert r.json()["status"] == "active"
+    await client.get("/api/v1/daily/today", headers=headers)  # ensure tasks exist
+    await client.post(f"/api/v1/challenges/instances/{instance['id']}/pause", headers=headers)
+
+    r = await client.get("/api/v1/daily/today", headers=headers)
+    data = r.json()
+    assert len(data["tasks"]) == 1
+    assert data["tasks"][0]["challenge_status"] == "paused"
+    assert data["total"] == 0
+    assert data["completed"] == 0
+    assert data["pending"] == 0
 
 
-async def test_restore_active_instance_fails(client: AsyncClient):
-    """Only cancelled challenges can be restored."""
-    _, headers, instance = await _setup(client)
-    r = await client.post(f"/api/v1/challenges/instances/{instance['id']}/restore", headers=headers)
-    assert r.status_code == 400
-
-
-async def test_restore_regenerates_tasks(client: AsyncClient):
-    """Restored challenge should have tasks generated again."""
+async def test_daily_report_excludes_paused_days(client: AsyncClient):
+    """Daily report must not count tasks from paused challenges."""
     _, headers, instance = await _setup(client)
     await client.get("/api/v1/daily/today", headers=headers)
-    await client.delete(f"/api/v1/challenges/instances/{instance['id']}", headers=headers)
-    await client.post(f"/api/v1/challenges/instances/{instance['id']}/restore", headers=headers)
-    r = await client.get("/api/v1/daily/today", headers=headers)
-    assert r.json()["tasks"][0]["challenge_status"] == "active"
+    await client.post(f"/api/v1/challenges/instances/{instance['id']}/pause", headers=headers)
+
+    r = await client.get(f"/api/v1/reports/daily/{TODAY}", headers=headers)
+    data = r.json()
+    assert data["total"] == 0
+    assert data["completed"] == 0
 
 
-async def test_delete_completed_instance(client: AsyncClient):
-    """Completed challenges can be permanently deleted."""
+async def test_paused_tasks_counted_after_resume(client: AsyncClient):
+    """After resuming, tasks are counted again in the daily summary."""
     _, headers, instance = await _setup(client)
-    # Manually cancel then check delete works for completed too (via cancel path)
-    await client.delete(f"/api/v1/challenges/instances/{instance['id']}", headers=headers)
+    await client.post(f"/api/v1/challenges/instances/{instance['id']}/pause", headers=headers)
+    await client.post(f"/api/v1/challenges/instances/{instance['id']}/resume", headers=headers)
+
+    r = await client.get("/api/v1/daily/today", headers=headers)
+    data = r.json()
+    assert data["total"] == 1
+    assert data["tasks"][0]["challenge_status"] == "active"
+
+
+async def test_hard_delete_paused_instance(client: AsyncClient):
+    """Permanently deleting a paused instance should succeed without requiring cancellation first."""
+    _, headers, instance = await _setup(client)
+    await client.post(f"/api/v1/challenges/instances/{instance['id']}/pause", headers=headers)
     r = await client.delete(f"/api/v1/challenges/instances/{instance['id']}/permanent", headers=headers)
     assert r.status_code == 204
-
-
-async def test_cancelled_tasks_still_appear_in_daily(client: AsyncClient):
-    """Cancelled challenge tasks must still appear in /daily/today with challenge_status='cancelled'.
-    Frontend uses this to render them as read-only. They must NOT disappear from the list."""
-    _, headers, instance = await _setup(client)
-    await client.get("/api/v1/daily/today", headers=headers)  # generate tasks
-
-    await client.delete(f"/api/v1/challenges/instances/{instance['id']}", headers=headers)
-
-    r = await client.get("/api/v1/daily/today", headers=headers)
-    tasks = r.json()["tasks"]
-    assert len(tasks) == 1
-    assert tasks[0]["challenge_status"] == "cancelled"
-    assert tasks[0]["status"] == "pending"  # original status preserved
+    r = await client.get(f"/api/v1/challenges/instances/{instance['id']}", headers=headers)
+    assert r.status_code == 404

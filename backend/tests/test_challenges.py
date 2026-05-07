@@ -120,23 +120,6 @@ async def test_update_instance(client: AsyncClient):
     assert data["challenge"]["tasks_per_day"] == 2
 
 
-async def test_cancel_instance(client: AsyncClient):
-    tokens = await register_and_login(client)
-    instance = await _create_and_start(client, auth_headers(tokens))
-
-    r = await client.delete(
-        f"/api/v1/challenges/instances/{instance['id']}",
-        headers=auth_headers(tokens),
-    )
-    assert r.status_code == 204
-
-    r = await client.get(
-        f"/api/v1/challenges/instances/{instance['id']}",
-        headers=auth_headers(tokens),
-    )
-    assert r.json()["status"] == "cancelled"
-
-
 async def test_start_challenge_past_date_backfills_tasks(client: AsyncClient):
     """Starting with a past date should create tasks for past days (backfill)."""
     tokens = await register_and_login(client)
