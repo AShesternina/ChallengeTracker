@@ -4,6 +4,7 @@ import { userApi } from "../services/api";
 import { useAuthStore } from "../store/authStore";
 import { useThemeStore } from "../store/themeStore";
 import { subscribeToPush } from "../services/push";
+import { setServiceWorkerLanguage } from "../services/sw-lang";
 import { SunIcon, MoonIcon } from "../components/Icons";
 
 const TIMEZONES = [
@@ -53,6 +54,7 @@ export default function Settings() {
 
   const handleLanguageChange = async (code: string) => {
     await i18n.changeLanguage(code);
+    setServiceWorkerLanguage(code);
     try {
       const { data } = await userApi.update({ language: code });
       setUser(data);

@@ -7,7 +7,12 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.ico", "apple-touch-icon.png"],
+      strategies: "injectManifest",
+      srcDir: "src",
+      filename: "sw.ts",
+      injectManifest: {
+        globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
+      },
       manifest: {
         name: "ChallengeTracker",
         short_name: "CTracker",
@@ -22,16 +27,6 @@ export default defineConfig({
           { src: "icons/icon-512.png", sizes: "512x512", type: "image/png" },
         ],
       },
-      workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
-        runtimeCaching: [
-          {
-            urlPattern: /^https?.*\/api\/v1\/daily\/today/,
-            handler: "NetworkFirst",
-            options: { cacheName: "daily-tasks", expiration: { maxAgeSeconds: 3600 } },
-          },
-        ],
-      },
     }),
   ],
   server: {
@@ -43,7 +38,6 @@ export default defineConfig({
     },
   },
   define: {
-    // makes VITE_API_URL available at build time
     __APP_VERSION__: JSON.stringify(process.env.npm_package_version),
   },
 });

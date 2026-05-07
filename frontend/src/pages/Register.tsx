@@ -5,6 +5,7 @@ import { authApi, userApi } from "../services/api";
 import { useAuthStore } from "../store/authStore";
 import PasswordInput from "../components/PasswordInput";
 import i18n from "../i18n";
+import { setServiceWorkerLanguage } from "../services/sw-lang";
 
 export default function Register() {
   const { t } = useTranslation();
@@ -26,6 +27,7 @@ export default function Register() {
       const me = await userApi.me();
       setUser(me.data);
       await i18n.changeLanguage(me.data.language || "en");
+      setServiceWorkerLanguage(me.data.language || "en");
       navigate("/");
     } catch (err: any) {
       setError(err.response?.data?.detail || t("auth.register_failed"));

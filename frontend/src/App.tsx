@@ -1,5 +1,8 @@
+import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuthStore } from "./store/authStore";
+import { setServiceWorkerLanguage } from "./services/sw-lang";
+import i18n from "./i18n";
 import Layout from "./components/Layout";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -18,6 +21,14 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  const user = useAuthStore((s) => s.user);
+
+  // On startup: sync language to SW from persisted user state
+  useEffect(() => {
+    const lang = user?.language || i18n.language || "en";
+    setServiceWorkerLanguage(lang);
+  }, []);
+
   return (
     <BrowserRouter>
       <Routes>
