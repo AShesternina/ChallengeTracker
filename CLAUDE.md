@@ -67,7 +67,7 @@ All business logic lives in `services/`. Endpoints only validate input, call ser
 
 ```
 frontend/src/
-  components/    Layout, TaskCard, ProgressRing, Icons, PasswordInput, Onboarding
+  components/    Layout, TaskCard, ProgressRing, Icons, PasswordInput, Onboarding, ConfirmModal
   pages/         Dashboard, DailyTasks, Challenges, CreateChallenge, ChallengeDetail,
                  ChallengeReport, Reports, Settings, Login, Register
   store/         authStore (user + tokens), taskStore (daily summary), themeStore (dark mode)
@@ -75,6 +75,33 @@ frontend/src/
   utils/         category.ts (category detection from title), templateTranslations.ts
   i18n/locales/  en.ts, ru.ts
 ```
+
+## Confirmation dialogs
+
+**Never use `window.confirm()` or inline modal markup.** All confirmation dialogs must use `ConfirmModal` from `components/ConfirmModal.tsx`:
+
+```tsx
+import ConfirmModal from "../components/ConfirmModal";
+
+// State
+const [showModal, setShowModal] = useState(false);
+
+// JSX
+{showModal && (
+  <ConfirmModal
+    emoji="⚠️"
+    title={t("...")}
+    body={t("...")}
+    confirmLabel={t("...")}
+    cancelLabel={t("...")}
+    confirmDanger={true}
+    onConfirm={handleAction}
+    onCancel={() => setShowModal(false)}
+  />
+)}
+```
+
+This ensures all confirmations share the same visual style. Redesigning `ConfirmModal` updates every confirmation in the app.
 
 ## API endpoints
 
