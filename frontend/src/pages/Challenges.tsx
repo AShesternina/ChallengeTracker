@@ -140,6 +140,7 @@ export default function Challenges() {
           <ChallengeCard key={instance.id} instance={instance} dark={dark}
             dateLocale={dateLocale} statusLabel={statusLabel} />
         ))}
+      </div>
     </div>
   );
 }
