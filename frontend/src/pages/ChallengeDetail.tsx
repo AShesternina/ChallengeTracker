@@ -368,19 +368,6 @@ export default function ChallengeDetail() {
             />
           )}
 
-          {showPastEndModal && (
-            <ConfirmModal
-              emoji="📅"
-              title={t("common.confirm_past_end")}
-              body={t("common.confirm_past_end_body")}
-              confirmLabel={t("common.confirm_past_end_yes")}
-              cancelLabel={t("common.confirm_past_end_no")}
-              confirmDanger={false}
-              onConfirm={handleSaveConfirmed}
-              onCancel={() => setShowPastEndModal(false)}
-            />
-          )}
-
           {showDeleteModal && (
             <ConfirmModal
               emoji="🗑️"
@@ -510,6 +497,19 @@ export default function ChallengeDetail() {
             </button>
           </div>
         </div>
+      )}
+
+      {showPastEndModal && (
+        <ConfirmModal
+          emoji="📅"
+          title={t("common.confirm_past_end")}
+          body={t("common.confirm_past_end_body")}
+          confirmLabel={t("common.confirm_past_end_yes")}
+          cancelLabel={t("common.confirm_past_end_no")}
+          confirmDanger={false}
+          onConfirm={handleSaveConfirmed}
+          onCancel={() => setShowPastEndModal(false)}
+        />
       )}
     </div>
   );
