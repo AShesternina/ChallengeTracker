@@ -22,8 +22,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="ChallengeTracker API",
     version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
+    docs_url="/docs" if settings.is_dev else None,
+    redoc_url="/redoc" if settings.is_dev else None,
     lifespan=lifespan,
 )
 

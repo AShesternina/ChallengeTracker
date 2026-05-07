@@ -3,9 +3,12 @@ import string
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
+from app.core.redis import get_redis
 from app.core.security import hash_password, verify_password, create_access_token, create_refresh_token, decode_token
 from app.models.user import User
 from app.schemas.auth import RegisterEmailRequest, RegisterPhoneRequest, LoginEmailRequest, TokenResponse
+
+REFRESH_TOKEN_BLACKLIST_PREFIX = "blacklist:refresh:"
 
 
 class AuthError(Exception):
@@ -19,7 +22,7 @@ def _generate_otp() -> str:
 async def register_email(db: AsyncSession, data: RegisterEmailRequest) -> User:
     existing = await db.execute(select(User).where(User.email == data.email))
     if existing.scalar_one_or_none():
-        raise AuthError("Email already registered")
+        raise AuthError("Invalid email or password")
 
     user = User(
         email=data.email,
@@ -90,6 +93,10 @@ async def refresh_tokens(db: AsyncSession, refresh_token: str) -> TokenResponse:
     if not user_id or token_type != "refresh":
         raise AuthError("Invalid refresh token")
 
+    redis = get_redis()
+    if await redis.get(f"{REFRESH_TOKEN_BLACKLIST_PREFIX}{refresh_token}"):
+        raise AuthError("Token has been revoked")
+
     result = await db.execute(select(User).where(User.id == int(user_id)))
     user = result.scalar_one_or_none()
     if not user or not user.is_active:
@@ -99,3 +106,12 @@ async def refresh_tokens(db: AsyncSession, refresh_token: str) -> TokenResponse:
         access_token=create_access_token(user.id),
         refresh_token=create_refresh_token(user.id),
     )
+
+
+async def logout(refresh_token: str) -> None:
+    from app.core.config import settings
+    payload = decode_token(refresh_token)
+    exp = payload.get("exp")
+    redis = get_redis()
+    ttl = max(int(exp - __import__("time").time()), 1) if exp else settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400
+    await redis.setex(f"{REFRESH_TOKEN_BLACKLIST_PREFIX}{refresh_token}", ttl, "1")

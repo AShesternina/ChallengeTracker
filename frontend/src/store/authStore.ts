@@ -36,6 +36,15 @@ export const useAuthStore = create<AuthState>()(
       setUser: (user) => set({ user }),
 
       logout: () => {
+        const refreshToken = get().refreshToken;
+        if (refreshToken) {
+          // Revoke token server-side (fire and forget)
+          fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/auth/logout`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ refresh_token: refreshToken }),
+          }).catch(() => {});
+        }
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
         set({ user: null, accessToken: null, refreshToken: null });

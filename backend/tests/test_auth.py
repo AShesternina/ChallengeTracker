@@ -24,7 +24,6 @@ async def test_register_duplicate_email(client: AsyncClient):
     await client.post("/api/v1/auth/register/email", json=payload)
     r = await client.post("/api/v1/auth/register/email", json=payload)
     assert r.status_code == 400
-    assert "already registered" in r.json()["detail"]
 
 
 async def test_register_short_password(client: AsyncClient):

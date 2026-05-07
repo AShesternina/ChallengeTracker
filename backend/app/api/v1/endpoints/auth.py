@@ -11,7 +11,7 @@ from app.schemas.auth import (
     TokenResponse,
     VerifyOTPRequest,
 )
-from app.services.auth_service import AuthError, login_email, refresh_tokens, register_email, register_phone, verify_otp
+from app.services.auth_service import AuthError, login_email, logout, refresh_tokens, register_email, register_phone, verify_otp
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -62,3 +62,11 @@ async def refresh(request: Request, data: RefreshRequest, db: AsyncSession = Dep
         return await refresh_tokens(db, data.refresh_token)
     except AuthError as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout_endpoint(request: Request, data: RefreshRequest):
+    try:
+        await logout(data.refresh_token)
+    except Exception:
+        pass
