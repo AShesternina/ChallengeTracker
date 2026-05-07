@@ -50,7 +50,7 @@ async def ensure_daily_tasks(db: AsyncSession, user_id: int, target_date: date) 
         .where(
             and_(
                 ChallengeInstance.user_id == user_id,
-                ChallengeInstance.status == InstanceStatus.active,
+                ChallengeInstance.status.in_([InstanceStatus.active, InstanceStatus.paused]),
                 ChallengeInstance.start_date <= target_date,
                 ChallengeInstance.end_date >= target_date,
             )

@@ -25,16 +25,19 @@ export default function TaskCard({ task, onComplete, onSkip, onUndo, loading, sh
   const isAllDay = task.type === "all_day";
   const hasSeq = task.sequence_number != null && task.total_count != null;
   const isCancelled = task.challenge_status === "cancelled";
+  const isPaused = task.challenge_status === "paused";
+  const isInactive = isCancelled || isPaused;
 
   const statusLabel = isCancelled
     ? t("task.cancelled")
+    : isPaused ? t("task.paused")
     : isDone ? t("daily.status_completed")
     : isSkipped ? t("daily.status_skipped")
     : t("daily.status_pending");
 
   const statusBadgeStyle = {
-    background: isCancelled || isSkipped ? "var(--color-surface2)" : isDone ? "var(--color-success-bg)" : `${accent}18`,
-    color: isCancelled || isSkipped ? "var(--color-text-tertiary)" : isDone ? "var(--color-success)" : accent,
+    background: isInactive || isSkipped ? "var(--color-surface2)" : isDone ? "var(--color-success-bg)" : `${accent}18`,
+    color: isInactive || isSkipped ? "var(--color-text-tertiary)" : isDone ? "var(--color-success)" : accent,
   };
 
   const cardBg = isDone
@@ -48,8 +51,8 @@ export default function TaskCard({ task, onComplete, onSkip, onUndo, loading, sh
       className="rounded-lg p-3.5 transition-all duration-200"
       style={{
         background: cardBg,
-        border: `1.5px solid ${isDone ? "var(--color-success-bg)" : isSkipped ? "var(--color-border)" : isCancelled ? "var(--color-border)" : `${accent}35`}`,
-        opacity: isSkipped || isCancelled ? 0.55 : 1,
+        border: `1.5px solid ${isDone ? "var(--color-success-bg)" : isSkipped ? "var(--color-border)" : isInactive ? "var(--color-border)" : `${accent}35`}`,
+        opacity: isSkipped || isInactive ? 0.55 : 1,
       }}
     >
       <div className="flex items-center gap-3">
@@ -96,7 +99,7 @@ export default function TaskCard({ task, onComplete, onSkip, onUndo, loading, sh
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
-          {readOnly || isCancelled ? (
+          {readOnly || isInactive ? (
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={statusBadgeStyle}>
               {statusLabel}
             </span>

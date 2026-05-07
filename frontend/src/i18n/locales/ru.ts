@@ -79,6 +79,7 @@ const ru = {
     all_day: "весь день",
     undo: "Отменить",
     cancelled: "отменён",
+    paused: "пауза",
   },
   challenges: {
     title: "Мои челленджи",
