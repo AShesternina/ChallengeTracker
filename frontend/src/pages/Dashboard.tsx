@@ -5,12 +5,12 @@ import { ru as ruLocale, enUS } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
 import { dailyApi, challengesApi, reportsApi } from "../services/api";
 import { useAuthStore } from "../store/authStore";
-import { useTaskStore, DailyTask } from "../store/taskStore";
+import { useTaskStore } from "../store/taskStore";
 import { useThemeStore } from "../store/themeStore";
 import ProgressRing from "../components/ProgressRing";
 import Onboarding from "../components/Onboarding";
-import { FlameIcon, TargetIcon, CheckIcon } from "../components/Icons";
-import { useCategoryStyle } from "../utils/category";
+import TaskCard from "../components/TaskCard";
+import { FlameIcon, TargetIcon } from "../components/Icons";
 
 export default function Dashboard() {
   const { t, i18n } = useTranslation();
@@ -168,7 +168,7 @@ export default function Dashboard() {
           </h3>
           <div className="space-y-2">
             {summary.tasks.slice(0, 3).map((task) => (
-              <MiniTaskRow key={task.id} task={task} dark={dark} />
+              <TaskCard key={task.id} task={task} readOnly />
             ))}
             {summary.tasks.length > 3 && (
               <Link to="/daily"
@@ -252,41 +252,3 @@ function WeekChart({ days }: {
   );
 }
 
-function MiniTaskRow({ task, dark }: { task: DailyTask; dark: boolean }) {
-  const { t } = useTranslation();
-  const { icon, accent, bg } = useCategoryStyle(task.challenge_title, dark);
-  const isDone = task.status === "completed";
-  const isSkipped = task.status === "skipped";
-  const isCancelled = task.challenge_status === "cancelled";
-  const statusLabel = isCancelled
-    ? t("task.cancelled")
-    : isDone ? t("daily.status_completed")
-    : isSkipped ? t("daily.status_skipped")
-    : t("daily.status_pending");
-
-  return (
-    <div className="flex items-center gap-3 rounded-md px-3 py-2.5"
-      style={{
-        background: "var(--color-surface)",
-        border: "1px solid var(--color-border)",
-        opacity: isCancelled ? 0.55 : 1,
-      }}>
-      <div className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 text-sm"
-        style={{ background: isDone ? "var(--color-success-bg)" : bg }}>
-        {isDone
-          ? <CheckIcon size={13} strokeWidth={2.5} className="text-success" />
-          : <span>{icon}</span>}
-      </div>
-      <p className={`flex-1 text-[13px] font-semibold truncate ${isDone ? "line-through text-text-tertiary" : "text-text-primary"}`}>
-        {task.challenge_title}
-      </p>
-      <span className="text-[10px] px-2 py-0.5 rounded-full font-bold"
-        style={{
-          background: isCancelled ? "var(--color-surface2)" : isDone ? "var(--color-success-bg)" : isSkipped ? "var(--color-surface2)" : `${accent}18`,
-          color: isCancelled ? "var(--color-text-tertiary)" : isDone ? "var(--color-success)" : isSkipped ? "var(--color-text-tertiary)" : accent,
-        }}>
-        {statusLabel}
-      </span>
-    </div>
-  );
-}

@@ -50,7 +50,12 @@ URLs: Frontend → http://localhost:5173 | API → http://localhost:8000 | Docs 
 - Paused challenge → still editable (tasks already exist, user can still mark them)
 - Deleted challenge → all its `DailyTaskInstance` rows are hard-deleted
 
-**`TaskCard` component checks `task.challenge_status`** — never show action buttons when `challenge_status === "cancelled"`. This is the single source of truth for editability in DailyTasks and Dashboard. Do not bypass this by conditionally passing callbacks.
+**`TaskCard` is the only component for rendering tasks** — use it everywhere tasks appear:
+- `readOnly` prop: status badge instead of action buttons (Dashboard preview)
+- Default (interactive): Done / Skip / Undo buttons
+- `challenge_status === "cancelled"` is handled inside TaskCard — dimmed, no buttons, "cancelled" badge
+
+Never create separate task row components (e.g. MiniTaskRow). All task display logic lives in `TaskCard`.
 
 ## Backend structure
 

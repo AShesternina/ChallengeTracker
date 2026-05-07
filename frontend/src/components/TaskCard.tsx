@@ -6,14 +6,15 @@ import { CheckIcon, ClockIcon, UndoIcon } from "./Icons";
 
 interface Props {
   task: DailyTask;
-  onComplete: (id: number) => void;
-  onSkip: (id: number) => void;
+  onComplete?: (id: number) => void;
+  onSkip?: (id: number) => void;
   onUndo?: (id: number) => void;
   loading?: boolean;
   showChallengeName?: boolean;
+  readOnly?: boolean;
 }
 
-export default function TaskCard({ task, onComplete, onSkip, onUndo, loading, showChallengeName }: Props) {
+export default function TaskCard({ task, onComplete, onSkip, onUndo, loading, showChallengeName, readOnly }: Props) {
   const { t } = useTranslation();
   const { dark } = useThemeStore();
   const { icon, accent, bg } = useCategoryStyle(task.challenge_title, dark);
@@ -24,6 +25,17 @@ export default function TaskCard({ task, onComplete, onSkip, onUndo, loading, sh
   const isAllDay = task.type === "all_day";
   const hasSeq = task.sequence_number != null && task.total_count != null;
   const isCancelled = task.challenge_status === "cancelled";
+
+  const statusLabel = isCancelled
+    ? t("task.cancelled")
+    : isDone ? t("daily.status_completed")
+    : isSkipped ? t("daily.status_skipped")
+    : t("daily.status_pending");
+
+  const statusBadgeStyle = {
+    background: isCancelled || isSkipped ? "var(--color-surface2)" : isDone ? "var(--color-success-bg)" : `${accent}18`,
+    color: isCancelled || isSkipped ? "var(--color-text-tertiary)" : isDone ? "var(--color-success)" : accent,
+  };
 
   const cardBg = isDone
     ? "var(--color-success-bg)"
@@ -84,20 +96,20 @@ export default function TaskCard({ task, onComplete, onSkip, onUndo, loading, sh
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
-          {isCancelled ? (
-            <span className="text-[10px] font-bold text-text-tertiary">
-              {t("task.cancelled")}
+          {readOnly || isCancelled ? (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={statusBadgeStyle}>
+              {statusLabel}
             </span>
           ) : (
             <>
               {isPending && (
                 <>
-                  <button onClick={() => onSkip(task.id)} disabled={loading}
+                  <button onClick={() => onSkip?.(task.id)} disabled={loading}
                     className="px-2.5 py-1.5 text-[12px] font-semibold rounded-sm border disabled:opacity-40 transition-colors"
                     style={{ color: "var(--color-text-secondary)", borderColor: "var(--color-border-strong)", borderWidth: "1.5px" }}>
                     {t("common.skip")}
                   </button>
-                  <button onClick={() => onComplete(task.id)} disabled={loading}
+                  <button onClick={() => onComplete?.(task.id)} disabled={loading}
                     className="px-2.5 py-1.5 text-[12px] font-bold text-white rounded-sm disabled:opacity-40 transition-colors"
                     style={{ background: accent }}>
                     {t("common.done")}
