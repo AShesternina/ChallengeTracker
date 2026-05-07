@@ -74,6 +74,7 @@ const en = {
     of: "of",
     all_day: "all day",
     undo: "Undo",
+    cancelled: "cancelled",
   },
   challenges: {
     title: "My Challenges",

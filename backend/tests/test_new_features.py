@@ -242,3 +242,18 @@ async def test_challenge_status_paused_in_tasks(client: AsyncClient):
 
     r = await client.get("/api/v1/daily/today", headers=headers)
     assert r.json()["tasks"][0]["challenge_status"] == "paused"
+
+
+async def test_cancelled_tasks_still_appear_in_daily(client: AsyncClient):
+    """Cancelled challenge tasks must still appear in /daily/today with challenge_status='cancelled'.
+    Frontend uses this to render them as read-only. They must NOT disappear from the list."""
+    _, headers, instance = await _setup(client)
+    await client.get("/api/v1/daily/today", headers=headers)  # generate tasks
+
+    await client.delete(f"/api/v1/challenges/instances/{instance['id']}", headers=headers)
+
+    r = await client.get("/api/v1/daily/today", headers=headers)
+    tasks = r.json()["tasks"]
+    assert len(tasks) == 1
+    assert tasks[0]["challenge_status"] == "cancelled"
+    assert tasks[0]["status"] == "pending"  # original status preserved

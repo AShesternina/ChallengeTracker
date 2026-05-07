@@ -43,11 +43,14 @@ URLs: Frontend → http://localhost:5173 | API → http://localhost:8000 | Docs 
 2. `GET /api/v1/daily/today` — lazy idempotent generation for that specific date (catches any missed days).
 3. Celery beat at 00:05 UTC — nightly generation for all active challenges.
 
-**Task visibility rules (in Reports heatmap day detail):**
-- Past days / today + active challenge → fully editable (Done / Skip / Undo)
-- Future days → read-only (no action buttons, "Future · read only" badge)
-- Cancelled challenge tasks → read-only, dimmed, "cancelled" label
+**Task visibility rules (applies everywhere — DailyTasks, Dashboard, Reports):**
+- Active challenge + today/past → fully editable (Done / Skip / Undo)
+- Future days → read-only (no action buttons, "Future · read only" badge) — Reports only
+- Cancelled challenge → read-only, dimmed, "cancelled" label — handled in `TaskCard` via `challenge_status`
+- Paused challenge → still editable (tasks already exist, user can still mark them)
 - Deleted challenge → all its `DailyTaskInstance` rows are hard-deleted
+
+**`TaskCard` component checks `task.challenge_status`** — never show action buttons when `challenge_status === "cancelled"`. This is the single source of truth for editability in DailyTasks and Dashboard. Do not bypass this by conditionally passing callbacks.
 
 ## Backend structure
 

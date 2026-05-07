@@ -23,6 +23,7 @@ export default function TaskCard({ task, onComplete, onSkip, onUndo, loading, sh
   const isSkipped = task.status === "skipped";
   const isAllDay = task.type === "all_day";
   const hasSeq = task.sequence_number != null && task.total_count != null;
+  const isCancelled = task.challenge_status === "cancelled";
 
   const cardBg = isDone
     ? "var(--color-success-bg)"
@@ -35,8 +36,8 @@ export default function TaskCard({ task, onComplete, onSkip, onUndo, loading, sh
       className="rounded-lg p-3.5 transition-all duration-200"
       style={{
         background: cardBg,
-        border: `1.5px solid ${isDone ? "var(--color-success-bg)" : isSkipped ? "var(--color-border)" : `${accent}35`}`,
-        opacity: isSkipped ? 0.6 : 1,
+        border: `1.5px solid ${isDone ? "var(--color-success-bg)" : isSkipped ? "var(--color-border)" : isCancelled ? "var(--color-border)" : `${accent}35`}`,
+        opacity: isSkipped || isCancelled ? 0.55 : 1,
       }}
     >
       <div className="flex items-center gap-3">
@@ -83,26 +84,34 @@ export default function TaskCard({ task, onComplete, onSkip, onUndo, loading, sh
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
-          {isPending && (
+          {isCancelled ? (
+            <span className="text-[10px] font-bold text-text-tertiary">
+              {t("task.cancelled")}
+            </span>
+          ) : (
             <>
-              <button onClick={() => onSkip(task.id)} disabled={loading}
-                className="px-2.5 py-1.5 text-[12px] font-semibold rounded-sm border disabled:opacity-40 transition-colors"
-                style={{ color: "var(--color-text-secondary)", borderColor: "var(--color-border-strong)", borderWidth: "1.5px" }}>
-                {t("common.skip")}
-              </button>
-              <button onClick={() => onComplete(task.id)} disabled={loading}
-                className="px-2.5 py-1.5 text-[12px] font-bold text-white rounded-sm disabled:opacity-40 transition-colors"
-                style={{ background: accent }}>
-                {t("common.done")}
-              </button>
+              {isPending && (
+                <>
+                  <button onClick={() => onSkip(task.id)} disabled={loading}
+                    className="px-2.5 py-1.5 text-[12px] font-semibold rounded-sm border disabled:opacity-40 transition-colors"
+                    style={{ color: "var(--color-text-secondary)", borderColor: "var(--color-border-strong)", borderWidth: "1.5px" }}>
+                    {t("common.skip")}
+                  </button>
+                  <button onClick={() => onComplete(task.id)} disabled={loading}
+                    className="px-2.5 py-1.5 text-[12px] font-bold text-white rounded-sm disabled:opacity-40 transition-colors"
+                    style={{ background: accent }}>
+                    {t("common.done")}
+                  </button>
+                </>
+              )}
+              {!isPending && onUndo && (
+                <button onClick={() => onUndo(task.id)} disabled={loading}
+                  className="p-1.5 rounded-sm text-text-tertiary hover:text-text-secondary transition-colors"
+                  title={t("task.undo")}>
+                  <UndoIcon size={14} />
+                </button>
+              )}
             </>
-          )}
-          {!isPending && onUndo && (
-            <button onClick={() => onUndo(task.id)} disabled={loading}
-              className="p-1.5 rounded-sm text-text-tertiary hover:text-text-secondary transition-colors"
-              title={t("task.undo")}>
-              <UndoIcon size={14} />
-            </button>
           )}
         </div>
       </div>
