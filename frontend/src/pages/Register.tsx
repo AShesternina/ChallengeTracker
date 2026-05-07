@@ -28,7 +28,7 @@ export default function Register() {
       setUser(me.data);
       await i18n.changeLanguage(me.data.language || "en");
       setServiceWorkerLanguage(me.data.language || "en");
-      navigate("/");
+      navigate(me.data.onboarding_completed ? "/" : "/onboarding");
     } catch (err: any) {
       setError(err.response?.data?.detail || t("auth.register_failed"));
     } finally {

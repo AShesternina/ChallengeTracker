@@ -8,7 +8,6 @@ import { useAuthStore } from "../store/authStore";
 import { useTaskStore } from "../store/taskStore";
 import { useThemeStore } from "../store/themeStore";
 import ProgressRing from "../components/ProgressRing";
-import Onboarding from "../components/Onboarding";
 import TaskCard from "../components/TaskCard";
 import { FlameIcon, TargetIcon, CheckIcon } from "../components/Icons";
 
@@ -19,7 +18,6 @@ export default function Dashboard() {
   const { summary, setSummary, setLoading } = useTaskStore();
   const [challengeCount, setChallengeCount] = useState(0);
   const [streak, setStreak] = useState(0);
-  const [showOnboarding, setShowOnboarding] = useState(false);
   const [weekDays, setWeekDays] = useState<{ date: string; rate: number; total: number }[]>([]);
 
   const dateLocale = i18n.language.startsWith("ru") ? ruLocale
@@ -42,9 +40,6 @@ export default function Dashboard() {
         const active = challenges.data.filter((c: { status: string }) => c.status === "active").length;
         setChallengeCount(active);
         setStreak(streakData.data.current_streak);
-        if (active === 0 && !localStorage.getItem("ct_onboarded")) {
-          setShowOnboarding(true);
-        }
         // last 7 days
         const today = format(now, "yyyy-MM-dd");
         const last7 = monthly.data.days
@@ -64,14 +59,8 @@ export default function Dashboard() {
   const userName = user?.email?.split("@")[0] || "there";
   const todayStr = format(new Date(), "EEEE, d MMMM", { locale: dateLocale });
 
-  const handleOnboardingDone = () => {
-    localStorage.setItem("ct_onboarded", "1");
-    setShowOnboarding(false);
-  };
-
   return (
     <div className="space-y-4">
-      {showOnboarding && <Onboarding onDone={handleOnboardingDone} />}
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
@@ -254,4 +243,3 @@ function WeekChart({ days }: {
     </div>
   );
 }
-

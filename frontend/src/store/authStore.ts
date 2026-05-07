@@ -7,6 +7,7 @@ export interface User {
   phone: string | null;
   timezone: string;
   language: string;
+  onboarding_completed: boolean;
   is_active: boolean;
   is_verified: boolean;
 }

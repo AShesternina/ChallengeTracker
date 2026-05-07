@@ -14,6 +14,7 @@ class User(Base):
     hashed_password: Mapped[str | None] = mapped_column(Text, nullable=True)
     timezone: Mapped[str] = mapped_column(String(64), default="UTC")
     language: Mapped[str] = mapped_column(String(5), default="en")
+    onboarding_completed: Mapped[bool] = mapped_column(Boolean, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     otp_code: Mapped[str | None] = mapped_column(String(6), nullable=True)

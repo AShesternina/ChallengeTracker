@@ -8,6 +8,7 @@ class UserOut(BaseModel):
     phone: str | None
     timezone: str
     language: str
+    onboarding_completed: bool
     is_active: bool
     is_verified: bool
     created_at: datetime
@@ -18,3 +19,4 @@ class UserOut(BaseModel):
 class UserUpdateRequest(BaseModel):
     timezone: str | None = None
     language: str | None = None
+    onboarding_completed: bool | None = None
