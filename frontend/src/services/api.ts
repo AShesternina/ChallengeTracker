@@ -53,7 +53,7 @@ export const authApi = {
 // --- User ---
 export const userApi = {
   me: () => api.get("/users/me"),
-  update: (data: { timezone?: string }) => api.patch("/users/me", data),
+  update: (data: { timezone?: string; language?: string }) => api.patch("/users/me", data),
 };
 
 // --- Daily ---

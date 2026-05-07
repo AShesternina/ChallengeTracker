@@ -7,6 +7,7 @@ class UserOut(BaseModel):
     email: str | None
     phone: str | None
     timezone: str
+    language: str
     is_active: bool
     is_verified: bool
     created_at: datetime
@@ -16,3 +17,4 @@ class UserOut(BaseModel):
 
 class UserUpdateRequest(BaseModel):
     timezone: str | None = None
+    language: str | None = None

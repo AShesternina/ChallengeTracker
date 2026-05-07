@@ -13,6 +13,7 @@ class User(Base):
     phone: Mapped[str | None] = mapped_column(String(20), unique=True, index=True, nullable=True)
     hashed_password: Mapped[str | None] = mapped_column(Text, nullable=True)
     timezone: Mapped[str] = mapped_column(String(64), default="UTC")
+    language: Mapped[str] = mapped_column(String(5), default="en")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     otp_code: Mapped[str | None] = mapped_column(String(6), nullable=True)

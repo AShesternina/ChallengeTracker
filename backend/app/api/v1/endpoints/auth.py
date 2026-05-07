@@ -19,8 +19,10 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 @router.post("/register/email", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 @limiter.limit("5/minute")
 async def register_with_email(request: Request, data: RegisterEmailRequest, db: AsyncSession = Depends(get_db)):
+    from app.services.language_service import detect_language
+    language = await detect_language(request)
     try:
-        user = await register_email(db, data)
+        user = await register_email(db, data, language=language)
     except AuthError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     from app.core.security import create_access_token, create_refresh_token

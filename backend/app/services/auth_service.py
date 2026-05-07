@@ -19,7 +19,7 @@ def _generate_otp() -> str:
     return "".join(random.choices(string.digits, k=6))
 
 
-async def register_email(db: AsyncSession, data: RegisterEmailRequest) -> User:
+async def register_email(db: AsyncSession, data: RegisterEmailRequest, language: str = "en") -> User:
     existing = await db.execute(select(User).where(User.email == data.email))
     if existing.scalar_one_or_none():
         raise AuthError("Invalid email or password")
@@ -28,6 +28,7 @@ async def register_email(db: AsyncSession, data: RegisterEmailRequest) -> User:
         email=data.email,
         hashed_password=hash_password(data.password),
         timezone=data.timezone,
+        language=language,
         is_verified=True,
     )
     db.add(user)

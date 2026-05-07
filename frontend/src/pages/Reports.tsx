@@ -7,6 +7,7 @@ import { reportsApi, challengesApi, dailyApi } from "../services/api";
 import { useThemeStore } from "../store/themeStore";
 import { useCategoryStyle } from "../utils/category";
 import { ChevronRightIcon, ArrowLeftIcon, CheckIcon, ClockIcon, UndoIcon } from "../components/Icons";
+import { translateTemplateName } from "../utils/templateTranslations";
 
 interface DayStats {
   date: string;
@@ -380,7 +381,7 @@ function DayTaskRow({ task, dark, lang, loading, editable, onComplete, onSkip, o
         </div>
         <div className="flex-1 min-w-0">
           <p className={`text-[13px] font-bold truncate ${isDone ? "line-through text-text-tertiary" : "text-text-primary"}`}>
-            {task.challenge_title}
+            {translateTemplateName(task.challenge_title, lang)}
           </p>
           <div className="flex items-center gap-1.5 mt-0.5">
             {task.scheduled_time && (
@@ -440,6 +441,7 @@ function DayTaskRow({ task, dark, lang, loading, editable, onComplete, onSkip, o
 }
 
 function ChallengeRow({ instance, dark }: { instance: ChallengeInstance; dark: boolean }) {
+  const { i18n } = useTranslation();
   const { icon, accent, bg } = useCategoryStyle(instance.challenge.title, dark);
   const totalDays = Math.ceil(
     (new Date(instance.end_date).getTime() - new Date(instance.start_date).getTime()) / 86400000
@@ -458,7 +460,7 @@ function ChallengeRow({ instance, dark }: { instance: ChallengeInstance; dark: b
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="font-bold text-text-primary text-[13px] truncate">{instance.challenge.title}</p>
+        <p className="font-bold text-text-primary text-[13px] truncate">{translateTemplateName(instance.challenge.title, i18n.language)}</p>
         <div className="flex items-center gap-2 mt-1">
           <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "var(--color-surface2)" }}>
             <div className="h-full rounded-full" style={{ width: `${progress}%`, background: accent }} />

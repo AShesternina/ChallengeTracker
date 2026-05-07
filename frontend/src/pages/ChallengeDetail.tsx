@@ -8,6 +8,7 @@ import { useThemeStore } from "../store/themeStore";
 import { useCategoryStyle } from "../utils/category";
 import { ArrowLeftIcon, EditIcon, BarChartIcon, FlameIcon, TrophyIcon } from "../components/Icons";
 import ConfirmModal from "../components/ConfirmModal";
+import { translateTemplateName } from "../utils/templateTranslations";
 
 interface ChallengeInstance {
   id: number;
@@ -210,7 +211,7 @@ export default function ChallengeDetail() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-start gap-2">
                   <h2 className="font-black text-[18px] text-text-primary leading-tight flex-1" style={{ letterSpacing: "-0.3px" }}>
-                    {challenge.title}
+                    {translateTemplateName(challenge.title, i18n.language)}
                   </h2>
                   <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold shrink-0 mt-0.5"
                     style={{ background: style.bg, color: style.text }}>

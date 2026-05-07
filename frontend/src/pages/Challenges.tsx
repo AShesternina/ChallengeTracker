@@ -7,6 +7,7 @@ import { challengesApi } from "../services/api";
 import { useThemeStore } from "../store/themeStore";
 import { useCategoryStyle } from "../utils/category";
 import { PlusIcon, ChevronRightIcon } from "../components/Icons";
+import { translateTemplateName } from "../utils/templateTranslations";
 
 
 interface ChallengeInstance {
@@ -151,6 +152,7 @@ function ChallengeCard({ instance, dark, dateLocale, statusLabel }: {
   dateLocale: any;
   statusLabel: (s: string) => string;
 }) {
+  const { i18n } = useTranslation();
   const { icon, accent, bg } = useCategoryStyle(instance.challenge.title, dark);
   const style = STATUS_STYLE[instance.status] ?? STATUS_STYLE.cancelled;
   const isArchived = instance.status === "completed" || instance.status === "cancelled";
@@ -175,7 +177,7 @@ function ChallengeCard({ instance, dark, dateLocale, statusLabel }: {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
             <h3 className="font-bold text-text-primary truncate text-[14px]">
-              {instance.challenge.title}
+              {translateTemplateName(instance.challenge.title, i18n.language)}
             </h3>
             <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold shrink-0"
               style={{ background: style.bg, color: style.text }}>

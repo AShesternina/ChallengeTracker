@@ -6,6 +6,7 @@ export interface User {
   email: string | null;
   phone: string | null;
   timezone: string;
+  language: string;
   is_active: boolean;
   is_verified: boolean;
 }

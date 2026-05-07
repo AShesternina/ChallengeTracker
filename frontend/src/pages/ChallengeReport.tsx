@@ -5,6 +5,7 @@ import { reportsApi } from "../services/api";
 import { ArrowLeftIcon, FlameIcon, TrophyIcon } from "../components/Icons";
 import { useThemeStore } from "../store/themeStore";
 import { useCategoryStyle } from "../utils/category";
+import { translateTemplateName } from "../utils/templateTranslations";
 
 interface Report {
   challenge_instance_id: number;
@@ -20,7 +21,7 @@ interface Report {
 }
 
 export default function ChallengeReport() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const { dark } = useThemeStore();
   const [report, setReport] = useState<Report | null>(null);
@@ -67,7 +68,7 @@ export default function ChallengeReport() {
             {icon}
           </div>
           <h2 className="font-black text-[18px] text-text-primary leading-tight" style={{ letterSpacing: "-0.3px" }}>
-            {report.challenge_title}
+            {translateTemplateName(report.challenge_title, i18n.language)}
           </h2>
         </div>
 

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { authApi, userApi } from "../services/api";
 import { useAuthStore } from "../store/authStore";
 import PasswordInput from "../components/PasswordInput";
+import i18n from "../i18n";
 
 export default function Register() {
   const { t } = useTranslation();
@@ -24,6 +25,7 @@ export default function Register() {
       setTokens(data.access_token, data.refresh_token);
       const me = await userApi.me();
       setUser(me.data);
+      await i18n.changeLanguage(me.data.language || "en");
       navigate("/");
     } catch (err: any) {
       setError(err.response?.data?.detail || t("auth.register_failed"));

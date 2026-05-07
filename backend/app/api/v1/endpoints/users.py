@@ -6,6 +6,7 @@ from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.user import User
 from app.schemas.user import UserOut, UserUpdateRequest
+from app.services.language_service import SUPPORTED_LANGUAGES
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -25,5 +26,9 @@ async def update_me(
         if data.timezone not in pytz.all_timezones:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid timezone")
         user.timezone = data.timezone
+    if data.language is not None:
+        if data.language not in SUPPORTED_LANGUAGES:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported language")
+        user.language = data.language
     await db.flush()
     return user

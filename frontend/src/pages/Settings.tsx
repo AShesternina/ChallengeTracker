@@ -12,9 +12,12 @@ const TIMEZONES = [
   "Australia/Sydney",
 ];
 
+// Sorted alphabetically by label
 const LANGUAGES = [
-  { code: "ru", label: "Русский", flag: "🇷🇺" },
-  { code: "en", label: "English", flag: "🇬🇧" },
+  { code: "en", label: "English",   flag: "🇬🇧" },
+  { code: "es", label: "Español",   flag: "🇪🇸" },
+  { code: "pt", label: "Português", flag: "🇧🇷" },
+  { code: "ru", label: "Русский",   flag: "🇷🇺" },
 ];
 
 export default function Settings() {
@@ -45,6 +48,16 @@ export default function Settings() {
       setTimeout(() => setSaved(false), 2000);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleLanguageChange = async (code: string) => {
+    await i18n.changeLanguage(code);
+    try {
+      const { data } = await userApi.update({ language: code });
+      setUser(data);
+    } catch {
+      // language already applied locally, silent fail
     }
   };
 
@@ -105,14 +118,14 @@ export default function Settings() {
 
       {/* Language */}
       <Section title={t("settings.language")}>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {LANGUAGES.map((lang) => (
-            <button key={lang.code} onClick={() => i18n.changeLanguage(lang.code)}
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-[13px] font-bold transition-all"
+            <button key={lang.code} onClick={() => handleLanguageChange(lang.code)}
+              className="flex items-center justify-center gap-2 py-2.5 rounded-md text-[13px] font-bold transition-all"
               style={{
-                border: `1.5px solid ${i18n.language === lang.code ? "var(--color-accent)" : "var(--color-border)"}`,
-                background: i18n.language === lang.code ? "var(--color-accent-soft)" : "var(--color-surface2)",
-                color: i18n.language === lang.code ? "var(--color-accent)" : "var(--color-text-secondary)",
+                border: `1.5px solid ${i18n.language.startsWith(lang.code) ? "var(--color-accent)" : "var(--color-border)"}`,
+                background: i18n.language.startsWith(lang.code) ? "var(--color-accent-soft)" : "var(--color-surface2)",
+                color: i18n.language.startsWith(lang.code) ? "var(--color-accent)" : "var(--color-text-secondary)",
               }}>
               <span>{lang.flag}</span>
               {lang.label}
