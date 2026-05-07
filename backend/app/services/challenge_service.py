@@ -165,8 +165,6 @@ async def delete_instance(db: AsyncSession, instance_id: int, user_id: int) -> N
     instance = await get_instance(db, instance_id, user_id)
     if not instance:
         raise ValueError("Instance not found")
-    if instance.status not in (InstanceStatus.cancelled, InstanceStatus.completed):
-        raise ValueError("Only cancelled or completed challenges can be deleted")
     await db.execute(delete(DailyTaskInstance).where(DailyTaskInstance.challenge_instance_id == instance_id))
     await db.delete(instance)
     await db.flush()

@@ -138,11 +138,12 @@ async def test_delete_cancelled_instance(client: AsyncClient):
     assert r.status_code == 404
 
 
-async def test_delete_active_instance_fails(client: AsyncClient):
+async def test_delete_active_instance(client: AsyncClient):
+    """Active challenges can be permanently deleted directly."""
     _, headers, instance = await _setup(client)
     r = await client.delete(f"/api/v1/challenges/instances/{instance['id']}/permanent",
                             headers=headers)
-    assert r.status_code == 400
+    assert r.status_code == 204
 
 
 async def test_delete_cleans_up_tasks(client: AsyncClient):

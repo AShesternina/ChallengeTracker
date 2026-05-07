@@ -7,6 +7,7 @@ import { challengesApi } from "../services/api";
 import { useThemeStore } from "../store/themeStore";
 import { useCategoryStyle } from "../utils/category";
 import { PlusIcon, ChevronRightIcon } from "../components/Icons";
+import ConfirmModal from "../components/ConfirmModal";
 
 interface ChallengeInstance {
   id: number;
@@ -23,7 +24,7 @@ const STATUS_STYLE: Record<string, { bg: string; text: string }> = {
   cancelled: { bg: "var(--color-surface2)",    text: "var(--color-text-tertiary)" },
 };
 
-type Filter = "active" | "cancelled" | "completed";
+type Filter = "active" | "paused" | "completed";
 
 export default function Challenges() {
   const { t, i18n } = useTranslation();
@@ -32,6 +33,7 @@ export default function Challenges() {
   const [instances, setInstances] = useState<ChallengeInstance[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("active");
+  const [deleteTarget, setDeleteTarget] = useState<ChallengeInstance | null>(null);
 
   useEffect(() => {
     challengesApi.my().then((r) => setInstances(r.data)).finally(() => setLoading(false));
@@ -40,18 +42,35 @@ export default function Challenges() {
   const statusLabel = (status: string) =>
     t(`challenges.status_${status}` as any, { defaultValue: status });
 
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await challengesApi.deletePermanently(deleteTarget.id);
+      setInstances((prev) => prev.filter((i) => i.id !== deleteTarget.id));
+    } finally {
+      setDeleteTarget(null);
+    }
+  };
+
   const filtered = instances.filter((i) => {
-    if (filter === "active") return i.status === "active" || i.status === "paused";
-    if (filter === "cancelled") return i.status === "cancelled";
-    if (filter === "completed") return i.status === "completed";
+    if (filter === "active") return i.status === "active";
+    if (filter === "paused") return i.status === "paused";
+    if (filter === "completed") return i.status === "completed" || i.status === "cancelled";
     return true;
   });
 
   const FILTERS: { key: Filter; label: string }[] = [
     { key: "active",    label: t("challenges.tab_active") },
-    { key: "cancelled", label: t("challenges.tab_cancelled") },
+    { key: "paused",    label: t("challenges.tab_paused") },
     { key: "completed", label: t("challenges.tab_completed") },
   ];
+
+  const countFor = (key: Filter) => instances.filter((i) => {
+    if (key === "active") return i.status === "active";
+    if (key === "paused") return i.status === "paused";
+    if (key === "completed") return i.status === "completed" || i.status === "cancelled";
+    return false;
+  }).length;
 
   if (loading) {
     return (
@@ -81,12 +100,7 @@ export default function Challenges() {
         <div className="flex rounded-md p-1 gap-1"
           style={{ background: "var(--color-surface2)" }}>
           {FILTERS.map(({ key, label }) => {
-            const count = instances.filter((i) => {
-              if (key === "active") return i.status === "active" || i.status === "paused";
-              if (key === "cancelled") return i.status === "cancelled";
-              if (key === "completed") return i.status === "completed";
-              return true;
-            }).length;
+            const count = countFor(key);
             return (
               <button key={key} onClick={() => setFilter(key)}
                 className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[12px] font-bold rounded-sm transition-all"
@@ -115,11 +129,11 @@ export default function Challenges() {
       {filtered.length === 0 && (
         <div className="text-center py-16">
           <p className="text-5xl mb-3">
-            {filter === "active" ? "🎯" : filter === "cancelled" ? "🚫" : "📦"}
+            {filter === "active" ? "🎯" : filter === "paused" ? "⏸️" : "📦"}
           </p>
           <p className="font-bold text-text-primary">
             {filter === "active" ? t("challenges.no_challenges")
-              : filter === "cancelled" ? t("challenges.no_cancelled")
+              : filter === "paused" ? t("challenges.no_paused")
               : t("challenges.no_completed")}
           </p>
           {filter === "active" && (
@@ -135,19 +149,34 @@ export default function Challenges() {
       <div className="space-y-2.5">
         {filtered.map((instance) => (
           <ChallengeCard key={instance.id} instance={instance} dark={dark}
-            dateLocale={dateLocale} statusLabel={statusLabel} />
+            dateLocale={dateLocale} statusLabel={statusLabel}
+            onDelete={() => setDeleteTarget(instance)} />
         ))}
       </div>
+
+      {deleteTarget && (
+        <ConfirmModal
+          emoji="🗑️"
+          title={t("challenges.confirm_delete_card")}
+          body={t("challenges.confirm_delete_card_body")}
+          confirmLabel={t("challenges.confirm_delete_yes")}
+          cancelLabel={t("challenges.confirm_delete_no")}
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
     </div>
   );
 }
 
-function ChallengeCard({ instance, dark, dateLocale, statusLabel }: {
+function ChallengeCard({ instance, dark, dateLocale, statusLabel, onDelete }: {
   instance: ChallengeInstance;
   dark: boolean;
   dateLocale: any;
   statusLabel: (s: string) => string;
+  onDelete: () => void;
 }) {
+  const { t } = useTranslation();
   const { icon, accent, bg } = useCategoryStyle(instance.challenge.title, dark);
   const style = STATUS_STYLE[instance.status] ?? STATUS_STYLE.cancelled;
   const isArchived = instance.status === "completed" || instance.status === "cancelled";
@@ -161,50 +190,55 @@ function ChallengeCard({ instance, dark, dateLocale, statusLabel }: {
   const progress = Math.min(100, Math.round(((totalDays - daysLeft) / totalDays) * 100));
 
   return (
-    <Link to={`/challenges/${instance.id}`}
-      className="block rounded-md p-4 transition-all hover:shadow-md"
-      style={{
-        background: "var(--color-surface)",
-        border: "1px solid var(--color-border)",
-        opacity: isArchived ? 0.8 : 1,
-      }}>
-      <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-[10px] flex items-center justify-center shrink-0 text-lg"
-          style={{ background: bg }}>
-          {icon}
+    <div className="rounded-md transition-all hover:shadow-md"
+      style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", opacity: isArchived ? 0.8 : 1 }}>
+      <Link to={`/challenges/${instance.id}`} className="block p-4">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-[10px] flex items-center justify-center shrink-0 text-lg"
+            style={{ background: bg }}>
+            {icon}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-0.5">
+              <h3 className="font-bold text-text-primary truncate text-[14px]">
+                {instance.challenge.title}
+              </h3>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold shrink-0"
+                style={{ background: style.bg, color: style.text }}>
+                {statusLabel(instance.status)}
+              </span>
+            </div>
+            {instance.challenge.description && (
+              <p className="text-[12px] text-text-tertiary line-clamp-1 mb-1.5">
+                {instance.challenge.description}
+              </p>
+            )}
+            <div className="h-1 rounded-full overflow-hidden mb-1" style={{ background: "var(--color-surface2)" }}>
+              <div className="h-full rounded-full transition-all"
+                style={{ width: `${progress}%`, background: isArchived ? "var(--color-border-strong)" : accent }} />
+            </div>
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] text-text-tertiary">
+                {format(new Date(instance.start_date), "d MMM", { locale: dateLocale })} →{" "}
+                {format(new Date(instance.end_date), "d MMM yyyy", { locale: dateLocale })}
+              </p>
+              <p className="text-[11px] font-semibold"
+                style={{ color: isArchived ? "var(--color-text-tertiary)" : accent }}>
+                {progress}%
+              </p>
+            </div>
+          </div>
+          <ChevronRightIcon size={14} className="text-text-tertiary shrink-0 mt-1" />
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-0.5">
-            <h3 className="font-bold text-text-primary truncate text-[14px]">
-              {instance.challenge.title}
-            </h3>
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold shrink-0"
-              style={{ background: style.bg, color: style.text }}>
-              {statusLabel(instance.status)}
-            </span>
-          </div>
-          {instance.challenge.description && (
-            <p className="text-[12px] text-text-tertiary line-clamp-1 mb-1.5">
-              {instance.challenge.description}
-            </p>
-          )}
-          <div className="h-1 rounded-full overflow-hidden mb-1" style={{ background: "var(--color-surface2)" }}>
-            <div className="h-full rounded-full transition-all"
-              style={{ width: `${progress}%`, background: isArchived ? "var(--color-border-strong)" : accent }} />
-          </div>
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] text-text-tertiary">
-              {format(new Date(instance.start_date), "d MMM", { locale: dateLocale })} →{" "}
-              {format(new Date(instance.end_date), "d MMM yyyy", { locale: dateLocale })}
-            </p>
-            <p className="text-[11px] font-semibold"
-              style={{ color: isArchived ? "var(--color-text-tertiary)" : accent }}>
-              {progress}%
-            </p>
-          </div>
-        </div>
-        <ChevronRightIcon size={14} className="text-text-tertiary shrink-0 mt-1" />
+      </Link>
+      <div className="px-4 pb-3">
+        <button
+          onClick={(e) => { e.preventDefault(); onDelete(); }}
+          className="w-full py-2 rounded-md text-[12px] font-semibold transition-colors"
+          style={{ border: "1px solid var(--color-danger)", color: "var(--color-danger)" }}>
+          {t("challenges.delete_permanently")}
+        </button>
       </div>
-    </Link>
+    </div>
   );
 }
