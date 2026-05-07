@@ -19,11 +19,13 @@ def upgrade() -> None:
     op.execute("UPDATE challenge_instances SET status = 'completed' WHERE status = 'cancelled'")
     op.execute("ALTER TYPE instancestatus RENAME TO instancestatus_old")
     op.execute("CREATE TYPE instancestatus AS ENUM ('active', 'paused', 'completed')")
+    op.execute("ALTER TABLE challenge_instances ALTER COLUMN status DROP DEFAULT")
     op.execute(
         "ALTER TABLE challenge_instances "
         "ALTER COLUMN status TYPE instancestatus "
         "USING status::text::instancestatus"
     )
+    op.execute("ALTER TABLE challenge_instances ALTER COLUMN status SET DEFAULT 'active'::instancestatus")
     op.execute("DROP TYPE instancestatus_old")
 
 
