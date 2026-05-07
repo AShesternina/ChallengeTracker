@@ -6,6 +6,7 @@ import { challengesApi } from "../services/api";
 import { useThemeStore } from "../store/themeStore";
 import { useCategoryStyle } from "../utils/category";
 import { ArrowLeftIcon } from "../components/Icons";
+import ConfirmModal from "../components/ConfirmModal";
 import { translateTemplateName, translateTemplateDesc, getTemplateCategory } from "../utils/templateTranslations";
 
 interface Template {
@@ -47,6 +48,7 @@ export default function CreateChallenge() {
   const [startDate, setStartDate] = useState(today);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPastEndModal, setShowPastEndModal] = useState(false);
 
   useEffect(() => {
     challengesApi.templates().then((r) => setTemplates(r.data));
@@ -63,8 +65,7 @@ export default function CreateChallenge() {
     setStep("configure");
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const doSubmit = async () => {
     setError("");
     setLoading(true);
     try {
@@ -85,6 +86,19 @@ export default function CreateChallenge() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + duration - 1);
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
+    if (endDate < todayDate) {
+      setShowPastEndModal(true);
+      return;
+    }
+    doSubmit();
   };
 
   if (step === "select") {
@@ -244,6 +258,19 @@ export default function CreateChallenge() {
           {loading ? t("create_challenge.submitting") : t("create_challenge.submit")}
         </button>
       </form>
+
+      {showPastEndModal && (
+        <ConfirmModal
+          emoji="📅"
+          title={t("common.confirm_past_end")}
+          body={t("common.confirm_past_end_body")}
+          confirmLabel={t("common.confirm_past_end_yes")}
+          cancelLabel={t("common.confirm_past_end_no")}
+          confirmDanger={false}
+          onConfirm={() => { setShowPastEndModal(false); doSubmit(); }}
+          onCancel={() => setShowPastEndModal(false)}
+        />
+      )}
     </div>
   );
 }
