@@ -31,7 +31,8 @@ export default function CreateChallenge() {
   const [step, setStep] = useState<"select" | "configure">("select");
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
 
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState("");         // canonical value submitted to backend
+  const [displayTitle, setDisplayTitle] = useState(""); // what user sees in the input
   const [description, setDescription] = useState("");
   const [type, setType] = useState<ChallengeType>("single");
   const [duration, setDuration] = useState(30);
@@ -47,7 +48,8 @@ export default function CreateChallenge() {
 
   const applyTemplate = (tpl: Template) => {
     setSelectedTemplate(tpl);
-    setTitle(translateTemplateName(tpl.title, i18n.language));
+    setTitle(tpl.title);  // store English canonical — translateTemplateName works for any language
+    setDisplayTitle(translateTemplateName(tpl.title, i18n.language));  // show translated in input
     setDescription(translateTemplateDesc(tpl.description || "", i18n.language));
     setType(tpl.type as ChallengeType);
     setDuration(tpl.default_duration_days);
@@ -68,6 +70,7 @@ export default function CreateChallenge() {
         default_duration_days: duration,
         tasks_per_day: tasksPerDay,
         task_times: times,
+        source_template_id: selectedTemplate?.id ?? null,
       });
       await challengesApi.start(challenge.id, startDate);
       navigate("/challenges");
@@ -93,7 +96,7 @@ export default function CreateChallenge() {
         </div>
 
         <button
-          onClick={() => { setSelectedTemplate(null); setTitle(""); setStep("configure"); }}
+          onClick={() => { setSelectedTemplate(null); setTitle(""); setDisplayTitle(""); setStep("configure"); }}
           className="w-full py-3.5 rounded-md text-[13px] font-bold transition-colors"
           style={{ border: "2px dashed var(--color-accent)", color: "var(--color-accent)" }}>
           {t("create_challenge.from_scratch")}
@@ -147,7 +150,8 @@ export default function CreateChallenge() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <Field label={t("create_challenge.title_label")}>
-          <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
+          <input type="text" value={displayTitle}
+            onChange={(e) => { setDisplayTitle(e.target.value); setTitle(e.target.value); setSelectedTemplate(null); }}
             required placeholder={t("create_challenge.title_placeholder")}
             className={inputClass} style={inputStyle}
             onFocus={(e) => (e.target.style.borderColor = "var(--color-accent)")}

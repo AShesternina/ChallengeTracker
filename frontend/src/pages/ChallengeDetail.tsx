@@ -48,7 +48,8 @@ export default function ChallengeDetail() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showPastEndModal, setShowPastEndModal] = useState(false);
 
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState("");         // canonical value submitted to backend
+  const [displayTitle, setDisplayTitle] = useState(""); // translated value shown in edit input
   const [description, setDescription] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -73,6 +74,7 @@ export default function ChallengeDetail() {
 
   const fillForm = (inst: ChallengeInstance) => {
     setTitle(inst.challenge.title);
+    setDisplayTitle(translateTemplateName(inst.challenge.title, i18n.language));
     setDescription(inst.challenge.description || "");
     setStartDate(inst.start_date);
     setEndDate(inst.end_date);
@@ -343,7 +345,8 @@ export default function ChallengeDetail() {
             <label className="block text-[12px] font-semibold text-text-secondary mb-1.5">
               {t("create_challenge.title_label")}
             </label>
-            <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
+            <input type="text" value={displayTitle}
+              onChange={(e) => { setDisplayTitle(e.target.value); setTitle(e.target.value); }}
               className={inputClass} style={inputStyle}
               onFocus={(e) => (e.target.style.borderColor = "var(--color-accent)")}
               onBlur={(e) => (e.target.style.borderColor = "var(--color-border)")} />

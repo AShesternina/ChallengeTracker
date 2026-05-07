@@ -22,6 +22,7 @@ class Challenge(Base):
     tasks_per_day: Mapped[int] = mapped_column(Integer, default=1)
     task_times: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON array of "HH:MM"
     is_template: Mapped[bool] = mapped_column(Boolean, default=False)
+    source_template_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     instances: Mapped[list["ChallengeInstance"]] = relationship(back_populates="challenge")
 

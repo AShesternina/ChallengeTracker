@@ -26,6 +26,7 @@ async def create_challenge(db: AsyncSession, user_id: int, data: ChallengeCreate
         default_duration_days=data.default_duration_days,
         tasks_per_day=data.tasks_per_day,
         task_times=json.dumps(data.task_times) if data.task_times else None,
+        source_template_id=data.source_template_id,
     )
     db.add(challenge)
     await db.flush()

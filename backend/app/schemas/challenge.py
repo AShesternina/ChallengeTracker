@@ -11,6 +11,7 @@ class ChallengeCreate(BaseModel):
     default_duration_days: int = 30
     tasks_per_day: int = 1
     task_times: list[str] | None = None  # ["HH:MM", ...]
+    source_template_id: int | None = None
 
     @field_validator("default_duration_days")
     @classmethod
@@ -46,6 +47,7 @@ class ChallengeOut(BaseModel):
     default_duration_days: int
     tasks_per_day: int
     task_times: list[str] | None
+    source_template_id: int | None = None
 
     model_config = {"from_attributes": True}
 
