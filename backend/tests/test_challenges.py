@@ -206,3 +206,32 @@ async def test_create_challenge_no_source_template_id(client: AsyncClient):
     }, headers=auth_headers(tokens))
     assert r.status_code == 201
     assert r.json()["source_template_id"] is None
+
+
+async def test_start_challenge_past_end_date_auto_completes(client: AsyncClient):
+    """Starting a challenge whose end_date falls in the past should immediately set status=completed."""
+    tokens = await register_and_login(client)
+    headers = auth_headers(tokens)
+    past_start = (date.today() - timedelta(days=10)).isoformat()
+
+    r = await client.post("/api/v1/challenges", json={
+        "title": "Past Challenge",
+        "type": "single",
+        "default_duration_days": 7,
+        "tasks_per_day": 1,
+        "task_times": ["08:00"],
+    }, headers=headers)
+    cid = r.json()["id"]
+
+    r = await client.post("/api/v1/challenges/start", json={
+        "challenge_id": cid, "start_date": past_start,
+    }, headers=headers)
+    assert r.status_code == 201
+    assert r.json()["status"] == "completed"
+
+
+async def test_start_challenge_future_stays_active(client: AsyncClient):
+    """Starting a challenge with today's date keeps status=active."""
+    tokens = await register_and_login(client)
+    instance = await _create_and_start(client, auth_headers(tokens))
+    assert instance["status"] == "active"

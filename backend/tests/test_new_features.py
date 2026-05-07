@@ -1,10 +1,10 @@
 """Tests for features added after initial release:
 - POST /tasks/{id}/reset
 - POST /challenges/instances/{id}/pause + resume
-- DELETE /challenges/instances/{id}/permanent (any status, no prior cancel needed)
+- DELETE /challenges/instances/{id}/permanent (any status)
 - GET /reports/streak
 - sequence_number / total_count in DailyTaskOut
-- challenge_status field in DailyTaskOut
+- challenge_status field in DailyTaskOut (active | paused | completed)
 - pause_periods: paused tasks visible but excluded from counts and reports
 """
 import pytest
