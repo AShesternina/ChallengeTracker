@@ -174,3 +174,82 @@ async def test_create_challenge_invalid_tasks_per_day(client: AsyncClient):
         "default_duration_days": 7, "tasks_per_day": 99, "task_times": ["08:00"],
     }, headers=auth_headers(tokens))
     assert r.status_code == 422
+
+
+# ── onboarding_completed ──────────────────────────────────────────────────────
+
+async def test_register_has_onboarding_completed_false(client: AsyncClient):
+    """New user should have onboarding_completed=False."""
+    tokens = await register_and_login(client)
+    r = await client.get("/api/v1/users/me", headers=auth_headers(tokens))
+    assert r.status_code == 200
+    data = r.json()
+    assert "onboarding_completed" in data
+    assert data["onboarding_completed"] is False
+
+
+async def test_update_onboarding_completed(client: AsyncClient):
+    """PATCH /users/me with onboarding_completed=True persists and is returned."""
+    tokens = await register_and_login(client)
+    r = await client.patch(
+        "/api/v1/users/me",
+        json={"onboarding_completed": True},
+        headers=auth_headers(tokens),
+    )
+    assert r.status_code == 200
+    assert r.json()["onboarding_completed"] is True
+
+    # Verify persisted across requests
+    r2 = await client.get("/api/v1/users/me", headers=auth_headers(tokens))
+    assert r2.json()["onboarding_completed"] is True
+
+
+# ── account deletion ──────────────────────────────────────────────────────────
+
+async def test_delete_account(client: AsyncClient):
+    """DELETE /users/me returns 204 and the account is gone."""
+    tokens = await register_and_login(client)
+    r = await client.delete("/api/v1/users/me", headers=auth_headers(tokens))
+    assert r.status_code == 204
+
+    # Token no longer valid — can't fetch /me
+    r2 = await client.get("/api/v1/users/me", headers=auth_headers(tokens))
+    assert r2.status_code in (401, 403)
+
+
+async def test_delete_account_unauthenticated(client: AsyncClient):
+    """DELETE /users/me without auth returns 403."""
+    r = await client.delete("/api/v1/users/me")
+    assert r.status_code == 403
+
+
+async def test_delete_account_cascades_challenges_and_tasks(client: AsyncClient):
+    """Deleting account removes all challenges, instances and tasks."""
+    from datetime import date
+    tokens = await register_and_login(client)
+    headers = auth_headers(tokens)
+    today = date.today().isoformat()
+
+    # Create and start a challenge
+    r = await client.post("/api/v1/challenges", json={
+        "title": "To Delete", "type": "single",
+        "default_duration_days": 7, "tasks_per_day": 1, "task_times": ["08:00"],
+    }, headers=headers)
+    cid = r.json()["id"]
+    r = await client.post("/api/v1/challenges/start",
+                          json={"challenge_id": cid, "start_date": today},
+                          headers=headers)
+    assert r.status_code == 201
+
+    # Generate tasks
+    await client.get("/api/v1/daily/today", headers=headers)
+
+    # Delete account
+    r = await client.delete("/api/v1/users/me", headers=headers)
+    assert r.status_code == 204
+
+    # Register a new user with same email — should succeed (no conflict)
+    r = await client.post("/api/v1/auth/register/email", json={
+        "email": "test@example.com", "password": "newpass123", "timezone": "UTC",
+    })
+    assert r.status_code == 201
