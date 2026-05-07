@@ -10,8 +10,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Database | PostgreSQL 16 |
 | Queue / Cache | Redis 7 |
 | Frontend | React 18, TypeScript, Vite, Tailwind CSS 3, PWA (vite-plugin-pwa) |
-| i18n | i18next + react-i18next (EN/RU, `ct_language` localStorage key) |
-| Notifications | Web Push (pywebpush) + SendGrid email fallback (mock when key absent) |
+| i18n | i18next + react-i18next (EN/RU/ES/PT, language stored in `User.language`) |
+| Notifications | Web Push data-only payload, SW translates via IndexedDB; SendGrid email fallback |
 
 ## Running the project
 
@@ -67,7 +67,9 @@ backend/app/
   models/      SQLAlchemy ORM (User, Challenge, ChallengeInstance, DailyTaskInstance, UserDevice, NotificationLog)
   schemas/     Pydantic request/response (auth, challenge, daily, reports, notifications, user)
   services/    Business logic — keep all logic here, endpoints are thin
-    pause_utils.py  is_paused_on(), get_paused_dates() — shared pause logic, no circular imports
+    pause_utils.py        is_paused_on(), get_paused_dates() — shared pause logic, no circular imports
+    language_service.py   detect_language(request) — IP geo + Accept-Language fallback
+    notifications_i18n.py translated strings for email fallback (EN/RU/ES/PT)
   api/v1/      FastAPI routers (auth, challenges, daily, reports, notifications, users)
   workers/     celery_app.py (beat schedule), tasks.py (sync wrappers calling async services)
 ```
@@ -81,10 +83,11 @@ frontend/src/
   components/    Layout, TaskCard, ProgressRing, Icons, PasswordInput, Onboarding, ConfirmModal
   pages/         Dashboard, DailyTasks, Challenges, CreateChallenge, ChallengeDetail,
                  ChallengeReport, Reports, Settings, Login, Register
-  store/         authStore (user + tokens), taskStore (daily summary), themeStore (dark mode)
-  services/      api.ts (Axios + JWT auto-refresh), push.ts (Web Push)
-  utils/         category.ts (category detection from title), templateTranslations.ts
-  i18n/locales/  en.ts, ru.ts
+  store/         authStore (user + tokens + language), taskStore (daily summary), themeStore (dark mode)
+  services/      api.ts (Axios + JWT auto-refresh), push.ts (Web Push), sw-lang.ts (SW language sync)
+  utils/         category.ts (category detection from title), templateTranslations.ts (16 templates × 4 langs)
+  i18n/locales/  en.ts, ru.ts, es.ts, pt.ts
+  sw.ts          Service Worker: precache + push handler (data-only, translates via IndexedDB) + message handler
 ```
 
 ## Confirmation dialogs
@@ -170,7 +173,7 @@ docker exec challengetracker-backend-1 alembic upgrade head
 docker exec challengetracker-backend-1 alembic revision --autogenerate -m "description"
 ```
 
-Migrations: `0001_initial` → `0002_seed_templates` → `0003_update_templates` → `0004_add_templates` → `0005_add_pause_periods`
+Migrations: `0001_initial` → `0002_seed_templates` → `0003_update_templates` → `0004_add_templates` → `0005_add_pause_periods` → `0006_add_user_language` → `0007_add_source_template_id`
 
 PostgreSQL enums require explicit `CAST(:value AS enumtype)` — do NOT use `op.bulk_insert()` with enum columns.
 
@@ -188,18 +191,47 @@ Each has unique accent color and icon used across cards, progress bars, badges.
 
 Template name/description translations live in `utils/templateTranslations.ts`.
 
-## Notification dispatch
+## Notification dispatch (Variant B — data-only push)
 
 `notification_service.dispatch()` — push-first, email fallback:
-1. Registered push devices → Web Push
-2. Otherwise → email via `email_adapter` (SendGrid or mock)
+1. Registered push devices → **data-only Web Push** `{type, …data, url}` — no title/body in payload
+2. Service Worker receives data → reads language from IndexedDB → translates using built-in `TRANSLATIONS` dict → calls `showNotification()`
+3. Email fallback → `notifications_i18n.py` provides translated title+body by `user.language`
 
-Never hardcode notification text in the backend. All copy lives in frontend translations.
+**Adding a new push notification type:**
+- Backend: add `push_data = {"type": "my_type", ...}` and call `dispatch()`
+- Service Worker `sw.ts`: add `my_type` entry to the `TRANSLATIONS` object (all 4 languages)
+- No other changes needed — the SW handles display automatically
 
-## Adding translations
+**Adding a new language to notifications:**
+- `sw.ts` `TRANSLATIONS`: add language code to each notification type entry
+- `notifications_i18n.py`: add same language to `_MORNING_SUMMARY` and `_DAILY_REPORT`
+- `language_service.py`: add country codes and add to `SUPPORTED_LANGUAGES`
 
-Add keys to both `frontend/src/i18n/locales/en.ts` and `frontend/src/i18n/locales/ru.ts`.
+## Multilanguage system
+
+**Supported languages:** EN / ES / PT / RU (stored in `User.language`, default `"en"`)
+
+**Language detection on registration:** IP geolocation via `ipapi.co` → country → language; fallback to `Accept-Language` header → `"en"`.
+
+**Language sync flow:**
+1. Login/Register → `/users/me` response → `i18n.changeLanguage(user.language)` + `setServiceWorkerLanguage(lang)`
+2. Settings change → `PATCH /users/me {language}` + same sync
+3. App startup → `setServiceWorkerLanguage(user.language || i18n.language)` (restores SW state after reload)
+
+**Adding UI translations:** Add keys to ALL four locale files: `en.ts`, `ru.ts`, `es.ts`, `pt.ts`.
 Use `const { t } = useTranslation()` and `t("section.key")`. Never use inline `i18n.language === "ru" ? ... : ...` — always use `t()`.
+
+**Template translations:** 16 templates × 4 languages live in `utils/templateTranslations.ts` (NOT in i18n locale files — the locale `template_titles` sections were removed as dead code). Template challenges store the **English canonical title** in the DB (`Challenge.title`) and `source_template_id` for reference. Always call `translateTemplateName(title, i18n.language)` when displaying challenge titles — applies to all components (TaskCard, Challenges, DailyTasks, Reports, ChallengeDetail, ChallengeReport).
+
+**Adding a new language (e.g. French):**
+1. `language_service.py` — add country codes to `_COUNTRY_LANGUAGE`, add `"fr"` to `SUPPORTED_LANGUAGES`
+2. `notifications_i18n.py` — add `"fr"` entry to `_MORNING_SUMMARY` and `_DAILY_REPORT`
+3. `sw.ts` — add `"fr"` entry to each type in `TRANSLATIONS`; add to `SUPPORTED_LANGS`
+4. `i18n/locales/fr.ts` — new locale file (copy structure from `en.ts`)
+5. `i18n/index.ts` — import + add to `resources` + add to `supportedLngs`
+6. `templateTranslations.ts` — add `fr` column to `TITLE_MAP`, `DESC_MAP`, `TEMPLATE_CATEGORIES`; update `TemplateLang` type and `toLang()`
+7. `Settings.tsx` — add `{ code: "fr", label: "Français", flag: "🇫🇷" }` to `LANGUAGES` (alphabetical order)
 
 ## Celery beat schedule (UTC)
 
@@ -221,7 +253,7 @@ Copy `backend/.env.example` → `backend/.env`. Key variables:
 ## Running tests
 
 ```bash
-# Install test deps and run all 68 tests (local Docker only)
+# Install test deps and run all 74 tests (local Docker only)
 docker exec challengetracker-backend-1 pip install -r requirements-test.txt -q
 docker exec challengetracker-backend-1 pytest tests/ -v --tb=short
 
@@ -235,7 +267,7 @@ docker exec challengetracker-backend-1 pytest tests/test_auth.py::test_login_suc
 - Production server does NOT have `PYTEST_ALLOW=1` — pytest is blocked at import time with a clear error
 - `pytest` is also not installed in the production image (double protection)
 
-Test files: `test_auth.py` (16) · `test_challenges.py` (11) · `test_daily.py` (11) · `test_reports.py` (8) · `test_new_features.py` (22)
+Test files: `test_auth.py` (20) · `test_challenges.py` (13) · `test_daily.py` (11) · `test_reports.py` (8) · `test_new_features.py` (22)
 
 ## Deployment (production)
 

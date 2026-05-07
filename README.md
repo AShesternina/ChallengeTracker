@@ -17,8 +17,8 @@
 | Состояние | Zustand 5.0 |
 | Роутинг | React Router v6 |
 | API клиент | Axios + JWT auto-refresh |
-| i18n | i18next (EN / RU) |
-| Уведомления | Web Push (pywebpush) + SendGrid email fallback |
+| i18n | i18next (EN / ES / PT / RU, язык в аккаунте пользователя) |
+| Уведомления | Web Push data-only + SW-перевод; SendGrid email fallback |
 | Auth | JWT (access + refresh), email/password |
 
 ---
@@ -86,7 +86,7 @@ docker compose up --build
 
 ### ⚙️ Настройки (Settings)
 
-Профиль, тёмная тема, язык (RU/EN), часовой пояс, web push уведомления, выход.
+Профиль, тёмная тема, язык (English / Español / Português / Русский), часовой пояс, web push уведомления, выход. Язык сохраняется в аккаунте и применяется на всех устройствах.
 
 ---
 
@@ -138,23 +138,26 @@ docker compose up --build
 
 **Паузы:** `ChallengeInstance.pause_periods` хранит историю пауз в JSON: `[{"start": "YYYY-MM-DD", "end": "YYYY-MM-DD|null"}]`. Задачи паузированного дня видны в списке (затемнены), но исключены из всех статистик и стрика.
 
+**Мультиязычность:** язык хранится в `User.language` (EN/ES/PT/RU). При регистрации определяется автоматически по IP. Шаблонные челленджи хранят английское каноническое название (`Challenge.title`) и переводятся на фронте. Push-уведомления отправляются без текста — Service Worker переводит по языку из IndexedDB.
+
 ```
 backend/app/
   api/v1/endpoints/   — auth, challenges, daily, reports, notifications, users
   core/               — config, database, security, redis, deps
   models/             — SQLAlchemy ORM
   schemas/            — Pydantic schemas
-  services/           — вся бизнес-логика
+  services/           — вся бизнес-логика (в т.ч. language_service, notifications_i18n)
   workers/            — Celery app + scheduled tasks
-alembic/              — миграции
+alembic/              — миграции (0001 → ... → 0007)
 
 frontend/src/
-  components/         — Layout, TaskCard, ProgressRing, Icons, PasswordInput
+  components/         — Layout, TaskCard, ProgressRing, Icons, PasswordInput, ConfirmModal
   pages/              — все экраны
-  store/              — authStore, taskStore, themeStore
-  services/           — api.ts, push.ts
-  utils/              — category.ts (определение категории по названию)
-  i18n/locales/       — en.ts, ru.ts
+  store/              — authStore (+ language), taskStore, themeStore
+  services/           — api.ts, push.ts, sw-lang.ts
+  utils/              — category.ts, templateTranslations.ts (16 шаблонов × 4 языка)
+  i18n/locales/       — en.ts, ru.ts, es.ts, pt.ts
+  sw.ts               — Service Worker: кэш + push-перевод через IndexedDB
 ```
 
 ---
@@ -248,4 +251,4 @@ docker exec challengetracker-backend-1 bash -c \
   "pip install -r requirements-test.txt -q && pytest tests/ -v --tb=short --cov=app --cov-report=term-missing"
 ```
 
-68 тестов: test_auth (16) · test_challenges (11) · test_daily (11) · test_reports (8) · test_new_features (22)
+74 теста: test_auth (20) · test_challenges (13) · test_daily (11) · test_reports (8) · test_new_features (22)
