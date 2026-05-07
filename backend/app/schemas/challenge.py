@@ -12,6 +12,20 @@ class ChallengeCreate(BaseModel):
     tasks_per_day: int = 1
     task_times: list[str] | None = None  # ["HH:MM", ...]
 
+    @field_validator("default_duration_days")
+    @classmethod
+    def validate_duration(cls, v: int) -> int:
+        if not 1 <= v <= 365:
+            raise ValueError("Duration must be between 1 and 365 days")
+        return v
+
+    @field_validator("tasks_per_day")
+    @classmethod
+    def validate_tasks_per_day(cls, v: int) -> int:
+        if not 1 <= v <= 10:
+            raise ValueError("tasks_per_day must be between 1 and 10")
+        return v
+
     @field_validator("task_times", mode="before")
     @classmethod
     def validate_times(cls, v):

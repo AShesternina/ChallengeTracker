@@ -32,12 +32,15 @@ def _task_type_from_challenge(ct: ChallengeType) -> TaskType:
 def _parse_times(task_times_json: str | None) -> list[time | None]:
     if not task_times_json:
         return [None]
-    times = json.loads(task_times_json)
-    result = []
-    for t in times:
-        h, m = map(int, t.split(":"))
-        result.append(time(h, m))
-    return result or [None]
+    try:
+        times = json.loads(task_times_json)
+        result = []
+        for t in times:
+            h, m = map(int, t.split(":"))
+            result.append(time(h, m))
+        return result or [None]
+    except (json.JSONDecodeError, ValueError, TypeError):
+        return [None]
 
 
 async def ensure_daily_tasks(db: AsyncSession, user_id: int, target_date: date) -> None:

@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.limiter import limiter
 from app.schemas.auth import (
     LoginEmailRequest,
     RefreshRequest,
@@ -16,7 +17,8 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/register/email", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
-async def register_with_email(data: RegisterEmailRequest, db: AsyncSession = Depends(get_db)):
+@limiter.limit("5/minute")
+async def register_with_email(request: Request, data: RegisterEmailRequest, db: AsyncSession = Depends(get_db)):
     try:
         user = await register_email(db, data)
     except AuthError as e:
@@ -29,21 +31,24 @@ async def register_with_email(data: RegisterEmailRequest, db: AsyncSession = Dep
 
 
 @router.post("/register/phone")
-async def register_with_phone(data: RegisterPhoneRequest, db: AsyncSession = Depends(get_db)):
-    otp = await register_phone(db, data)
-    return {"message": "OTP sent", "otp_mock": otp}  # otp_mock only in dev
+@limiter.limit("3/minute")
+async def register_with_phone(request: Request, data: RegisterPhoneRequest, db: AsyncSession = Depends(get_db)):
+    await register_phone(db, data)
+    return {"message": "OTP sent"}
 
 
 @router.post("/verify/otp", response_model=TokenResponse)
-async def verify_phone_otp(data: VerifyOTPRequest, db: AsyncSession = Depends(get_db)):
+@limiter.limit("5/minute")
+async def verify_phone_otp(request: Request, data: VerifyOTPRequest, db: AsyncSession = Depends(get_db)):
     try:
         return await verify_otp(db, data.phone, data.otp)
     except AuthError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
 
 
 @router.post("/login/email", response_model=TokenResponse)
-async def login_with_email(data: LoginEmailRequest, db: AsyncSession = Depends(get_db)):
+@limiter.limit("10/minute")
+async def login_with_email(request: Request, data: LoginEmailRequest, db: AsyncSession = Depends(get_db)):
     try:
         return await login_email(db, data)
     except AuthError as e:
@@ -51,7 +56,8 @@ async def login_with_email(data: LoginEmailRequest, db: AsyncSession = Depends(g
 
 
 @router.post("/refresh", response_model=TokenResponse)
-async def refresh(data: RefreshRequest, db: AsyncSession = Depends(get_db)):
+@limiter.limit("20/minute")
+async def refresh(request: Request, data: RefreshRequest, db: AsyncSession = Depends(get_db)):
     try:
         return await refresh_tokens(db, data.refresh_token)
     except AuthError as e:

@@ -1,8 +1,15 @@
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    @model_validator(mode="after")
+    def validate_secret_key(self) -> "Settings":
+        if self.APP_ENV == "production" and self.SECRET_KEY == "insecure-dev-secret":
+            raise ValueError("SECRET_KEY must be changed from the default value in production")
+        return self
 
     DATABASE_URL: str
     REDIS_URL: str = "redis://localhost:6379/0"
