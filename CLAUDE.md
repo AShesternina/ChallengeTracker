@@ -46,14 +46,16 @@ URLs: Frontend → http://localhost:5173 | API → http://localhost:8000 | Docs 
 **Task visibility rules (applies everywhere — DailyTasks, Dashboard, Reports):**
 - Active challenge + today/past → fully editable (Done / Skip / Undo)
 - Future days → read-only (no action buttons, "Future · read only" badge) — Reports only
-- Cancelled challenge → read-only, dimmed, "cancelled" label — handled in `TaskCard` via `challenge_status`
-- Paused challenge → still editable (tasks already exist, user can still mark them)
+- Paused challenge → task visible but dimmed, "paused" badge, no action buttons — handled via `challenge_status`
+- Cancelled challenge → task visible but dimmed, "cancelled" badge, no action buttons — handled via `challenge_status`
 - Deleted challenge → all its `DailyTaskInstance` rows are hard-deleted
+
+**Paused days are excluded from all statistics** (daily report, monthly report, challenge report, streak). The `pause_periods` JSON field on `ChallengeInstance` tracks historical pause intervals: `[{"start": "YYYY-MM-DD", "end": "YYYY-MM-DD|null"}]`. Use `pause_utils.is_paused_on()` and `pause_utils.get_paused_dates()` — never inline this logic.
 
 **`TaskCard` is the only component for rendering tasks** — use it everywhere tasks appear:
 - `readOnly` prop: status badge instead of action buttons (Dashboard preview)
 - Default (interactive): Done / Skip / Undo buttons
-- `challenge_status === "cancelled"` is handled inside TaskCard — dimmed, no buttons, "cancelled" badge
+- `challenge_status === "cancelled"` or `"paused"` → dimmed, no buttons, status badge
 
 Never create separate task row components (e.g. MiniTaskRow). All task display logic lives in `TaskCard`.
 
@@ -65,6 +67,7 @@ backend/app/
   models/      SQLAlchemy ORM (User, Challenge, ChallengeInstance, DailyTaskInstance, UserDevice, NotificationLog)
   schemas/     Pydantic request/response (auth, challenge, daily, reports, notifications, user)
   services/    Business logic — keep all logic here, endpoints are thin
+    pause_utils.py  is_paused_on(), get_paused_dates() — shared pause logic, no circular imports
   api/v1/      FastAPI routers (auth, challenges, daily, reports, notifications, users)
   workers/     celery_app.py (beat schedule), tasks.py (sync wrappers calling async services)
 ```
@@ -128,10 +131,10 @@ POST /api/v1/challenges/start
 GET  /api/v1/challenges/my
 GET  /api/v1/challenges/instances/{id}
 PATCH /api/v1/challenges/instances/{id}
-DELETE /api/v1/challenges/instances/{id}          # cancel (soft)
+DELETE /api/v1/challenges/instances/{id}          # soft cancel (API-only, no UI button)
 POST /api/v1/challenges/instances/{id}/pause
 POST /api/v1/challenges/instances/{id}/resume
-DELETE /api/v1/challenges/instances/{id}/permanent  # hard delete (cancelled only)
+DELETE /api/v1/challenges/instances/{id}/permanent  # hard delete — any status, deletes tasks too
 
 GET  /api/v1/daily/today
 POST /api/v1/tasks/{id}/complete
@@ -167,7 +170,7 @@ docker exec challengetracker-backend-1 alembic upgrade head
 docker exec challengetracker-backend-1 alembic revision --autogenerate -m "description"
 ```
 
-Migrations: `0001_initial` → `0002_seed_templates` → `0003_update_templates` → `0004_add_templates`
+Migrations: `0001_initial` → `0002_seed_templates` → `0003_update_templates` → `0004_add_templates` → `0005_add_pause_periods`
 
 PostgreSQL enums require explicit `CAST(:value AS enumtype)` — do NOT use `op.bulk_insert()` with enum columns.
 
@@ -203,6 +206,7 @@ Use `const { t } = useTranslation()` and `t("section.key")`. Never use inline `i
 | Task | Time |
 |------|------|
 | Generate daily tasks for all users | 00:05 |
+| Auto-complete expired challenges | 00:10 |
 | Morning summary notification | 08:00 |
 | Daily report notification | 21:00 |
 
@@ -217,7 +221,7 @@ Copy `backend/.env.example` → `backend/.env`. Key variables:
 ## Running tests
 
 ```bash
-# Install test deps and run all 67 tests (local Docker only)
+# Install test deps and run all 68 tests (local Docker only)
 docker exec challengetracker-backend-1 pip install -r requirements-test.txt -q
 docker exec challengetracker-backend-1 pytest tests/ -v --tb=short
 
@@ -231,7 +235,7 @@ docker exec challengetracker-backend-1 pytest tests/test_auth.py::test_login_suc
 - Production server does NOT have `PYTEST_ALLOW=1` — pytest is blocked at import time with a clear error
 - `pytest` is also not installed in the production image (double protection)
 
-Test files: `test_auth.py` (16) · `test_challenges.py` (12) · `test_daily.py` (11) · `test_reports.py` (8) · `test_new_features.py` (20)
+Test files: `test_auth.py` (16) · `test_challenges.py` (11) · `test_daily.py` (11) · `test_reports.py` (8) · `test_new_features.py` (22)
 
 ## Deployment (production)
 

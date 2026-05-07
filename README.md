@@ -63,15 +63,15 @@ docker compose up --build
 
 ### 🎯 Челленджи (Challenges)
 
-**Фильтр:** три таба — Активные (active + paused) / Завершённые (completed + cancelled) / Все. Счётчик на каждом табе.
+**Фильтр:** три таба — Активные / Пауза / Завершённые (completed + cancelled). Счётчик на каждом табе.
 
-**Список:** карточки с иконкой категории, статус-бейджем, прогресс-баром (% дней), диапазоном дат. Завершённые/отменённые слегка прозрачнее.
+**Список:** карточки с иконкой категории, статус-бейджем, прогресс-баром (% дней), диапазоном дат.
 
 **Создание (2 шага):**
 - Шаг 1 — выбор шаблона (Morning Workout 💪 / Reading 📚 / Meditation 🧘 / Water 💧 / No Sugar 🚫) или с нуля
 - Шаг 2 — название, описание, тип (⏰ single / 🔁 multi / 🌅 all_day), длительность, время, дата начала
 
-**Детали:** прогресс дней, инфо-сетка, текущая серия 🔥 и лучшая серия 🏆, кнопки Редактировать / Отчёт / Отменить.
+**Детали:** прогресс дней, инфо-сетка, текущая серия 🔥 и лучшая серия 🏆, кнопки Редактировать / Отчёт / Приостановить (или Возобновить) / Удалить навсегда.
 
 ### 📊 Отчёты (Reports)
 
@@ -80,7 +80,7 @@ docker compose up --build
 **Кликабельные дни:** любой день с задачами открывает детальный вид:
 - Прошлое / сегодня → полное редактирование (Готово / Пропуск / ↩ Отмена)
 - Будущее → только просмотр, бейдж «Будущее · только просмотр»
-- Задачи отменённого челленджа → затемнены, нередактируемы, метка «отменён»
+- Задачи паузированного или отменённого челленджа → затемнены, нередактируемы, метка статуса
 
 **По челленджу:** 6 метрик (Всего / Выполнено / Пропущено / % / Серия 🔥 / Лучшая 🏆), период, прогресс-бар.
 
@@ -134,7 +134,9 @@ docker compose up --build
 Задачи генерируются тремя способами:
 1. `POST /challenges/start` — сразу весь период (прошлое + будущее через `ensure_daily_tasks` в цикле)
 2. `GET /daily/today` — ленивая идемпотентная генерация для конкретного дня
-3. Celery beat 00:05 UTC — ночная генерация для всех активных челленджей
+3. Celery beat 00:05 UTC — ночная генерация для всех активных и паузированных челленджей
+
+**Паузы:** `ChallengeInstance.pause_periods` хранит историю пауз в JSON: `[{"start": "YYYY-MM-DD", "end": "YYYY-MM-DD|null"}]`. Задачи паузированного дня видны в списке (затемнены), но исключены из всех статистик и стрика.
 
 ```
 backend/app/
@@ -174,10 +176,10 @@ POST /api/v1/challenges/start
 GET  /api/v1/challenges/my
 GET  /api/v1/challenges/instances/{id}
 PATCH /api/v1/challenges/instances/{id}
-DELETE /api/v1/challenges/instances/{id}           # cancel (soft)
+DELETE /api/v1/challenges/instances/{id}           # soft cancel (API-only, no UI button)
 POST /api/v1/challenges/instances/{id}/pause
 POST /api/v1/challenges/instances/{id}/resume
-DELETE /api/v1/challenges/instances/{id}/permanent # hard delete (cancelled only)
+DELETE /api/v1/challenges/instances/{id}/permanent # hard delete — any status, tasks removed
 
 GET  /api/v1/daily/today
 POST /api/v1/tasks/{id}/complete
@@ -202,6 +204,7 @@ DELETE /api/v1/notifications/devices/{id}
 | Задача | Время |
 |--------|-------|
 | Генерация дневных задач | 00:05 |
+| Автозавершение истёкших челленджей | 00:10 |
 | Утреннее уведомление | 08:00 |
 | Вечерний отчёт | 21:00 |
 
@@ -245,4 +248,4 @@ docker exec challengetracker-backend-1 bash -c \
   "pip install -r requirements-test.txt -q && pytest tests/ -v --tb=short --cov=app --cov-report=term-missing"
 ```
 
-67 тестов: test_auth (16) · test_challenges (12) · test_daily (11) · test_reports (8) · test_new_features (20)
+68 тестов: test_auth (16) · test_challenges (11) · test_daily (11) · test_reports (8) · test_new_features (22)
