@@ -198,7 +198,7 @@ export default function Reports() {
               {i18n.language.startsWith("ru") ? "Задачи" : "Tasks"}
             </p>
             {dayTasks.map((task) => {
-              const isEditable = !isFuture && task.challenge_status !== "cancelled";
+              const isEditable = !isFuture && task.challenge_status !== "cancelled" && task.challenge_status !== "paused";
               return (
                 <DayTaskRow key={task.id} task={task} dark={dark} lang={i18n.language}
                   loading={actionLoading === task.id}
@@ -362,14 +362,16 @@ function DayTaskRow({ task, dark, lang, loading, editable, onComplete, onSkip, o
   const isSkipped = task.status === "skipped";
   const isPending = task.status === "pending";
   const isCancelled = task.challenge_status === "cancelled";
+  const isPaused = task.challenge_status === "paused";
+  const isInactive = isCancelled || isPaused;
   const isRu = lang.startsWith("ru");
 
   return (
     <div className="rounded-md p-3.5 transition-all"
       style={{
         background: isDone ? "var(--color-success-bg)" : isSkipped ? "var(--color-surface2)" : "var(--color-surface)",
-        border: `1.5px solid ${isDone ? "var(--color-success-bg)" : isSkipped ? "var(--color-border)" : isCancelled ? "var(--color-border)" : `${accent}35`}`,
-        opacity: isSkipped || isCancelled ? 0.55 : 1,
+        border: `1.5px solid ${isDone ? "var(--color-success-bg)" : isSkipped ? "var(--color-border)" : isInactive ? "var(--color-border)" : `${accent}35`}`,
+        opacity: isSkipped || isInactive ? 0.55 : 1,
       }}>
       <div className="flex items-center gap-3">
         <div className="w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0 text-base"
@@ -402,8 +404,7 @@ function DayTaskRow({ task, dark, lang, loading, editable, onComplete, onSkip, o
           </div>
         </div>
 
-        {/* Actions — only if editable and not cancelled */}
-        {editable && !isCancelled && (
+        {editable && !isInactive && (
           <div className="flex items-center gap-1.5 shrink-0">
             {isPending && (
               <>
@@ -428,9 +429,9 @@ function DayTaskRow({ task, dark, lang, loading, editable, onComplete, onSkip, o
             )}
           </div>
         )}
-        {isCancelled && (
+        {isInactive && (
           <span className="text-[10px] font-bold text-text-tertiary shrink-0">
-            {isRu ? "отменён" : "cancelled"}
+            {isPaused ? (isRu ? "пауза" : "paused") : (isRu ? "отменён" : "cancelled")}
           </span>
         )}
       </div>
