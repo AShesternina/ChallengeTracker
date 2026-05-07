@@ -27,7 +27,7 @@ const inputStyle = { background: "var(--color-surface2)", border: "1.5px solid v
 export default function OnboardingPage() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const { setUser } = useAuthStore();
+  const { user, setUser } = useAuthStore();
   const { dark } = useThemeStore();
 
   const [step, setStep] = useState<Step>("welcome");
@@ -50,8 +50,13 @@ export default function OnboardingPage() {
   }, []);
 
   const markDone = async () => {
-    const me = await userApi.update({ onboarding_completed: true });
-    setUser(me.data);
+    // Update local store immediately — prevents RequireOnboarded redirect loop
+    // even if the API call is slow or fails
+    if (user) setUser({ ...user, onboarding_completed: true });
+    try {
+      const { data } = await userApi.update({ onboarding_completed: true });
+      setUser(data);
+    } catch {}
   };
 
   const handleSkip = async () => {
