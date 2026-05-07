@@ -50,13 +50,14 @@ async def start_challenge(db: AsyncSession, user_id: int, data: StartChallengeRe
         raise ValueError("Challenge not found")
 
     end_date = data.start_date + timedelta(days=challenge.default_duration_days - 1)
+    initial_status = InstanceStatus.completed if end_date < date.today() else InstanceStatus.active
 
     instance = ChallengeInstance(
         user_id=user_id,
         challenge_id=challenge.id,
         start_date=data.start_date,
         end_date=end_date,
-        status=InstanceStatus.active,
+        status=initial_status,
     )
     db.add(instance)
     await db.flush()
