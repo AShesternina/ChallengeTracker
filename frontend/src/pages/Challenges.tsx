@@ -23,7 +23,7 @@ const STATUS_STYLE: Record<string, { bg: string; text: string }> = {
   cancelled: { bg: "var(--color-surface2)",    text: "var(--color-text-tertiary)" },
 };
 
-type Filter = "active" | "archive" | "all";
+type Filter = "active" | "cancelled" | "completed";
 
 export default function Challenges() {
   const { t, i18n } = useTranslation();
@@ -42,14 +42,15 @@ export default function Challenges() {
 
   const filtered = instances.filter((i) => {
     if (filter === "active") return i.status === "active" || i.status === "paused";
-    if (filter === "archive") return i.status === "completed" || i.status === "cancelled";
+    if (filter === "cancelled") return i.status === "cancelled";
+    if (filter === "completed") return i.status === "completed";
     return true;
   });
 
   const FILTERS: { key: Filter; label: string }[] = [
-    { key: "active",  label: i18n.language.startsWith("ru") ? "Активные"    : "Active" },
-    { key: "archive", label: i18n.language.startsWith("ru") ? "Завершённые" : "Completed" },
-    { key: "all",     label: i18n.language.startsWith("ru") ? "Все"         : "All" },
+    { key: "active",    label: t("challenges.tab_active") },
+    { key: "cancelled", label: t("challenges.tab_cancelled") },
+    { key: "completed", label: t("challenges.tab_completed") },
   ];
 
   if (loading) {
@@ -113,12 +114,12 @@ export default function Challenges() {
       {filtered.length === 0 && (
         <div className="text-center py-16">
           <p className="text-5xl mb-3">
-            {filter === "archive" ? "📦" : "🎯"}
+            {filter === "active" ? "🎯" : filter === "cancelled" ? "🚫" : "📦"}
           </p>
           <p className="font-bold text-text-primary">
-            {filter === "archive"
-              ? (i18n.language.startsWith("ru") ? "Нет завершённых челленджей" : "No completed challenges")
-              : t("challenges.no_challenges")}
+            {filter === "active" ? t("challenges.no_challenges")
+              : filter === "cancelled" ? t("challenges.no_cancelled")
+              : t("challenges.no_completed")}
           </p>
           {filter === "active" && (
             <Link to="/challenges/new"

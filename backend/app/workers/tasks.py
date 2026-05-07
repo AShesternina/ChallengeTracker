@@ -54,6 +54,20 @@ def send_daily_reports(self):
     _run(_inner())
 
 
+@celery_app.task(name="app.workers.tasks.complete_expired_challenges", bind=True, max_retries=3)
+def complete_expired_challenges_task(self):
+    async def _inner():
+        from app.core.database import AsyncSessionLocal
+        from app.services.challenge_service import complete_expired_challenges
+
+        async with AsyncSessionLocal() as db:
+            count = await complete_expired_challenges(db)
+            await db.commit()
+            return count
+
+    _run(_inner())
+
+
 @celery_app.task(name="app.workers.tasks.generate_daily_tasks_for_all", bind=True, max_retries=3)
 def generate_daily_tasks_for_all(self):
     async def _inner():

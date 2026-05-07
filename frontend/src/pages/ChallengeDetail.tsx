@@ -124,6 +124,17 @@ export default function ChallengeDetail() {
     }
   };
 
+  const handleRestore = async () => {
+    if (!instance) return;
+    try {
+      const { data } = await challengesApi.restore(instance.id);
+      setInstance(data);
+      fillForm(data);
+    } catch (e: any) {
+      setError(e.response?.data?.detail || t("common.error"));
+    }
+  };
+
   const handleCancel = async () => {
     if (!instance) return;
     await challengesApi.cancel(instance.id);
@@ -154,6 +165,8 @@ export default function ChallengeDetail() {
   const { challenge } = instance;
   const { icon, accent, bg } = useCategoryStyle(challenge.title, dark);
   const isActive = instance.status === "active";
+  const isCancelled = instance.status === "cancelled";
+  const isCompleted = instance.status === "completed";
   const style = STATUS_STYLE[instance.status] ?? STATUS_STYLE.cancelled;
 
   const daysLeft = Math.max(0, Math.ceil(
@@ -270,7 +283,7 @@ export default function ChallengeDetail() {
 
           {/* Actions */}
           <div className="flex gap-2.5">
-            {isActive && (
+            {(isActive || isCancelled) && (
               <button onClick={() => setEditing(true)}
                 className="flex items-center justify-center gap-2 flex-1 py-3 rounded-md text-[13px] font-bold text-white"
                 style={{ background: "var(--color-accent)" }}>
@@ -286,6 +299,7 @@ export default function ChallengeDetail() {
             </Link>
           </div>
 
+          {/* Active-only actions */}
           {isActive && (
             <button onClick={handlePause}
               className="w-full py-2.5 rounded-md text-[13px] font-semibold transition-colors"
@@ -310,6 +324,23 @@ export default function ChallengeDetail() {
             </button>
           )}
 
+          {/* Cancelled actions: restore + delete */}
+          {isCancelled && (
+            <button onClick={handleRestore}
+              className="w-full py-2.5 rounded-md text-[13px] font-bold text-white transition-opacity hover:opacity-90"
+              style={{ background: "var(--color-success)" }}>
+              ▶ {t("challenges.restore")}
+            </button>
+          )}
+
+          {(isCancelled || isCompleted) && (
+            <button onClick={() => setShowDeleteModal(true)}
+              className="w-full py-2.5 rounded-md text-[13px] font-semibold transition-colors"
+              style={{ border: "1.5px solid var(--color-danger)", color: "var(--color-danger)" }}>
+              {t("challenges.delete_permanently")}
+            </button>
+          )}
+
           {showCancelModal && (
             <ConfirmModal
               title={t("common.confirm_cancel")}
@@ -319,14 +350,6 @@ export default function ChallengeDetail() {
               onConfirm={handleCancel}
               onCancel={() => setShowCancelModal(false)}
             />
-          )}
-
-          {instance.status === "cancelled" && (
-            <button onClick={() => setShowDeleteModal(true)}
-              className="w-full py-2.5 rounded-md text-[13px] font-bold text-white transition-opacity hover:opacity-90"
-              style={{ background: "var(--color-danger)" }}>
-              {t("challenges.delete_permanently")}
-            </button>
           )}
 
           {showDeleteModal && (

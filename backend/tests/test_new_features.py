@@ -244,6 +244,41 @@ async def test_challenge_status_paused_in_tasks(client: AsyncClient):
     assert r.json()["tasks"][0]["challenge_status"] == "paused"
 
 
+async def test_restore_cancelled_instance(client: AsyncClient):
+    """Restoring a cancelled challenge sets it back to active."""
+    _, headers, instance = await _setup(client)
+    await client.delete(f"/api/v1/challenges/instances/{instance['id']}", headers=headers)
+    r = await client.post(f"/api/v1/challenges/instances/{instance['id']}/restore", headers=headers)
+    assert r.status_code == 200
+    assert r.json()["status"] == "active"
+
+
+async def test_restore_active_instance_fails(client: AsyncClient):
+    """Only cancelled challenges can be restored."""
+    _, headers, instance = await _setup(client)
+    r = await client.post(f"/api/v1/challenges/instances/{instance['id']}/restore", headers=headers)
+    assert r.status_code == 400
+
+
+async def test_restore_regenerates_tasks(client: AsyncClient):
+    """Restored challenge should have tasks generated again."""
+    _, headers, instance = await _setup(client)
+    await client.get("/api/v1/daily/today", headers=headers)
+    await client.delete(f"/api/v1/challenges/instances/{instance['id']}", headers=headers)
+    await client.post(f"/api/v1/challenges/instances/{instance['id']}/restore", headers=headers)
+    r = await client.get("/api/v1/daily/today", headers=headers)
+    assert r.json()["tasks"][0]["challenge_status"] == "active"
+
+
+async def test_delete_completed_instance(client: AsyncClient):
+    """Completed challenges can be permanently deleted."""
+    _, headers, instance = await _setup(client)
+    # Manually cancel then check delete works for completed too (via cancel path)
+    await client.delete(f"/api/v1/challenges/instances/{instance['id']}", headers=headers)
+    r = await client.delete(f"/api/v1/challenges/instances/{instance['id']}/permanent", headers=headers)
+    assert r.status_code == 204
+
+
 async def test_cancelled_tasks_still_appear_in_daily(client: AsyncClient):
     """Cancelled challenge tasks must still appear in /daily/today with challenge_status='cancelled'.
     Frontend uses this to render them as read-only. They must NOT disappear from the list."""

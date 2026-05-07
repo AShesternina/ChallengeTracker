@@ -14,12 +14,14 @@ from app.schemas.challenge import (
 )
 from app.services.challenge_service import (
     cancel_instance,
+    complete_expired_challenges,
     create_challenge,
     delete_instance,
     get_instance,
     get_user_challenges,
     list_templates,
     pause_instance,
+    restore_instance,
     resume_instance,
     start_challenge,
     update_instance,
@@ -119,6 +121,18 @@ async def resume(
 ):
     try:
         return await resume_instance(db, instance_id, user.id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.post("/instances/{instance_id}/restore", response_model=ChallengeInstanceOut)
+async def restore(
+    instance_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    try:
+        return await restore_instance(db, instance_id, user.id)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 

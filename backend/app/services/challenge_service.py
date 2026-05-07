@@ -160,8 +160,43 @@ async def delete_instance(db: AsyncSession, instance_id: int, user_id: int) -> N
     instance = await get_instance(db, instance_id, user_id)
     if not instance:
         raise ValueError("Instance not found")
-    if instance.status != InstanceStatus.cancelled:
-        raise ValueError("Only cancelled challenges can be deleted")
+    if instance.status not in (InstanceStatus.cancelled, InstanceStatus.completed):
+        raise ValueError("Only cancelled or completed challenges can be deleted")
     await db.execute(delete(DailyTaskInstance).where(DailyTaskInstance.challenge_instance_id == instance_id))
     await db.delete(instance)
     await db.flush()
+
+
+async def restore_instance(db: AsyncSession, instance_id: int, user_id: int) -> ChallengeInstance:
+    instance = await get_instance(db, instance_id, user_id)
+    if not instance:
+        raise ValueError("Instance not found")
+    if instance.status != InstanceStatus.cancelled:
+        raise ValueError("Only cancelled challenges can be restored")
+    instance.status = InstanceStatus.active
+    await db.flush()
+    await db.execute(delete(DailyTaskInstance).where(DailyTaskInstance.challenge_instance_id == instance_id))
+    await db.flush()
+    d = instance.start_date
+    while d <= instance.end_date:
+        await ensure_daily_tasks(db, user_id, d)
+        d += timedelta(days=1)
+    await db.refresh(instance, ["challenge"])
+    return instance
+
+
+async def complete_expired_challenges(db: AsyncSession) -> int:
+    """Mark active challenges as completed if end_date < today. Returns count of completed."""
+    from datetime import date as date_type
+    today = date_type.today()
+    result = await db.execute(
+        select(ChallengeInstance).where(
+            ChallengeInstance.status == InstanceStatus.active,
+            ChallengeInstance.end_date < today,
+        )
+    )
+    instances = list(result.scalars().all())
+    for instance in instances:
+        instance.status = InstanceStatus.completed
+    await db.flush()
+    return len(instances)

@@ -31,4 +31,8 @@ celery_app.conf.beat_schedule = {
         "task": "app.workers.tasks.generate_daily_tasks_for_all",
         "schedule": crontab(hour=0, minute=5),
     },
+    "complete-expired-challenges": {
+        "task": "app.workers.tasks.complete_expired_challenges",
+        "schedule": crontab(hour=0, minute=10),
+    },
 }
