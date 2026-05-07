@@ -139,16 +139,6 @@ export default function ChallengeDetail() {
     }
   };
 
-  const handleRestore = async () => {
-    if (!instance) return;
-    try {
-      const { data } = await challengesApi.restore(instance.id);
-      setInstance(data);
-      fillForm(data);
-    } catch (e: any) {
-      setError(e.response?.data?.detail || t("common.error"));
-    }
-  };
 
 
   const handleDelete = async () => {
