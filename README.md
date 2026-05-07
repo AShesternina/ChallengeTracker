@@ -244,6 +244,20 @@ docker compose -f docker-compose.prod.yml up --build -d
 
 ---
 
+## Добавление нового языка
+
+Пример: французский (`fr`). Затрагивает 7 файлов, миграций не нужно.
+
+1. **`language_service.py`** — добавить коды стран в `_COUNTRY_LANGUAGE` (`"FR": "fr"` и т.д.), добавить `"fr"` в `SUPPORTED_LANGUAGES`
+2. **`notifications_i18n.py`** — добавить запись `"fr"` в `_MORNING_SUMMARY` и `_DAILY_REPORT`
+3. **`sw.ts`** — добавить `"fr"` в каждый тип в `TRANSLATIONS`; добавить в `SUPPORTED_LANGS`
+4. **`i18n/locales/fr.ts`** — новый файл (скопировать структуру из `en.ts`, перевести все строки)
+5. **`i18n/index.ts`** — импортировать `fr` + добавить в `resources` и `supportedLngs`
+6. **`templateTranslations.ts`** — добавить колонку `fr` в `TITLE_MAP`, `DESC_MAP`, `TEMPLATE_CATEGORIES`; обновить тип `TemplateLang` и функцию `toLang()`
+7. **`Settings.tsx`** — добавить `{ code: "fr", label: "Français", flag: "🇫🇷" }` в массив `LANGUAGES` (алфавитный порядок)
+
+---
+
 ## Тесты
 
 ```bash

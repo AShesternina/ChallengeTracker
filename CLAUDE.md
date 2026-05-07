@@ -224,14 +224,7 @@ Use `const { t } = useTranslation()` and `t("section.key")`. Never use inline `i
 
 **Template translations:** 16 templates × 4 languages live in `utils/templateTranslations.ts` (NOT in i18n locale files — the locale `template_titles` sections were removed as dead code). Template challenges store the **English canonical title** in the DB (`Challenge.title`) and `source_template_id` for reference. Always call `translateTemplateName(title, i18n.language)` when displaying challenge titles — applies to all components (TaskCard, Challenges, DailyTasks, Reports, ChallengeDetail, ChallengeReport).
 
-**Adding a new language (e.g. French):**
-1. `language_service.py` — add country codes to `_COUNTRY_LANGUAGE`, add `"fr"` to `SUPPORTED_LANGUAGES`
-2. `notifications_i18n.py` — add `"fr"` entry to `_MORNING_SUMMARY` and `_DAILY_REPORT`
-3. `sw.ts` — add `"fr"` entry to each type in `TRANSLATIONS`; add to `SUPPORTED_LANGS`
-4. `i18n/locales/fr.ts` — new locale file (copy structure from `en.ts`)
-5. `i18n/index.ts` — import + add to `resources` + add to `supportedLngs`
-6. `templateTranslations.ts` — add `fr` column to `TITLE_MAP`, `DESC_MAP`, `TEMPLATE_CATEGORIES`; update `TemplateLang` type and `toLang()`
-7. `Settings.tsx` — add `{ code: "fr", label: "Français", flag: "🇫🇷" }` to `LANGUAGES` (alphabetical order)
+**Adding a new language:** see README.md → section «Добавление нового языка».
 
 ## Celery beat schedule (UTC)
 
