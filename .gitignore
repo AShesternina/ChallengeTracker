@@ -8,8 +8,10 @@ dist/
 build/
 
 # Env
-backend/.env
+.env
+**/.env
 *.env.local
+*.env.production
 
 # Node
 frontend/node_modules/
