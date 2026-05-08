@@ -247,7 +247,7 @@ function ChallengeCard({ instance, tasks, lang }: {
           </div>
         )}
       </div>
-      <Link to={`/challenges/${instance.id}/report`}
+      <Link to={`/reports/challenge/${instance.id}`}
         className="shrink-0 text-[11px] font-bold px-2.5 py-1.5 rounded-md transition-colors"
         style={{
           background: "var(--color-surface2)",
