@@ -14,6 +14,18 @@ _DAILY_REPORT: dict[str, tuple[str, str]] = {
     "pt": ("Relatório diário 📊",      "Você concluiu {completed}/{total} tarefas hoje ({rate}%)."),
 }
 
+_BURNOUT_ALERT: dict[str, tuple[str, str]] = {
+    "en": ("Feeling off track? That's okay 💪", "Even one small task counts. You've got this — keep going!"),
+    "ru": ("Сложные дни бывают у всех 💪",      "Даже одна маленькая задача — это уже победа. Ты справишься!"),
+    "es": ("¿Días difíciles? Es normal 💪",      "Incluso una pequeña tarea cuenta. ¡Tú puedes, sigue adelante!"),
+    "pt": ("Dias difíceis acontecem 💪",          "Até uma pequena tarefa conta. Você consegue — continue!"),
+}
+
+
+def get_burnout_alert(lang: str) -> tuple[str, str]:
+    return _BURNOUT_ALERT.get(lang, _BURNOUT_ALERT["en"])
+
+
 _WEEKLY_REVIEW_TITLE: dict[str, str] = {
     "en": "Weekly recap 🔥",
     "ru": "Итоги недели 🔥",

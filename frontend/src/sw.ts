@@ -38,6 +38,12 @@ const TRANSLATIONS: Record<string, Record<Lang, NotificationStrings>> = {
     es: { title: "¡Hora de las tareas! ⏰", body: "{tasks}" },
     pt: { title: "Hora das tarefas! ⏰",    body: "{tasks}" },
   },
+  burnout_alert: {
+    en: { title: "Feeling off track? That's okay 💪", body: "Even one small task counts. You've got this!" },
+    ru: { title: "Сложные дни бывают у всех 💪",      body: "Даже одна маленькая задача — это уже победа. Ты справишься!" },
+    es: { title: "¿Días difíciles? Es normal 💪",      body: "Incluso una pequeña tarea cuenta. ¡Tú puedes!" },
+    pt: { title: "Dias difíceis acontecem 💪",          body: "Até uma pequena tarefa conta. Você consegue!" },
+  },
   weekly_review: {
     en: { title: "Weekly recap 🔥",         body: "✅ {completed}/{total} tasks · {rate}% {trend_arrow}" },
     ru: { title: "Итоги недели 🔥",         body: "✅ {completed}/{total} задач · {rate}% {trend_arrow}" },

@@ -36,6 +36,10 @@ celery_app.conf.beat_schedule = {
         "task": "app.workers.tasks.send_weekly_reviews",
         "schedule": crontab(minute="*/5"),
     },
+    "burnout-detection": {
+        "task": "app.workers.tasks.send_burnout_alerts",
+        "schedule": crontab(hour=12, minute=0),
+    },
     "generate-daily-tasks": {
         "task": "app.workers.tasks.generate_daily_tasks_for_all",
         "schedule": crontab(hour=0, minute=5),

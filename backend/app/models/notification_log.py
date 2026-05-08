@@ -11,6 +11,7 @@ class NotificationType(str, enum.Enum):
     task_reminder = "task_reminder"
     daily_report = "daily_report"
     weekly_review = "weekly_review"
+    burnout_alert = "burnout_alert"
 
 
 class NotificationChannel(str, enum.Enum):

@@ -434,3 +434,47 @@ async def weekday_patterns(db: AsyncSession, user_id: int) -> WeekdayPatternsRep
     ]
 
     return WeekdayPatternsReport(totals=totals, completed=completed_counts, rates=rates)
+
+
+async def check_burnout(db: AsyncSession, user_id: int, today: date) -> bool:
+    """Return True if user has 3+ consecutive days with tasks but < 30% completion."""
+    start = today - timedelta(days=6)
+
+    result = await db.execute(
+        select(DailyTaskInstance)
+        .where(
+            and_(
+                DailyTaskInstance.user_id == user_id,
+                DailyTaskInstance.date >= start,
+                DailyTaskInstance.date <= today,
+            )
+        )
+        .options(selectinload(DailyTaskInstance.challenge_instance))
+    )
+    tasks = list(result.scalars().all())
+
+    day_stats: dict[date, dict] = {}
+    for t in tasks:
+        if is_paused_on(t.challenge_instance.pause_periods, t.date):
+            continue
+        d = t.date
+        if d not in day_stats:
+            day_stats[d] = {"total": 0, "completed": 0}
+        day_stats[d]["total"] += 1
+        if t.status == TaskStatus.completed:
+            day_stats[d]["completed"] += 1
+
+    consecutive_low = 0
+    d = today
+    for _ in range(7):
+        stats = day_stats.get(d)
+        if not stats or stats["total"] == 0:
+            break  # no tasks this day — not burnout territory
+        rate = stats["completed"] / stats["total"]
+        if rate < 0.30:
+            consecutive_low += 1
+        else:
+            break
+        d = d - timedelta(days=1)
+
+    return consecutive_low >= 3

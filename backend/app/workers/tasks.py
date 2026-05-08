@@ -277,6 +277,53 @@ def send_task_reminders(self):
     _run(_inner())
 
 
+@celery_app.task(name="app.workers.tasks.send_burnout_alerts", bind=True, max_retries=3)
+def send_burnout_alerts(self):
+    async def _inner():
+        import pytz
+        from sqlalchemy import select, and_
+        from app.core.database import AsyncSessionLocal
+        from app.models.user import User
+        from app.models.notification_log import NotificationLog, NotificationType, NotificationStatus
+        from app.services.report_service import check_burnout
+        from app.services.notification_service import send_burnout_alert
+
+        now_utc = datetime.now(dt_timezone.utc)
+        five_days_ago = now_utc - timedelta(days=5)
+
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(select(User).where(User.is_active == True))
+            users = list(result.scalars().all())
+
+            for user in users:
+                try:
+                    user_tz = pytz.timezone(user.timezone)
+                except Exception:
+                    user_tz = pytz.UTC
+
+                today_local = now_utc.astimezone(user_tz).date()
+
+                # Dedup: skip if burnout alert already sent in last 5 days
+                already = (await db.execute(
+                    select(NotificationLog).where(
+                        and_(
+                            NotificationLog.user_id == user.id,
+                            NotificationLog.type == NotificationType.burnout_alert,
+                            NotificationLog.status == NotificationStatus.sent,
+                            NotificationLog.created_at >= five_days_ago,
+                        )
+                    )
+                )).scalar_one_or_none()
+                if already:
+                    continue
+
+                if await check_burnout(db, user.id, today_local):
+                    await send_burnout_alert(db, user)
+                    await db.commit()
+
+    _run(_inner())
+
+
 @celery_app.task(name="app.workers.tasks.complete_expired_challenges", bind=True, max_retries=3)
 def complete_expired_challenges_task(self):
     async def _inner():
