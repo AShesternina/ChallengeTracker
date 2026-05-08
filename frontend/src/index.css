@@ -81,10 +81,22 @@
   100% { transform: scale(1)    translateY(0);    opacity: 1; }
 }
 
-@keyframes floatUp {
-  0%   { transform: translateY(0)      scale(1.1); opacity: 1; }
+@keyframes floatUpLeft {
+  0%   { transform: translate(0, 0)       scale(1.1) rotate(0deg);   opacity: 1; }
   60%  { opacity: 1; }
-  100% { transform: translateY(-80px)  scale(0.6); opacity: 0; }
+  100% { transform: translate(-28px, -80px) scale(0.5) rotate(-25deg); opacity: 0; }
+}
+
+@keyframes floatUpCenter {
+  0%   { transform: translate(0, 0)      scale(1.2) rotate(0deg);  opacity: 1; }
+  60%  { opacity: 1; }
+  100% { transform: translate(6px, -95px) scale(0.5) rotate(15deg); opacity: 0; }
+}
+
+@keyframes floatUpRight {
+  0%   { transform: translate(0, 0)       scale(1.1) rotate(0deg);   opacity: 1; }
+  60%  { opacity: 1; }
+  100% { transform: translate(30px, -75px) scale(0.5) rotate(20deg);  opacity: 0; }
 }
 
 .celebrate-banner {
@@ -96,6 +108,8 @@
   font-size: 1.75rem;
   pointer-events: none;
   user-select: none;
-  animation: floatUp 1.6s ease-out forwards;
+  animation-duration: 1.6s;
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
   z-index: 10;
 }

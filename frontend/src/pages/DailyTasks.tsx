@@ -278,14 +278,19 @@ export default function DailyTasks() {
   );
 }
 
+const CELEBRATE_PARTICLES = [
+  { emoji: "🎉", left: "20%", anim: "floatUpLeft",   delay: "0s" },
+  { emoji: "✨", left: "46%", anim: "floatUpCenter",  delay: "0.12s" },
+  { emoji: "🔥", left: "72%", anim: "floatUpRight",   delay: "0.06s" },
+];
+
 function CelebrationBanner({ message }: { message: string }) {
-  const particles = ["🎉", "✨", "⭐", "💪", "🔥", "✨"];
   return (
     <div className="relative">
-      {particles.map((p, i) => (
-        <span key={i} className="celebrate-particle"
-          style={{ left: `${5 + i * 16}%`, top: "0px", animationDelay: `${i * 0.1}s` }}>
-          {p}
+      {CELEBRATE_PARTICLES.map(({ emoji, left, anim, delay }) => (
+        <span key={emoji} className="celebrate-particle"
+          style={{ left, top: "0px", animationName: anim, animationDelay: delay }}>
+          {emoji}
         </span>
       ))}
       <div className="celebrate-banner text-center py-4 rounded-md"
