@@ -176,6 +176,59 @@ async def test_create_challenge_invalid_tasks_per_day(client: AsyncClient):
     assert r.status_code == 422
 
 
+# ── notification settings ─────────────────────────────────────────────────────
+
+async def test_user_has_notification_fields(client: AsyncClient):
+    """UserOut includes notification time fields and notify_task_reminders."""
+    tokens = await register_and_login(client)
+    r = await client.get("/api/v1/users/me", headers=auth_headers(tokens))
+    data = r.json()
+    assert "notification_morning_time" in data
+    assert "notification_evening_time" in data
+    assert "notify_task_reminders" in data
+    assert data["notify_task_reminders"] is False
+
+
+async def test_update_notification_morning_time(client: AsyncClient):
+    tokens = await register_and_login(client)
+    r = await client.patch("/api/v1/users/me", json={"notification_morning_time": "07:30"},
+                           headers=auth_headers(tokens))
+    assert r.status_code == 200
+    assert r.json()["notification_morning_time"] == "07:30"
+
+
+async def test_update_notification_evening_time(client: AsyncClient):
+    tokens = await register_and_login(client)
+    r = await client.patch("/api/v1/users/me", json={"notification_evening_time": "22:00"},
+                           headers=auth_headers(tokens))
+    assert r.status_code == 200
+    assert r.json()["notification_evening_time"] == "22:00"
+
+
+async def test_update_notification_time_invalid_format(client: AsyncClient):
+    tokens = await register_and_login(client)
+    r = await client.patch("/api/v1/users/me", json={"notification_morning_time": "8:00"},
+                           headers=auth_headers(tokens))
+    assert r.status_code == 400
+
+
+async def test_update_notify_task_reminders(client: AsyncClient):
+    tokens = await register_and_login(client)
+    r = await client.patch("/api/v1/users/me", json={"notify_task_reminders": True},
+                           headers=auth_headers(tokens))
+    assert r.status_code == 200
+    assert r.json()["notify_task_reminders"] is True
+
+
+async def test_user_has_telegram_chat_id_null(client: AsyncClient):
+    """New user has telegram_chat_id=null."""
+    tokens = await register_and_login(client)
+    r = await client.get("/api/v1/users/me", headers=auth_headers(tokens))
+    data = r.json()
+    assert "telegram_chat_id" in data
+    assert data["telegram_chat_id"] is None
+
+
 # ── onboarding_completed ──────────────────────────────────────────────────────
 
 async def test_register_has_onboarding_completed_false(client: AsyncClient):
