@@ -26,6 +26,7 @@ export default function Dashboard() {
   const { summary, setSummary, setLoading } = useTaskStore();
   const [challengeCount, setChallengeCount] = useState(0);
   const [streak, setStreak] = useState(0);
+  const [graceDayUsed, setGraceDayUsed] = useState(false);
   const [activeChallenges, setActiveChallenges] = useState<ChallengeInstance[]>([]);
   const [momentum, setMomentum] = useState<{ score: number; trend: string; trend_delta: number; days_tracked: number } | null>(null);
 
@@ -50,6 +51,7 @@ export default function Dashboard() {
         setChallengeCount(active.length);
         setActiveChallenges(active);
         setStreak(streakData.data.current_streak);
+        setGraceDayUsed(streakData.data.grace_day_used ?? false);
         setMomentum(momentumData.data);
       })
       .finally(() => setLoading(false));
@@ -92,6 +94,9 @@ export default function Dashboard() {
             <span className="text-[13px] font-black" style={{ color: "var(--color-warning)" }}>
               {streak}
             </span>
+            {graceDayUsed && (
+              <span className="text-[11px]" title="Grace day used">⚡</span>
+            )}
           </div>
         )}
       </div>

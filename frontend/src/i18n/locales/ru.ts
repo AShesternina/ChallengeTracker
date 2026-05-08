@@ -193,6 +193,8 @@ const ru = {
     evening_notification: "🌙 Вечерний отчёт",
     task_reminders: "⏰ Напоминать в время задачи",
     task_reminders_hint: "Уведомление в момент когда нужно выполнить задачу",
+    streak_protection: "⚡ Защита серии",
+    streak_protection_hint: "Один пропущенный день не сломает серию",
     language: "Язык",
     appearance: "Внешний вид",
     dark_mode: "Тёмная тема",

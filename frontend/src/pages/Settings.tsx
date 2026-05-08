@@ -36,6 +36,7 @@ export default function Settings() {
   const [morningTime, setMorningTime] = useState(user?.notification_morning_time || "08:00");
   const [eveningTime, setEveningTime] = useState(user?.notification_evening_time || "21:00");
   const [taskReminders, setTaskReminders] = useState(user?.notify_task_reminders ?? false);
+  const [streakProtection, setStreakProtection] = useState(user?.streak_protection ?? true);
   const [savingTimes, setSavingTimes] = useState(false);
   const [savedTimes, setSavedTimes] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -49,6 +50,7 @@ export default function Settings() {
       setMorningTime(data.notification_morning_time || "08:00");
       setEveningTime(data.notification_evening_time || "21:00");
       setTaskReminders(data.notify_task_reminders ?? false);
+      setStreakProtection(data.streak_protection ?? true);
     }).catch(() => {});
 
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
@@ -301,6 +303,22 @@ export default function Settings() {
             </button>
           </div>
         )}
+      </Section>
+
+      {/* Streak protection */}
+      <Section title={t("detail.streak")}>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[13px] font-semibold text-text-primary">{t("settings.streak_protection")}</p>
+            <p className="text-[11px] text-text-tertiary mt-0.5">{t("settings.streak_protection_hint")}</p>
+          </div>
+          <Toggle enabled={streakProtection} loading={false} onToggle={async () => {
+            const next = !streakProtection;
+            setStreakProtection(next);
+            const { data } = await userApi.update({ streak_protection: next });
+            setUser(data);
+          }} />
+        </div>
       </Section>
 
       {/* Logout */}

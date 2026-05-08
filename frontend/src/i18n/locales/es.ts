@@ -193,6 +193,8 @@ const es = {
     evening_notification: "🌙 Informe vespertino",
     task_reminders: "⏰ Recordar en el horario de la tarea",
     task_reminders_hint: "Recibe una notificación cuando sea hora de cada tarea",
+    streak_protection: "⚡ Protección de racha",
+    streak_protection_hint: "Un día perdido no romperá tu racha",
     language: "Idioma",
     appearance: "Apariencia",
     dark_mode: "Modo oscuro",

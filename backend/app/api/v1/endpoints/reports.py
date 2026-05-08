@@ -33,7 +33,7 @@ async def get_streak(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    return await streak_report(db, user.id)
+    return await streak_report(db, user.id, streak_protection=user.streak_protection)
 
 
 @router.get("/daily/{report_date}", response_model=DayStats)

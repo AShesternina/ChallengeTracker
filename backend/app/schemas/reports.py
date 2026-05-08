@@ -21,6 +21,7 @@ class MonthlyReport(BaseModel):
 class StreakReport(BaseModel):
     current_streak: int
     longest_streak: int
+    grace_day_used: bool = False
 
 
 class MomentumReport(BaseModel):

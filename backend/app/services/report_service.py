@@ -79,8 +79,11 @@ async def momentum_report(db: AsyncSession, user_id: int) -> MomentumReport:
     return MomentumReport(score=score, days_tracked=days_tracked, trend=trend, trend_delta=delta)
 
 
-async def streak_report(db: AsyncSession, user_id: int) -> StreakReport:
-    """Global streak: consecutive days where user completed at least one task (paused days skipped)."""
+async def streak_report(db: AsyncSession, user_id: int, streak_protection: bool = False) -> StreakReport:
+    """Global streak: consecutive days where user completed at least one task (paused days skipped).
+
+    streak_protection=True allows one missed day per streak without breaking it (grace day).
+    """
     result = await db.execute(
         select(DailyTaskInstance)
         .where(DailyTaskInstance.user_id == user_id)
@@ -99,28 +102,51 @@ async def streak_report(db: AsyncSession, user_id: int) -> StreakReport:
             by_day[t.date] = False
 
     sorted_days = sorted(by_day.keys())
-
     today = date.today()
+
+    # Longest streak (forward pass)
     longest_streak = 0
     streak = 0
+    grace_available = streak_protection
     for d in sorted_days:
         if d > today:
-            break  # future pending days must not affect longest streak
+            break
         if by_day[d]:
             streak += 1
             longest_streak = max(longest_streak, streak)
         else:
-            streak = 0
+            if grace_available and streak > 0:
+                grace_available = False  # grace used for this streak run
+            else:
+                streak = 0
+                grace_available = streak_protection  # new streak run — grace resets
 
-    today = date.today()
+    # Current streak (backward from today)
     current_streak = 0
-    start = today if today in by_day else date.fromordinal(today.toordinal() - 1)
-    d = start
-    while d in by_day and by_day[d]:
-        current_streak += 1
+    grace_day_used = False
+    grace_available = streak_protection
+
+    d = today
+    if today not in by_day:
+        d = date.fromordinal(today.toordinal() - 1)
+
+    while d in by_day:
+        if by_day[d]:
+            current_streak += 1
+        else:
+            if grace_available:
+                grace_available = False
+                grace_day_used = True
+                # Don't increment, but continue backwards
+            else:
+                break
         d = date.fromordinal(d.toordinal() - 1)
 
-    return StreakReport(current_streak=current_streak, longest_streak=longest_streak)
+    return StreakReport(
+        current_streak=current_streak,
+        longest_streak=longest_streak,
+        grace_day_used=grace_day_used,
+    )
 
 
 async def daily_report(db: AsyncSession, user_id: int, target_date: date) -> DayStats:

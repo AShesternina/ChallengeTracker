@@ -193,6 +193,8 @@ const en = {
     evening_notification: "🌙 Evening report",
     task_reminders: "⏰ Remind at task time",
     task_reminders_hint: "Get notified when each timed task is due",
+    streak_protection: "⚡ Streak protection",
+    streak_protection_hint: "One missed day won't break your streak",
     language: "Language",
     appearance: "Appearance",
     dark_mode: "Dark mode",
