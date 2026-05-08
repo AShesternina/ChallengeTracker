@@ -32,9 +32,12 @@ async def streak_report(db: AsyncSession, user_id: int) -> StreakReport:
 
     sorted_days = sorted(by_day.keys())
 
+    today = date.today()
     longest_streak = 0
     streak = 0
     for d in sorted_days:
+        if d > today:
+            break  # future pending days must not affect longest streak
         if by_day[d]:
             streak += 1
             longest_streak = max(longest_streak, streak)
@@ -155,10 +158,13 @@ async def challenge_report(
     for t in tasks:
         by_day.setdefault(t.date, []).append(t)
 
+    today = date.today()
     current_streak, longest_streak, streak = 0, 0, 0
     for d in sorted(by_day.keys()):
+        if d > today:
+            break  # future days don't affect streak
         if d in paused_dates:
-            continue  # пауза не ломает стрик
+            continue
         day_tasks = by_day[d]
         if all(t.status == TaskStatus.completed for t in day_tasks):
             streak += 1
