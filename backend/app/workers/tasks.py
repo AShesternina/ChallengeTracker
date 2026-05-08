@@ -96,6 +96,11 @@ def send_daily_reports(self):
                     user_tz = pytz.UTC
 
                 user_now = now_utc.astimezone(user_tz)
+
+                # On Sundays, weekly_review replaces the daily report
+                if user_now.weekday() == 6:
+                    continue
+
                 pref = user.notification_evening_time or "21:00"
 
                 if not _is_within_window(user_now.strftime("%H:%M"), pref):
@@ -120,6 +125,70 @@ def send_daily_reports(self):
                 stats = await daily_report(db, user.id, today_local)
                 if stats.total > 0:
                     await send_daily_report(db, user, stats.completed, stats.total)
+                    await db.commit()
+
+    _run(_inner())
+
+
+@celery_app.task(name="app.workers.tasks.send_weekly_reviews", bind=True, max_retries=3)
+def send_weekly_reviews(self):
+    async def _inner():
+        import pytz
+        from sqlalchemy import select, and_
+        from app.core.database import AsyncSessionLocal
+        from app.models.user import User
+        from app.models.notification_log import NotificationLog, NotificationType, NotificationStatus
+        from app.services.report_service import weekly_review_data
+        from app.services.notification_service import send_weekly_review
+
+        now_utc = datetime.now(dt_timezone.utc)
+
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(select(User).where(User.is_active == True))
+            users = list(result.scalars().all())
+
+            for user in users:
+                try:
+                    user_tz = pytz.timezone(user.timezone)
+                except Exception:
+                    user_tz = pytz.UTC
+
+                user_now = now_utc.astimezone(user_tz)
+
+                # Only on Sundays in user's local timezone
+                if user_now.weekday() != 6:
+                    continue
+
+                pref = user.notification_evening_time or "21:00"
+                if not _is_within_window(user_now.strftime("%H:%M"), pref):
+                    continue
+
+                # Deduplicate: skip if already sent in last 30 min
+                thirty_min_ago = now_utc - timedelta(minutes=30)
+                already = (await db.execute(
+                    select(NotificationLog).where(
+                        and_(
+                            NotificationLog.user_id == user.id,
+                            NotificationLog.type == NotificationType.weekly_review,
+                            NotificationLog.status == NotificationStatus.sent,
+                            NotificationLog.created_at >= thirty_min_ago,
+                        )
+                    )
+                )).scalar_one_or_none()
+                if already:
+                    continue
+
+                today_local = user_now.date()
+                data = await weekly_review_data(db, user.id, today_local)
+                if data:
+                    await send_weekly_review(
+                        db, user,
+                        completed=data["week_completed"],
+                        total=data["week_total"],
+                        rate=data["week_rate"],
+                        trend_arrow=data["trend_arrow"],
+                        best=data["best_challenge"],
+                    )
                     await db.commit()
 
     _run(_inner())

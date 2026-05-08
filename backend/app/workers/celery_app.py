@@ -32,6 +32,10 @@ celery_app.conf.beat_schedule = {
         "task": "app.workers.tasks.send_task_reminders",
         "schedule": crontab(minute="*/5"),
     },
+    "weekly-review": {
+        "task": "app.workers.tasks.send_weekly_reviews",
+        "schedule": crontab(minute="*/5"),
+    },
     "generate-daily-tasks": {
         "task": "app.workers.tasks.generate_daily_tasks_for_all",
         "schedule": crontab(hour=0, minute=5),

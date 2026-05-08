@@ -38,6 +38,12 @@ const TRANSLATIONS: Record<string, Record<Lang, NotificationStrings>> = {
     es: { title: "¡Hora de las tareas! ⏰", body: "{tasks}" },
     pt: { title: "Hora das tarefas! ⏰",    body: "{tasks}" },
   },
+  weekly_review: {
+    en: { title: "Weekly Review 📅",        body: "{completed}/{total} tasks ({rate}%) {trend_arrow}" },
+    ru: { title: "Итоги недели 📅",         body: "{completed}/{total} задач ({rate}%) {trend_arrow}" },
+    es: { title: "Revisión semanal 📅",     body: "{completed}/{total} tareas ({rate}%) {trend_arrow}" },
+    pt: { title: "Revisão semanal 📅",      body: "{completed}/{total} tarefas ({rate}%) {trend_arrow}" },
+  },
 };
 
 const FALLBACK_LANG: Lang = "en";

@@ -15,7 +15,7 @@ from app.models.user import User
 from app.models.user_device import UserDevice
 from app.services.email_service import email_adapter
 from app.services.push_service import send_push
-from app.services.notifications_i18n import get_morning_summary, get_daily_report
+from app.services.notifications_i18n import get_morning_summary, get_daily_report, get_weekly_review
 
 logger = logging.getLogger(__name__)
 
@@ -113,3 +113,19 @@ async def send_daily_report(db: AsyncSession, user: User, completed: int, total:
     push_data = {"type": "daily_report", "completed": completed, "total": total, "rate": rate, "url": "/reports"}
     email_title, email_body = get_daily_report(user.language, completed, total, rate)
     await dispatch(db, user, NotificationType.daily_report, push_data, email_title, email_body)
+
+
+async def send_weekly_review(
+    db: AsyncSession, user: User, completed: int, total: int, rate: int, trend_arrow: str, best: str | None
+) -> None:
+    push_data = {
+        "type": "weekly_review",
+        "completed": completed,
+        "total": total,
+        "rate": rate,
+        "trend_arrow": trend_arrow,
+        "best": best or "",
+        "url": "/reports",
+    }
+    email_title, email_body = get_weekly_review(user.language, completed, total, rate, trend_arrow, best)
+    await dispatch(db, user, NotificationType.weekly_review, push_data, email_title, email_body)

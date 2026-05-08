@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 from calendar import monthrange
 
 from sqlalchemy import and_, select
@@ -290,3 +290,89 @@ async def challenge_report(
         avg_comeback_days=avg_comeback_days,
         resilience_score=resilience_score,
     )
+
+
+async def weekly_review_data(db: AsyncSession, user_id: int, today: date) -> dict | None:
+    """Weekly stats for Sunday evening notification.
+
+    Returns None if user had no tasks this week (nothing useful to report).
+    """
+    from app.models.challenge import Challenge
+
+    two_weeks_ago = today - timedelta(days=13)
+    this_week = [today - timedelta(days=i) for i in range(7)]
+    prev_week = [today - timedelta(days=i) for i in range(7, 14)]
+
+    rows = (await db.execute(
+        select(DailyTaskInstance, Challenge.title.label("ctitle"), ChallengeInstance.pause_periods.label("pperiods"))
+        .join(ChallengeInstance, DailyTaskInstance.challenge_instance_id == ChallengeInstance.id)
+        .join(Challenge, ChallengeInstance.challenge_id == Challenge.id)
+        .where(
+            and_(
+                DailyTaskInstance.user_id == user_id,
+                DailyTaskInstance.date >= two_weeks_ago,
+                DailyTaskInstance.date <= today,
+            )
+        )
+    )).all()
+
+    # Per-day and per-challenge stats, excluding paused days
+    day_stats: dict[date, dict] = {}
+    challenge_stats: dict[str, dict] = {}
+
+    for task, ctitle, pperiods in rows:
+        if is_paused_on(pperiods, task.date):
+            continue
+        d = task.date
+        if d not in day_stats:
+            day_stats[d] = {"total": 0, "completed": 0}
+        day_stats[d]["total"] += 1
+        if task.status == TaskStatus.completed:
+            day_stats[d]["completed"] += 1
+        # Only count challenge stats for this week
+        if d in this_week:
+            if ctitle not in challenge_stats:
+                challenge_stats[ctitle] = {"total": 0, "completed": 0}
+            challenge_stats[ctitle]["total"] += 1
+            if task.status == TaskStatus.completed:
+                challenge_stats[ctitle]["completed"] += 1
+
+    week_total = sum(day_stats.get(d, {}).get("total", 0) for d in this_week)
+    week_completed = sum(day_stats.get(d, {}).get("completed", 0) for d in this_week)
+    if week_total == 0:
+        return None
+
+    week_rate = round(week_completed / week_total * 100)
+
+    prev_total = sum(day_stats.get(d, {}).get("total", 0) for d in prev_week)
+    prev_completed = sum(day_stats.get(d, {}).get("completed", 0) for d in prev_week)
+    prev_rate = round(prev_completed / prev_total * 100) if prev_total else 0
+
+    delta = week_rate - prev_rate
+    if delta >= 5:
+        trend, trend_arrow = "up", "↑"
+    elif delta <= -5:
+        trend, trend_arrow = "down", "↓"
+    else:
+        trend, trend_arrow = "stable", "→"
+
+    # Best challenge this week (highest completion rate, at least 1 task)
+    best_challenge: str | None = None
+    best_rate = -1.0
+    for title, stats in challenge_stats.items():
+        if stats["total"] > 0:
+            r = stats["completed"] / stats["total"]
+            if r > best_rate:
+                best_rate = r
+                best_challenge = title
+
+    return {
+        "week_completed": week_completed,
+        "week_total": week_total,
+        "week_rate": week_rate,
+        "prev_week_rate": prev_rate,
+        "trend": trend,
+        "trend_arrow": trend_arrow,
+        "trend_delta": abs(delta),
+        "best_challenge": best_challenge,
+    }
