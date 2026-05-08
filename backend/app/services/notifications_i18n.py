@@ -14,18 +14,24 @@ _DAILY_REPORT: dict[str, tuple[str, str]] = {
     "pt": ("Relatório diário 📊",      "Você concluiu {completed}/{total} tarefas hoje ({rate}%)."),
 }
 
-_WEEKLY_REVIEW: dict[str, tuple[str, str]] = {
-    "en": ("Weekly Review 📅",         "Week: {completed}/{total} tasks ({rate}%) {trend_arrow}. Best: {best}."),
-    "ru": ("Итоги недели 📅",          "Неделя: {completed}/{total} задач ({rate}%) {trend_arrow}. Лучший: {best}."),
-    "es": ("Revisión semanal 📅",      "Semana: {completed}/{total} tareas ({rate}%) {trend_arrow}. Mejor: {best}."),
-    "pt": ("Revisão semanal 📅",       "Semana: {completed}/{total} tarefas ({rate}%) {trend_arrow}. Melhor: {best}."),
+_WEEKLY_REVIEW_TITLE: dict[str, str] = {
+    "en": "Weekly recap 🔥",
+    "ru": "Итоги недели 🔥",
+    "es": "Resumen semanal 🔥",
+    "pt": "Resumo semanal 🔥",
 }
 
-_WEEKLY_REVIEW_NO_BEST: dict[str, tuple[str, str]] = {
-    "en": ("Weekly Review 📅",         "Week: {completed}/{total} tasks ({rate}%) {trend_arrow}."),
-    "ru": ("Итоги недели 📅",          "Неделя: {completed}/{total} задач ({rate}%) {trend_arrow}."),
-    "es": ("Revisión semanal 📅",      "Semana: {completed}/{total} tareas ({rate}%) {trend_arrow}."),
-    "pt": ("Revisão semanal 📅",       "Semana: {completed}/{total} tarefas ({rate}%) {trend_arrow}."),
+_WEEKLY_TREND_LABEL: dict[str, dict[str, str]] = {
+    "up":     {"en": "↑ Better than last week", "ru": "↑ Лучше прошлой недели", "es": "↑ Mejor que la semana pasada", "pt": "↑ Melhor que a semana passada"},
+    "down":   {"en": "↓ Lower than last week",  "ru": "↓ Хуже прошлой недели",  "es": "↓ Peor que la semana pasada",  "pt": "↓ Pior que a semana passada"},
+    "stable": {"en": "→ Same as last week",      "ru": "→ Как на прошлой неделе", "es": "→ Igual que la semana pasada", "pt": "→ Igual à semana passada"},
+}
+
+_WEEKLY_BEST_LABEL: dict[str, str] = {
+    "en": "🏆 Best challenge",
+    "ru": "🏆 Лучший челлендж",
+    "es": "🏆 Mejor desafío",
+    "pt": "🏆 Melhor desafio",
 }
 
 
@@ -40,10 +46,21 @@ def get_daily_report(lang: str, completed: int, total: int, rate: int) -> tuple[
 
 
 def get_weekly_review(
-    lang: str, completed: int, total: int, rate: int, trend_arrow: str, best: str | None
+    lang: str, completed: int, total: int, rate: int,
+    trend_arrow: str, trend: str, trend_delta: int, best: str | None,
 ) -> tuple[str, str]:
+    title = _WEEKLY_TREND_LABEL.get("up", {}).get(lang)  # resolve lang below
+    title = _WEEKLY_REVIEW_TITLE.get(lang, _WEEKLY_REVIEW_TITLE["en"])
+    trend_label = _WEEKLY_TREND_LABEL.get(trend, _WEEKLY_TREND_LABEL["stable"]).get(lang, _WEEKLY_TREND_LABEL["stable"]["en"])
+    if trend != "stable" and trend_delta > 0:
+        trend_label += f" (+{trend_delta}%)" if trend == "up" else f" (-{trend_delta}%)"
+    best_label = _WEEKLY_BEST_LABEL.get(lang, _WEEKLY_BEST_LABEL["en"])
+
+    lines = [
+        f"✅ <b>{completed}/{total}</b> · <b>{rate}%</b>",
+        trend_label,
+    ]
     if best:
-        title, body_tpl = _WEEKLY_REVIEW.get(lang, _WEEKLY_REVIEW["en"])
-        return title, body_tpl.format(completed=completed, total=total, rate=rate, trend_arrow=trend_arrow, best=best)
-    title, body_tpl = _WEEKLY_REVIEW_NO_BEST.get(lang, _WEEKLY_REVIEW_NO_BEST["en"])
-    return title, body_tpl.format(completed=completed, total=total, rate=rate, trend_arrow=trend_arrow)
+        lines.append(f"{best_label}: <b>{best}</b>")
+
+    return title, "\n".join(lines)

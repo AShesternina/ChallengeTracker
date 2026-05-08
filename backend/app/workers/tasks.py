@@ -187,6 +187,8 @@ def send_weekly_reviews(self):
                         total=data["week_total"],
                         rate=data["week_rate"],
                         trend_arrow=data["trend_arrow"],
+                        trend=data["trend"],
+                        trend_delta=data["trend_delta"],
                         best=data["best_challenge"],
                     )
                     await db.commit()

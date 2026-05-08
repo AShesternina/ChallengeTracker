@@ -116,7 +116,9 @@ async def send_daily_report(db: AsyncSession, user: User, completed: int, total:
 
 
 async def send_weekly_review(
-    db: AsyncSession, user: User, completed: int, total: int, rate: int, trend_arrow: str, best: str | None
+    db: AsyncSession, user: User,
+    completed: int, total: int, rate: int,
+    trend_arrow: str, trend: str, trend_delta: int, best: str | None,
 ) -> None:
     push_data = {
         "type": "weekly_review",
@@ -127,5 +129,7 @@ async def send_weekly_review(
         "best": best or "",
         "url": "/reports",
     }
-    email_title, email_body = get_weekly_review(user.language, completed, total, rate, trend_arrow, best)
+    email_title, email_body = get_weekly_review(
+        user.language, completed, total, rate, trend_arrow, trend, trend_delta, best
+    )
     await dispatch(db, user, NotificationType.weekly_review, push_data, email_title, email_body)
