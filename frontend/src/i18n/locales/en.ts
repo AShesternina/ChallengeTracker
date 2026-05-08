@@ -60,6 +60,8 @@ const en = {
     new_challenge: "New Challenge",
     tasks_today: "Tasks Today",
     view_all: "View all {{count}} tasks →",
+    active_challenges: "Active Challenges",
+    no_tasks_today: "no tasks",
   },
   daily: {
     title: "Today's Tasks",

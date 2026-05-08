@@ -10,6 +10,14 @@ import { useThemeStore } from "../store/themeStore";
 import ProgressRing from "../components/ProgressRing";
 import TaskCard from "../components/TaskCard";
 import { FlameIcon, TargetIcon, CheckIcon } from "../components/Icons";
+import { useCategoryStyle } from "../utils/category";
+import { translateTemplateName } from "../utils/templateTranslations";
+
+interface ChallengeInstance {
+  id: number;
+  challenge: { title: string; type: string };
+  status: string;
+}
 
 export default function Dashboard() {
   const { t, i18n } = useTranslation();
@@ -18,7 +26,7 @@ export default function Dashboard() {
   const { summary, setSummary, setLoading } = useTaskStore();
   const [challengeCount, setChallengeCount] = useState(0);
   const [streak, setStreak] = useState(0);
-  const [weekDays, setWeekDays] = useState<{ date: string; rate: number; total: number }[]>([]);
+  const [activeChallenges, setActiveChallenges] = useState<ChallengeInstance[]>([]);
   const [momentum, setMomentum] = useState<{ score: number; trend: string; trend_delta: number; days_tracked: number } | null>(null);
 
   const dateLocale = i18n.language.startsWith("ru") ? ruLocale
@@ -34,22 +42,15 @@ export default function Dashboard() {
       dailyApi.today(todayDate),
       challengesApi.my(),
       reportsApi.streak(),
-      reportsApi.monthly(now.getFullYear(), now.getMonth() + 1),
       reportsApi.momentum(),
     ])
-      .then(([daily, challenges, streakData, monthly, momentumData]) => {
+      .then(([daily, challenges, streakData, momentumData]) => {
         setSummary(daily.data);
-        const active = challenges.data.filter((c: { status: string }) => c.status === "active").length;
-        setChallengeCount(active);
+        const active = challenges.data.filter((c: ChallengeInstance) => c.status === "active");
+        setChallengeCount(active.length);
+        setActiveChallenges(active);
         setStreak(streakData.data.current_streak);
         setMomentum(momentumData.data);
-        // last 7 days
-        const today = format(now, "yyyy-MM-dd");
-        const last7 = monthly.data.days
-          .filter((d: any) => d.date <= today)
-          .slice(-7)
-          .map((d: any) => ({ date: d.date, rate: d.completion_rate, total: d.total }));
-        setWeekDays(last7);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -61,6 +62,18 @@ export default function Dashboard() {
 
   const userName = user?.email?.split("@")[0] || "there";
   const todayStr = format(new Date(), "EEEE, d MMMM", { locale: dateLocale });
+
+  // Group today's tasks by challenge_instance_id
+  const tasksByChallenge: Record<number, { total: number; completed: number }> = {};
+  if (summary?.tasks) {
+    for (const task of summary.tasks) {
+      if (task.challenge_status === "paused") continue;
+      const cid = task.challenge_instance_id;
+      if (!tasksByChallenge[cid]) tasksByChallenge[cid] = { total: 0, completed: 0 };
+      tasksByChallenge[cid].total++;
+      if (task.status === "completed") tasksByChallenge[cid].completed++;
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -103,11 +116,8 @@ export default function Dashboard() {
             </p>
           </div>
         </div>
-        {/* decorative blob */}
-        <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full opacity-10"
-          style={{ background: "white" }} />
-        <div className="absolute -right-2 bottom-2 w-16 h-16 rounded-full opacity-10"
-          style={{ background: "white" }} />
+        <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full opacity-10" style={{ background: "white" }} />
+        <div className="absolute -right-2 bottom-2 w-16 h-16 rounded-full opacity-10" style={{ background: "white" }} />
       </div>
 
       {/* Momentum */}
@@ -137,9 +147,26 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Weekly chart */}
-      {weekDays.length > 0 && weekDays.some((d) => d.total > 0) && (
-        <WeekChart days={weekDays} />
+      {/* Active challenges */}
+      {activeChallenges.length > 0 && (
+        <div>
+          <h3 className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider mb-2">
+            {t("dashboard.active_challenges")}
+          </h3>
+          <div className="space-y-2">
+            {activeChallenges.map((ci) => {
+              const tasks = tasksByChallenge[ci.id];
+              return (
+                <ChallengeCard
+                  key={ci.id}
+                  instance={ci}
+                  tasks={tasks}
+                  lang={i18n.language}
+                />
+              );
+            })}
+          </div>
+        </div>
       )}
 
       {/* Quick actions */}
@@ -184,18 +211,51 @@ export default function Dashboard() {
   );
 }
 
-function StatCard({ label, value, Icon, color }: {
-  label: string; value: number; Icon: React.ReactNode; color: string;
+function ChallengeCard({ instance, tasks, lang }: {
+  instance: ChallengeInstance;
+  tasks?: { total: number; completed: number };
+  lang: string;
 }) {
+  const { t } = useTranslation();
+  const { dark } = useThemeStore();
+  const { accent, bg, icon } = useCategoryStyle(instance.challenge.title, dark);
+  const title = translateTemplateName(instance.challenge.title, lang);
+  const total = tasks?.total ?? 0;
+  const completed = tasks?.completed ?? 0;
+  const rate = total > 0 ? completed / total : 0;
+  const allDone = total > 0 && completed === total;
+
   return (
-    <div className="rounded-md p-3 text-center"
+    <div className="rounded-md px-4 py-3 flex items-center gap-3"
       style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
-      <div className="flex items-center justify-center w-7 h-7 rounded-md mx-auto mb-1.5"
-        style={{ background: color }}>
-        {Icon}
+      <div className="w-9 h-9 rounded-lg flex items-center justify-center text-base shrink-0"
+        style={{ background: bg }}>
+        {icon}
       </div>
-      <p className="text-[18px] font-black text-text-primary leading-none">{value}</p>
-      <p className="text-[10px] text-text-tertiary mt-0.5 font-medium">{label}</p>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between mb-1">
+          <p className="font-bold text-text-primary text-[13px] truncate">{title}</p>
+          <span className="text-[12px] font-semibold ml-2 shrink-0"
+            style={{ color: allDone ? "var(--color-success)" : "var(--color-text-tertiary)" }}>
+            {total > 0 ? `${completed}/${total}` : t("dashboard.no_tasks_today")}
+          </span>
+        </div>
+        {total > 0 && (
+          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--color-surface2)" }}>
+            <div className="h-full rounded-full transition-all"
+              style={{ width: `${rate * 100}%`, background: allDone ? "var(--color-success)" : accent }} />
+          </div>
+        )}
+      </div>
+      <Link to={`/challenges/${instance.id}/report`}
+        className="shrink-0 text-[11px] font-bold px-2.5 py-1.5 rounded-md transition-colors"
+        style={{
+          background: "var(--color-surface2)",
+          color: "var(--color-text-tertiary)",
+          border: "1px solid var(--color-border)",
+        }}>
+        {t("challenges.report")}
+      </Link>
     </div>
   );
 }
@@ -234,54 +294,18 @@ function MomentumCard({ momentum }: {
   );
 }
 
-const DAY_LABELS_RU = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
-const DAY_LABELS_EN = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
-
-function WeekChart({ days }: {
-  days: { date: string; rate: number; total: number }[];
+function StatCard({ label, value, Icon, color }: {
+  label: string; value: number; Icon: React.ReactNode; color: string;
 }) {
-  const { i18n } = useTranslation();
-  const today = format(new Date(), "yyyy-MM-dd");
-
   return (
-    <div className="rounded-md px-4 py-3"
+    <div className="rounded-md p-3 text-center"
       style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
-      <p className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider mb-3">
-        {i18n.language.startsWith("ru") ? "Последние 7 дней" : "Last 7 days"}
-      </p>
-      <div className="flex items-end gap-1.5 h-14">
-        {days.map((d) => {
-          const isToday = d.date === today;
-          const pct = d.total === 0 ? 0 : d.rate;
-          const barH = d.total === 0 ? 4 : Math.max(8, Math.round(pct * 52));
-          let color: string;
-          if (d.total === 0) color = "var(--color-surface2)";
-          else if (pct >= 1) color = "var(--color-success)";
-          else if (pct >= 0.5) color = "rgba(22,163,74,0.5)";
-          else color = "#FED7AA";
-
-          const dayOfWeek = new Date(d.date).getDay();
-          const labelIdx = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-          const label = i18n.language.startsWith("ru")
-            ? DAY_LABELS_RU[labelIdx]
-            : DAY_LABELS_EN[labelIdx];
-
-          return (
-            <div key={d.date} className="flex-1 flex flex-col items-center gap-1">
-              <div className="w-full rounded-sm transition-all"
-                style={{
-                  height: barH,
-                  background: color,
-                  boxShadow: isToday ? "0 0 0 2px var(--color-accent)" : "none",
-                }} />
-              <span className="text-[9px] font-bold"
-                style={{ color: isToday ? "var(--color-accent)" : "var(--color-text-tertiary)" }}>
-                {label}
-              </span>
-            </div>
-          );
-        })}
+      <div className="flex items-center justify-center w-7 h-7 rounded-md mx-auto mb-1.5"
+        style={{ background: color }}>
+        {Icon}
       </div>
+      <p className="text-[18px] font-black text-text-primary leading-none">{value}</p>
+      <p className="text-[10px] text-text-tertiary mt-0.5 font-medium">{label}</p>
     </div>
   );
 }

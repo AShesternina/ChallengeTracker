@@ -60,6 +60,8 @@ const pt = {
     new_challenge: "Novo desafio",
     tasks_today: "Tarefas hoje",
     view_all: "Ver todos os {{count}} →",
+    active_challenges: "Desafios ativos",
+    no_tasks_today: "sem tarefas",
   },
   daily: {
     title: "Tarefas de hoje",

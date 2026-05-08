@@ -60,6 +60,8 @@ const es = {
     new_challenge: "Nuevo desafío",
     tasks_today: "Tareas hoy",
     view_all: "Ver los {{count}} →",
+    active_challenges: "Desafíos activos",
+    no_tasks_today: "sin tareas",
   },
   daily: {
     title: "Tareas de hoy",

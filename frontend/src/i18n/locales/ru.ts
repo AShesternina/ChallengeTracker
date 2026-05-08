@@ -60,6 +60,8 @@ const ru = {
     new_challenge: "Новый челлендж",
     tasks_today: "Задачи сегодня",
     view_all: "Показать все {{count}} →",
+    active_challenges: "Активные челленджи",
+    no_tasks_today: "нет задач",
   },
   daily: {
     title: "Задачи на сегодня",
