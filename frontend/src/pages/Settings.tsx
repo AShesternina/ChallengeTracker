@@ -38,7 +38,6 @@ export default function Settings() {
   const [taskReminders, setTaskReminders] = useState(user?.notify_task_reminders ?? false);
   const [savingTimes, setSavingTimes] = useState(false);
   const [savedTimes, setSavedTimes] = useState(false);
-  const [telegramWaiting, setTelegramWaiting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -127,29 +126,11 @@ export default function Settings() {
     }
   };
 
-  const handleTelegramConnect = async () => {
-    const { data } = await telegramApi.generateCode();
-    window.open(data.bot_url, "_blank");
-    setTelegramWaiting(true);
-  };
-
   const handleTelegramDisconnect = async () => {
     await telegramApi.unlink();
     const { data } = await userApi.me();
     setUser(data);
   };
-
-  useEffect(() => {
-    if (!telegramWaiting) return;
-    const interval = setInterval(async () => {
-      const { data } = await userApi.me();
-      if (data.telegram_chat_id) {
-        setUser(data);
-        setTelegramWaiting(false);
-      }
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [telegramWaiting]);
 
   const handleDeleteAccount = async () => {
     setDeleting(true);
@@ -308,15 +289,6 @@ export default function Settings() {
               className="text-[13px] font-semibold px-3 py-1.5 rounded-md transition-colors"
               style={{ border: "1.5px solid var(--color-border)", color: "var(--color-text-secondary)" }}>
               {t("settings.telegram_disconnect")}
-            </button>
-          </div>
-        ) : telegramWaiting ? (
-          <div>
-            <p className="text-[13px] font-semibold text-text-primary mb-1">⏳ {t("settings.telegram_waiting")}</p>
-            <p className="text-[12px] text-text-tertiary">{t("settings.telegram_waiting_hint")}</p>
-            <button onClick={() => setTelegramWaiting(false)}
-              className="mt-3 text-[12px] font-semibold text-text-tertiary hover:text-text-secondary transition-colors">
-              {t("common.cancel")}
             </button>
           </div>
         ) : (
