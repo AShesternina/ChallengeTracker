@@ -182,6 +182,7 @@ const en = {
     dark_mode: "Dark mode",
     light_mode: "Light mode",
     sign_out: "Sign Out",
+    coming_soon: "coming soon",
     telegram_connected: "✅ Telegram connected",
     telegram_disconnect: "Disconnect",
     telegram_connect: "Connect Telegram",

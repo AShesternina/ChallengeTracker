@@ -182,6 +182,7 @@ const es = {
     dark_mode: "Modo oscuro",
     light_mode: "Modo claro",
     sign_out: "Cerrar sesión",
+    coming_soon: "próximamente",
     telegram_connected: "✅ Telegram conectado",
     telegram_disconnect: "Desconectar",
     telegram_connect: "Conectar Telegram",

@@ -182,6 +182,7 @@ const ru = {
     dark_mode: "Тёмная тема",
     light_mode: "Светлая тема",
     sign_out: "Выйти",
+    coming_soon: "скоро",
     telegram_connected: "✅ Telegram подключён",
     telegram_disconnect: "Отключить",
     telegram_connect: "Подключить Telegram",

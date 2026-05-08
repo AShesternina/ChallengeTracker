@@ -182,6 +182,7 @@ const pt = {
     dark_mode: "Modo escuro",
     light_mode: "Modo claro",
     sign_out: "Sair",
+    coming_soon: "em breve",
     telegram_connected: "✅ Telegram conectado",
     telegram_disconnect: "Desconectar",
     telegram_connect: "Conectar Telegram",

@@ -297,7 +297,7 @@ export default function Settings() {
       </Section>
 
       {/* Telegram */}
-      <Section title="Telegram">
+      <Section title={`Telegram (${t("settings.coming_soon")})`}>
         {user?.telegram_chat_id ? (
           <div className="flex items-center justify-between">
             <div>
@@ -322,8 +322,8 @@ export default function Settings() {
         ) : (
           <div>
             <p className="text-[13px] text-text-tertiary mb-3">{t("settings.telegram_hint")}</p>
-            <button onClick={handleTelegramConnect}
-              className="w-full py-2.5 rounded-md text-[13px] font-bold text-white transition-opacity hover:opacity-90"
+            <button disabled
+              className="w-full py-2.5 rounded-md text-[13px] font-bold text-white opacity-40 cursor-not-allowed"
               style={{ background: "#2AABEE" }}>
               {t("settings.telegram_connect")}
             </button>
