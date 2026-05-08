@@ -15,6 +15,7 @@ class NotificationType(str, enum.Enum):
 class NotificationChannel(str, enum.Enum):
     push = "push"
     email = "email"
+    telegram = "telegram"
 
 
 class NotificationStatus(str, enum.Enum):

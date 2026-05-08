@@ -12,6 +12,7 @@ class UserOut(BaseModel):
     notification_morning_time: str | None
     notification_evening_time: str | None
     notify_task_reminders: bool
+    telegram_chat_id: int | None
     is_active: bool
     is_verified: bool
     created_at: datetime

@@ -95,6 +95,12 @@ export const reportsApi = {
   streak: () => api.get("/reports/streak"),
 };
 
+// --- Telegram ---
+export const telegramApi = {
+  generateCode: () => api.post("/users/me/telegram/generate-code"),
+  unlink: () => api.delete("/users/me/telegram"),
+};
+
 // --- Notifications ---
 export const notificationsApi = {
   vapidKey: () => api.get("/notifications/vapid-public-key"),

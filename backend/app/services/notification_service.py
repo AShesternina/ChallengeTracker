@@ -54,37 +54,43 @@ async def dispatch(
     email_title: str,
     email_body: str,
 ) -> None:
-    """Send notification via push (data-only) or email fallback."""
+    """Send notification: push (all devices) + telegram if connected, email as fallback."""
+    any_sent = False
+
+    # Push — send to all registered devices
     devices = await _get_user_devices(db, user.id)
+    for device in devices:
+        try:
+            await send_push(device.push_subscription, push_data)
+            await _log(db, user.id, ntype, NotificationChannel.push, NotificationStatus.sent, push_data)
+            any_sent = True
+        except Exception as e:
+            await _log(db, user.id, ntype, NotificationChannel.push, NotificationStatus.failed, push_data, str(e))
 
-    if devices:
-        any_sent = False
-        for device in devices:
-            try:
-                await send_push(device.push_subscription, push_data)
-                await _log(db, user.id, ntype, NotificationChannel.push, NotificationStatus.sent, push_data)
-                any_sent = True
-            except Exception as e:
-                await _log(
-                    db, user.id, ntype, NotificationChannel.push,
-                    NotificationStatus.failed, push_data, str(e)
-                )
-        if any_sent:
-            return
+    # Telegram — if account is linked
+    if user.telegram_chat_id:
+        try:
+            from app.services.telegram_service import send_telegram
+            text = f"<b>{email_title}</b>\n{email_body}"
+            await send_telegram(user.telegram_chat_id, text)
+            await _log(db, user.id, ntype, NotificationChannel.telegram, NotificationStatus.sent, push_data)
+            any_sent = True
+        except Exception as e:
+            await _log(db, user.id, ntype, NotificationChannel.telegram, NotificationStatus.failed, push_data, str(e))
 
-    # fallback: email with translated text
+    if any_sent:
+        return
+
+    # Email fallback — only if push and telegram both unavailable/failed
     if user.email:
         try:
             html = f"<h2>{email_title}</h2><p>{email_body}</p>"
             await email_adapter.send(user.email, email_title, html, email_body)
             await _log(db, user.id, ntype, NotificationChannel.email, NotificationStatus.sent, push_data)
         except Exception as e:
-            await _log(
-                db, user.id, ntype, NotificationChannel.email,
-                NotificationStatus.failed, push_data, str(e)
-            )
+            await _log(db, user.id, ntype, NotificationChannel.email, NotificationStatus.failed, push_data, str(e))
     else:
-        logger.warning("No push devices and no email for user_id=%s", user.id)
+        logger.warning("No channels available for user_id=%s", user.id)
 
 
 async def send_morning_summary(db: AsyncSession, user: User, total_tasks: int) -> None:

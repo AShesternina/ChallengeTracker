@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     VAPID_PUBLIC_KEY: str = ""
     VAPID_MAILTO: str = "mailto:admin@example.com"
 
+    TELEGRAM_BOT_TOKEN: str = ""
+    TELEGRAM_BOT_USERNAME: str = ""
+
     SENDGRID_API_KEY: str = ""
     EMAIL_FROM: str = "noreply@example.com"
     EMAIL_FROM_NAME: str = "ChallengeTracker"
