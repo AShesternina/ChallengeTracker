@@ -465,23 +465,24 @@ Two-step flow now has visual indicator: filled circle (step 1) → connector lin
 
 ✅ = реализовано
 
-1. **Heatmap interactivity**: clicking a day cell should show a detail popover with that day's tasks
-2. **Celebration micro-interaction**: when all daily tasks are completed, show a subtle animation (not loud)
-3. ✅ **Empty states / Onboarding**: 3-step modal for new users with no active challenges, redirects to Create Challenge
+1. ✅ **Heatmap interactivity**: clicking a day cell shows task detail view with Done/Skip/Undo actions
+2. ✅ **Celebration micro-interaction**: CelebrationBanner with bounce + 3 emoji particles (🎉✨🔥) flying in different directions; keyframes in index.css; fires when pendingActive (excl. paused) == 0
+3. ✅ **Empty states / Onboarding**: 3-step modal for new users
 4. ✅ **Challenge templates**: step 1 template cards pre-fill step 2 form with translated title/description
 5. ✅ **Reports per-challenge**: active challenges list with progress bars after heatmap, links to Challenge Report
 6. **Accessibility**: add `aria-label` to all icon-only buttons, implement focus trap in modals
-7. ✅ **Push notifications settings**: morning/evening time pickers + task reminders toggle in Settings
+7. ✅ **Push notifications settings**: morning/evening time pickers + task reminders toggle + streak protection toggle
 8. **Offline banner**: PWA offline state indicator needed
 9. ✅ **Pause/Resume challenge**: buttons on ChallengeDetail when active/paused
 10. ✅ **Delete challenge**: permanent delete button (any status) on ChallengeDetail
-11. ✅ **Streak counter on Dashboard**: 🔥 + day count pill in header
+11. ✅ **Streak counter on Dashboard**: 🔥 + day count pill; ⚡ when grace day used
 12. ✅ **Momentum score**: 14-day weighted completion rate, inline in hero card with trend label (↑/→/↓)
 13. ✅ **Recovery analytics**: breaks / comebacks / resilience % / avg comeback days in Challenge Report
 14. ✅ **Active challenge cards on Dashboard**: per-challenge today progress (X/Y) + thin bar + Report link
 15. ✅ **Telegram notifications**: linking flow via one-time code; send_telegram on morning/evening/task events
-16. **Weekly review**: Sunday evening Celery task — strongest challenge, best day, completion % trend; new notification type
-17. **Weekday patterns**: % completion by day of week chart in Reports
-18. **Streak protection grace day**: optional 1-day grace period setting
-19. **Burnout detection**: Celery task detecting sustained low completion rate, sends alert notification
+16. ✅ **Weekly review**: Sunday evening push replacing daily report; "42/56 · 75% ↑" + best challenge in Telegram
+17. ✅ **Weekday patterns**: horizontal bars Mon–Sun with % completion in Reports (below heatmap)
+18. ✅ **Streak protection grace day**: User.streak_protection toggle in Settings; ⚡ badge on Dashboard
+19. ✅ **Burnout detection**: 3+ consecutive days <30% → supportive push; dedup 5 days; daily 12:00 UTC
 20. **Smart insights**: text conclusions on Reports page based on patterns
+21. **Public challenge templates**: shareable /challenge/slug pages without auth
