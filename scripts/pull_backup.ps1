@@ -17,7 +17,7 @@ if (Test-Path $localFile) {
 }
 
 Write-Host (& $ts) "Pulling db_$today.gz from VPS..."
-scp "${VPS}:${RemoteDir}/db_${today}.gz" $LocalDir
+scp -i "$env:USERPROFILE\.ssh\id_backup" -o StrictHostKeyChecking=no "${VPS}:${RemoteDir}/db_${today}.gz" $LocalDir
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host (& $ts) "ERROR: scp failed. VPS may be unreachable or backup not yet created (runs at 03:00 UTC)."
