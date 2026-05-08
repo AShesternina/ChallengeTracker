@@ -83,7 +83,7 @@ frontend/src/
   components/    Layout, TaskCard, ProgressRing, Icons, PasswordInput, ConfirmModal
   pages/         Dashboard, DailyTasks, Challenges, CreateChallenge, ChallengeDetail,
                  ChallengeReport, Reports, Settings, Login, Register, Onboarding
-  store/         authStore (user + tokens + language + onboarding_completed + notification prefs + telegram_chat_id), taskStore, themeStore
+  store/         authStore (user + tokens + language + onboarding_completed + notification prefs + streak_protection + telegram_chat_id), taskStore, themeStore
   services/      api.ts (Axios + JWT auto-refresh), push.ts (Web Push, returns device ID), sw-lang.ts (SW language sync), telegramApi
   utils/         category.ts (category detection from title), templateTranslations.ts (16 templates × 4 langs)
   i18n/locales/  en.ts, ru.ts, es.ts, pt.ts
@@ -126,7 +126,7 @@ POST /api/v1/auth/refresh
 POST /api/v1/auth/logout                           # revokes refresh token in Redis
 
 GET  /api/v1/users/me
-PATCH /api/v1/users/me                              # accepts timezone, language, onboarding_completed, notification_morning_time, notification_evening_time, notify_task_reminders
+PATCH /api/v1/users/me                              # accepts timezone, language, onboarding_completed, notification_morning_time, notification_evening_time, notify_task_reminders, streak_protection
 DELETE /api/v1/users/me                             # hard delete user + all data (cascades)
 POST /api/v1/users/me/telegram/generate-code        # generates one-time linking code, returns {code, bot_url}
 DELETE /api/v1/users/me/telegram                    # unlink Telegram account
@@ -147,10 +147,12 @@ POST /api/v1/tasks/{id}/complete
 POST /api/v1/tasks/{id}/skip
 POST /api/v1/tasks/{id}/reset                     # revert to pending
 
-GET  /api/v1/reports/streak
+GET  /api/v1/reports/streak                    # returns {current_streak, longest_streak, grace_day_used}
+GET  /api/v1/reports/momentum                  # 14-day weighted completion, trend
+GET  /api/v1/reports/weekday-patterns          # completion rate Mon–Sun across all history
 GET  /api/v1/reports/daily/{date}
 GET  /api/v1/reports/monthly/{year}/{month}
-GET  /api/v1/reports/challenge/{instance_id}
+GET  /api/v1/reports/challenge/{instance_id}   # includes recovery analytics fields
 
 GET  /api/v1/notifications/vapid-public-key
 POST /api/v1/notifications/subscribe
@@ -199,7 +201,7 @@ docker exec challengetracker-backend-1 alembic upgrade head
 docker exec challengetracker-backend-1 alembic revision --autogenerate -m "description"
 ```
 
-Migrations: `0001_initial` → ... → `0009_add_onboarding_completed` → `0010_add_notification_times` → `0011_add_notify_task_reminders` → `0012_add_telegram`
+Migrations: `0001_initial` → ... → `0009_add_onboarding_completed` → `0010_add_notification_times` → `0011_add_notify_task_reminders` → `0012_add_telegram` → `0013_add_weekly_review_notification_type` → `0014_add_streak_protection` → `0015_add_burnout_alert_notification_type`
 
 PostgreSQL enums require explicit `CAST(:value AS enumtype)` — do NOT use `op.bulk_insert()` with enum columns.
 
@@ -222,6 +224,29 @@ Key fields in `schemas/daily.py`:
 - `sequence_number` / `total_count` — position among sibling tasks for multi-type challenges (null for single/all_day)
 - `challenge_status` — status of the parent ChallengeInstance (`active | paused | completed`). Used by frontend to determine editability.
 
+## Streak & analytics
+
+**Streak report** (`GET /reports/streak`):
+- `current_streak` — consecutive days with ≥1 completed task going back from today
+- `longest_streak` — all-time best
+- `grace_day_used` (bool) — True if `streak_protection=true` and 1 missed day was forgiven in current streak
+- Paused days are skipped (neither increment nor break the streak)
+- Future pending days are excluded (stop at today)
+
+**Streak protection** (`User.streak_protection`, default `true`): 1 missed day per streak run doesn't reset the counter. Grace fires only when `current_streak > 0` at the missed day — never on an empty streak.
+
+**Momentum report** (`GET /reports/momentum`): 14-day weighted completion rate (today = weight 14, 13 days ago = weight 1). Trend: last 7 days vs previous 7 days, ±5% threshold.
+
+**Weekday patterns** (`GET /reports/weekday-patterns`): all-time completion rate per weekday (Mon=index 0 … Sun=index 6). Paused days excluded.
+
+**Recovery analytics** (inside `ChallengeReport`):
+- `breaks_count` — days with 0/partial completion after a good streak
+- `comebacks_count` — times user recovered after a break
+- `avg_comeback_days` — average days to recover (null if no comebacks)
+- `resilience_score` — comebacks/breaks × 100 (null if no breaks — metric not applicable)
+
+**Burnout detection**: Celery task checks daily at 12:00 UTC. Triggers if user had 3+ consecutive days with tasks AND <30% completion. 5-day dedup so it doesn't spam.
+
 ## Category system (frontend)
 
 `utils/category.ts` detects category from challenge title keywords and returns icon + colors.
@@ -239,10 +264,14 @@ Template name/description translations live in `utils/templateTranslations.ts`.
 
 **Dedup:** morning/evening Celery tasks skip send if same type was successfully sent in last 30 min. Task reminders skip if sent in last 4 min.
 
-**Notification types in `sw.ts` TRANSLATIONS:** `morning_summary`, `daily_report`, `task_reminder`
+**Notification types in `sw.ts` TRANSLATIONS:** `morning_summary`, `daily_report`, `task_reminder`, `weekly_review`, `burnout_alert`
+
+**Dedup windows:** morning/evening/weekly → 30 min | task reminders → 4 min | burnout → 5 days
 
 **Adding a new push notification type:**
-- Backend: add `push_data = {"type": "my_type", ...}` and call `dispatch()`
+- Backend: add value to `NotificationType` enum + migration (`ALTER TYPE notificationtype ADD VALUE`)
+- Backend: add `push_data = {"type": "my_type", ...}`, `send_*()` helper, call `dispatch()`
+- `notifications_i18n.py`: add translated strings for email/Telegram fallback
 - `sw.ts`: add `my_type` entry to the `TRANSLATIONS` object (all 4 languages)
 - No other changes needed
 
@@ -264,7 +293,7 @@ User links Telegram account via Settings → "Connect Telegram":
 
 **Adding a new language to notifications:**
 - `sw.ts` `TRANSLATIONS`: add language code to each notification type entry
-- `notifications_i18n.py`: add same language to `_MORNING_SUMMARY` and `_DAILY_REPORT`
+- `notifications_i18n.py`: add same language to `_MORNING_SUMMARY`, `_DAILY_REPORT`, `_WEEKLY_REVIEW*`, `_BURNOUT_ALERT`
 - `language_service.py`: add country codes and add to `SUPPORTED_LANGUAGES`
 
 ## Push notification settings (User model)
@@ -272,8 +301,9 @@ User links Telegram account via Settings → "Connect Telegram":
 - `notification_morning_time` (String "HH:MM", default "08:00") — morning summary time in user's timezone
 - `notification_evening_time` (String "HH:MM", default "21:00") — evening report time in user's timezone
 - `notify_task_reminders` (bool, default false) — send push at each timed task's scheduled_time (±2 min)
+- `streak_protection` (bool, default true) — 1 missed day per streak run doesn't break the streak (grace day)
 
-Celery morning/evening tasks run every 5 min and filter users whose local time matches their preference (±4 min window). Task reminders also run every 5 min.
+Celery morning/evening tasks run every 5 min and filter users whose local time matches their preference (±4 min window). Task reminders also run every 5 min. Weekly review replaces evening report on Sundays.
 
 ## Multilanguage system
 
@@ -300,8 +330,10 @@ Use `const { t } = useTranslation()` and `t("section.key")`. Never use inline `i
 | Generate daily tasks for all users | 00:05 | fixed |
 | Auto-complete expired challenges | 00:10 | fixed |
 | Morning summary notification | every 5 min | filters by user's `notification_morning_time` ±4 min in their timezone |
-| Evening report notification | every 5 min | filters by user's `notification_evening_time` ±4 min |
+| Evening report notification | every 5 min | skips Sundays (weekly review takes over); filters by `notification_evening_time` ±4 min |
+| Weekly review notification | every 5 min | Sundays only (user's local timezone); fires at `notification_evening_time`; 30-min dedup |
 | Task reminders | every 5 min | sends to users with `notify_task_reminders=true` when timed task is due ±2 min |
+| Burnout detection | daily 12:00 UTC | 3+ consecutive days with tasks and <30% completion → supportive push; 5-day dedup |
 
 ## Environment
 
@@ -315,7 +347,7 @@ Copy `backend/.env.example` → `backend/.env`. Key variables:
 ## Running tests
 
 ```bash
-# Install test deps and run all 95 tests (local Docker only)
+# Install test deps and run all 103 tests (local Docker only)
 docker exec challengetracker-backend-1 pip install -r requirements-test.txt -q
 docker exec challengetracker-backend-1 pytest tests/ -v --tb=short
 
@@ -329,7 +361,7 @@ docker exec challengetracker-backend-1 pytest tests/test_auth.py::test_login_suc
 - Production server does NOT have `PYTEST_ALLOW=1` — pytest is blocked at import time with a clear error
 - `pytest` is also not installed in the production image (double protection)
 
-Test files: `test_auth.py` (32) · `test_challenges.py` (15) · `test_daily.py` (11) · `test_reports.py` (8) · `test_new_features.py` (22) · `test_telegram.py` (7)
+Test files: `test_auth.py` (34) · `test_challenges.py` (15) · `test_daily.py` (11) · `test_reports.py` (12) · `test_new_features.py` (24) · `test_telegram.py` (7)
 
 ## Deployment (production)
 
