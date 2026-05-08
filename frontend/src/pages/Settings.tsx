@@ -42,12 +42,20 @@ export default function Settings() {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
+    // Always load fresh user data so settings are in sync across devices
+    userApi.me().then(({ data }) => {
+      setUser(data);
+      setTimezone(data.timezone || "UTC");
+      setMorningTime(data.notification_morning_time || "08:00");
+      setEveningTime(data.notification_evening_time || "21:00");
+      setTaskReminders(data.notify_task_reminders ?? false);
+    }).catch(() => {});
+
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
     navigator.serviceWorker.ready.then(async (reg) => {
       const sub = await reg.pushManager.getSubscription();
       if (!sub) return;
       setPushEnabled(true);
-      // Find matching device ID in backend to enable clean unsubscribe
       try {
         const { data: devices } = await notificationsApi.devices();
         const match = devices.find(
