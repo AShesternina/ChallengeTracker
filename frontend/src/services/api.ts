@@ -60,6 +60,7 @@ export const userApi = {
     notification_morning_time?: string;
     notification_evening_time?: string;
     notify_task_reminders?: boolean;
+    streak_protection?: boolean;
   }) => api.patch("/users/me", data),
   deleteMe: () => api.delete("/users/me"),
 };
