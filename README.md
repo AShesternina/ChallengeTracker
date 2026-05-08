@@ -45,9 +45,10 @@ docker compose up --build
 ### 🏠 Главная (Dashboard)
 
 - Прогресс сегодня — круговой индикатор с процентом и счётчиком `выполнено / всего`
-- Три статы — Активные челленджи / Выполнено сегодня / Пропущено сегодня
-- Streak 🔥 — счётчик дней подряд в шапке
-- Недельный мини-график — столбики последних 7 дней с цветом по проценту выполнения
+- **Momentum badge** — 14-дневный взвешенный % выполнения с трендом (↑/→/↓) прямо в hero-карточке
+- Streak 🔥 — счётчик дней подряд; ⚡ если grace day использован
+- Три статы — Активные / Выполнено / Пропущено
+- **Карточки активных челленджей** — иконка + название + прогресс X/Y за сегодня + кнопка «Отчёт»
 - Быстрые действия — «Задачи на сегодня» и «Новый челлендж»
 - Превью задач — первые 3 задачи дня со статусом
 
@@ -87,13 +88,23 @@ docker compose up --build
 - Будущее → только просмотр, бейдж «Будущее · только просмотр»
 - Задачи паузированного челленджа → затемнены, нередактируемы, метка статуса
 
+**По дням недели:** горизонтальные бары Пн–Вс с % выполнения за всё время (зелёный ≥80%, оранжевый 50–79%, красный <50%).
+
 **По челленджу:** 6 метрик (Всего / Выполнено / Пропущено / % / Серия 🔥 / Лучшая 🏆), период, прогресс-бар.
+
+**Recovery analytics:** Срывы / Возвращения / Среднее возвращение (дней) / Resilience % (= возвращений/срывов×100; null если срывов не было).
 
 ### ⚙️ Настройки (Settings)
 
-Профиль, тёмная тема, язык (English / Español / Português / Русский), часовой пояс, web push уведомления, выход. Язык сохраняется в аккаунте и применяется на всех устройствах.
+Профиль, тёмная тема, язык (English / Español / Português / Русский), часовой пояс.
 
-**Удаление аккаунта** — кнопка внизу настроек. После подтверждения удаляет пользователя и все его данные (челленджи, задачи, прогресс) без возможности восстановления.
+**Push-уведомления:** toggle вкл/выкл; при включении — тайм-пикеры утреннего напоминания и вечернего отчёта, toggle «Напоминать в время задачи».
+
+**⚡ Защита серии:** toggle — один пропущенный день не ломает серию (grace day). Включена по умолчанию.
+
+**Telegram:** подключение аккаунта через one-time code. После связки уведомления дублируются в Telegram.
+
+**Удаление аккаунта** — кнопка внизу. После подтверждения удаляет пользователя и все его данные без возможности восстановления.
 
 ---
 
@@ -154,16 +165,16 @@ backend/app/
   schemas/            — Pydantic schemas
   services/           — вся бизнес-логика (в т.ч. language_service, notifications_i18n)
   workers/            — Celery app + scheduled tasks
-alembic/              — миграции (0001 → ... → 0009)
+alembic/              — миграции (0001 → ... → 0015)
 
 frontend/src/
   components/         — Layout, TaskCard, ProgressRing, Icons, PasswordInput, ConfirmModal
   pages/              — все экраны (+ Onboarding)
-  store/              — authStore (+ language + onboarding_completed), taskStore, themeStore
+  store/              — authStore (+ language + onboarding_completed + streak_protection + telegram_chat_id), taskStore, themeStore
   services/           — api.ts, push.ts, sw-lang.ts
   utils/              — category.ts, templateTranslations.ts (16 шаблонов × 4 языка)
   i18n/locales/       — en.ts, ru.ts, es.ts, pt.ts
-  sw.ts               — Service Worker: кэш + push-перевод через IndexedDB
+  sw.ts               — Service Worker: кэш + push-перевод через IndexedDB (5 типов уведомлений)
 ```
 
 ---
@@ -177,8 +188,10 @@ POST /api/v1/auth/refresh
 POST /api/v1/auth/logout
 
 GET  /api/v1/users/me
-PATCH /api/v1/users/me                             # timezone, language, onboarding_completed
+PATCH /api/v1/users/me                             # timezone, language, onboarding_completed, notification times, notify_task_reminders, streak_protection
 DELETE /api/v1/users/me                            # удалить аккаунт и все данные
+POST /api/v1/users/me/telegram/generate-code       # one-time linking code
+DELETE /api/v1/users/me/telegram                   # отвязать Telegram
 
 GET  /api/v1/challenges/templates
 POST /api/v1/challenges
@@ -195,10 +208,12 @@ POST /api/v1/tasks/{id}/complete
 POST /api/v1/tasks/{id}/skip
 POST /api/v1/tasks/{id}/reset                      # revert to pending
 
-GET  /api/v1/reports/streak
+GET  /api/v1/reports/streak                        # {current_streak, longest_streak, grace_day_used}
+GET  /api/v1/reports/momentum                      # 14-day weighted completion + trend
+GET  /api/v1/reports/weekday-patterns              # completion rate Mon–Sun across all history
 GET  /api/v1/reports/daily/{date}
 GET  /api/v1/reports/monthly/{year}/{month}
-GET  /api/v1/reports/challenge/{instance_id}
+GET  /api/v1/reports/challenge/{instance_id}       # + recovery analytics
 
 GET  /api/v1/notifications/vapid-public-key
 POST /api/v1/notifications/subscribe
@@ -215,8 +230,10 @@ DELETE /api/v1/notifications/devices/{id}
 | Генерация дневных задач | 00:05 | фиксировано |
 | Автозавершение истёкших челленджей | 00:10 | фиксировано |
 | Утреннее уведомление | каждые 5 мин | фильтр по `notification_morning_time` ±4 мин в таймзоне юзера |
-| Вечерний отчёт | каждые 5 мин | фильтр по `notification_evening_time` ±4 мин |
+| Вечерний отчёт | каждые 5 мин | пн–сб; фильтр по `notification_evening_time` ±4 мин |
+| Weekly review | каждые 5 мин | только воскресенье (локальный timezone); dedup 30 мин |
 | Напоминания по задачам | каждые 5 мин | только если `notify_task_reminders=true`, ±2 мин от scheduled_time |
+| Burnout detection | 12:00 UTC | 3+ дня подряд <30% → поддерживающий push; dedup 5 дней |
 
 ---
 
@@ -258,8 +275,8 @@ docker compose -f docker-compose.prod.yml up --build -d
 Пример: французский (`fr`). Затрагивает 7 файлов, миграций не нужно.
 
 1. **`language_service.py`** — добавить коды стран в `_COUNTRY_LANGUAGE` (`"FR": "fr"` и т.д.), добавить `"fr"` в `SUPPORTED_LANGUAGES`
-2. **`notifications_i18n.py`** — добавить запись `"fr"` в `_MORNING_SUMMARY` и `_DAILY_REPORT`
-3. **`sw.ts`** — добавить `"fr"` в каждый тип в `TRANSLATIONS`; добавить в `SUPPORTED_LANGS`
+2. **`notifications_i18n.py`** — добавить запись `"fr"` в `_MORNING_SUMMARY`, `_DAILY_REPORT`, `_WEEKLY_REVIEW*`, `_BURNOUT_ALERT`
+3. **`sw.ts`** — добавить `"fr"` в каждый тип в `TRANSLATIONS` (5 типов); добавить в `SUPPORTED_LANGS`
 4. **`i18n/locales/fr.ts`** — новый файл (скопировать структуру из `en.ts`, перевести все строки)
 5. **`i18n/index.ts`** — импортировать `fr` + добавить в `resources` и `supportedLngs`
 6. **`templateTranslations.ts`** — добавить колонку `fr` в `TITLE_MAP`, `DESC_MAP`, `TEMPLATE_CATEGORIES`; обновить тип `TemplateLang` и функцию `toLang()`
@@ -274,4 +291,4 @@ docker exec challengetracker-backend-1 bash -c \
   "pip install -r requirements-test.txt -q && pytest tests/ -v --tb=short --cov=app --cov-report=term-missing"
 ```
 
-95 тестов: test_auth (32) · test_challenges (15) · test_daily (11) · test_reports (8) · test_new_features (22) · test_telegram (7)
+103 теста: test_auth (34) · test_challenges (15) · test_daily (11) · test_reports (12) · test_new_features (24) · test_telegram (7)
