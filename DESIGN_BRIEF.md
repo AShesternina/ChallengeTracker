@@ -1,8 +1,9 @@
-# ChallengeTracker — New Design Brief (v2)
+# ChallengeTracker — New Design Brief (v3)
 
 > **Redesign spec** based on UI exploration session (May 2026).  
 > Direction: **Focus + Pulse** — dark-capable productivity with emotional category colors.  
-> Prototype reference: `Prototype.html` (interactive, light/dark, mobile + desktop).
+> Prototype reference: `Prototype.html` (interactive, light/dark, mobile + desktop).  
+> Last updated: May 2026 — compact layout pass, momentum badge, recovery analytics, notifications.
 
 ---
 
@@ -188,7 +189,7 @@ No web fonts loaded — system stack only.
   - skipped → `surface2` + `border`, opacity 0.55
 - Category icon box: 40×40px, radius 10px, bg = `catBg`
 - When completed: icon replaced with checkmark (green)
-- Name: 14px weight 700, line-through + `textTertiary` when done
+- Name: 14px weight 700, `textSecondary` (muted, no strikethrough) when done — green bg + checkmark are sufficient done signal
 - Time row: clock icon (11px) + time (11px weight 600)
 - Note: 11px `textSecondary`, truncated
 - Multi-task badge: `"N из M"`, 10px weight 800, `accent` pill
@@ -207,15 +208,30 @@ No web fonts loaded — system stack only.
 
 ### Hero Progress Card (Dashboard)
 - Full-width gradient: `accent → #4a3de0 → #2563eb`
-- Contains: ProgressRing (white arc) + large number + label
+- Contains: ProgressRing (white arc, 76px) + large number (34px) + label + **MomentumBadge** (right, after vertical divider)
 - Decorative circles: `rgba(255,255,255,0.08)` positioned absolute
 - Radius: `radius.xl`
 
+### Momentum Badge (inline in Hero card)
+- Only shown when `days_tracked > 0`
+- Right-aligned after `border-l border-white/20 pl-4`
+- Score: 22px weight 900 white
+- Trend: 10px bold, white opacity varies (up=90%, stable=70%, down=60%)
+- Caption "Momentum": 9px white/50
+- Metric: weighted 14-day completion (today = weight 14, 13 days ago = weight 1)
+
+### Challenge Report — Recovery Analytics
+- Shown when `resilience_score !== null`
+- Section title: "Recovery Analytics"
+- 4-cell grid: Resilience % (accent) / Avg comeback days / Breaks count / Comebacks count
+- Resilience = comebacks / breaks × 100, capped at 100%
+
 ### Stat Card (mini)
 - Background: `surface`, border: `border`, radius: `radius.md`
-- Number: 24px weight 800
-- Label: 11px `textTertiary`
-- Color overrides: green for completed, red for skipped
+- Number: 22px weight 900
+- Label: 10px `textTertiary`
+- Icon: 15px, inside 24×24 rounded bg chip
+- Color overrides: green for completed, warning for skipped
 
 ### Buttons
 | Variant | Background | Color | Border | Radius |
@@ -264,17 +280,24 @@ Primary button shadow: `0 2px 8px accent+'40'`
 - "No account? Register" link: `accent` weight 700
 
 ### Dashboard
-**Header**: logo (accent, 800) + streak pill (🔥 + count, catWorkout) + avatar (gradient circle)
+**Header**: date (11px `textTertiary`) + greeting 20px weight 900 + streak pill (🔥 + count) — no logo, no avatar
 
-**Greeting**: 22px weight 800, first name only ("Привет, Алекс 👋"), date below in `textSecondary`
+**Hero card**: gradient purple→blue, ProgressRing (white, 76px) + "2/15" large number (34px) + "N осталось"  
+**Momentum badge** (inline, right side of hero card, separated by vertical divider):  
+- Score: 22px weight 900 white  
+- Trend label: 10px (↑ Better / → Stable / ↓ Lower)  
+- Caption: "Momentum" 9px white/50  
+- Shown only when days_tracked > 0
 
-**Hero card**: gradient purple→blue, ProgressRing (white) + "2/15" large number + "N осталось"
+**Stats row**: 3 equal StatCards — Active / Done (green) / Skipped (warning)
 
-**Stats row**: 3 equal StatCards — Active (neutral) / Done (green) / Skipped (red)
+**Active challenges section**: per-challenge cards below stats  
+- Category icon (32×32) + title (13px bold) + X/Y counter + thin progress bar (1px) + Report link  
+- Report link → `/reports/challenge/:id`
 
-**Quick actions**: 2-column grid — Primary "Задачи сегодня" + Outline "Новый"
+**Quick actions**: 2-column grid — Primary "Задачи сегодня" + Ghost "Новый челлендж"
 
-**Tasks preview**: Card with rows — category dot + name + time + status badge. "Все →" link. Max 3 tasks shown.
+**Tasks preview**: max 3 compact TaskCards (readOnly variant), "View all N →" link
 
 ### Daily Tasks
 **Header**: sticky, title + date + `done/total` pill + progress bar + view toggle
@@ -306,7 +329,7 @@ Primary button shadow: `0 2px 8px accent+'40'`
 - Progress card: "N / M дней" + ProgressBar
 - Info grid: 2-column, 6 cells (Start / End / Days left / Tasks/day / Type / Time)
 - Streak card: "Текущая серия 🔥" + "Лучшая 🏆" side by side
-- Actions: 2-column Outline (Edit + Report) + full-width Danger (Cancel)
+- Actions: 2-column Outline (Edit + Report) + Pause/Resume + full-width Danger (Delete permanently)
 
 ### Create Challenge Step 1
 - Step indicator (not previously present in v1): pill steps "1 → 2"
@@ -334,8 +357,14 @@ Primary button shadow: `0 2px 8px accent+'40'`
 ### Settings
 - Section headers: 11px uppercase `textTertiary`
 - Rows in Card: label (14px) + right element
-- Sections: Profile / Appearance (dark toggle) / Language (RU/EN segmented) / Notifications (push toggle) / Timezone
-- Sign Out: full-width Danger button
+- Sections:
+  - **Profile**: email, timezone
+  - **Appearance**: dark mode toggle
+  - **Language**: segmented control (EN / RU / ES / PT)
+  - **Push Notifications**: web push toggle; when enabled → morning time picker + evening time picker + task reminders toggle
+  - **Telegram**: connect/disconnect (Telegram Bot for notifications; "coming soon" if bot unreachable)
+  - **Danger zone**: Delete Account (ConfirmModal)
+- Sign Out: full-width Ghost button above danger zone
 
 ---
 
@@ -442,8 +471,17 @@ Two-step flow now has visual indicator: filled circle (step 1) → connector lin
 4. ✅ **Challenge templates**: step 1 template cards pre-fill step 2 form with translated title/description
 5. ✅ **Reports per-challenge**: active challenges list with progress bars after heatmap, links to Challenge Report
 6. **Accessibility**: add `aria-label` to all icon-only buttons, implement focus trap in modals
-7. **Push notifications settings**: time picker for morning/evening notification times
+7. ✅ **Push notifications settings**: morning/evening time pickers + task reminders toggle in Settings
 8. **Offline banner**: PWA offline state indicator needed
 9. ✅ **Pause/Resume challenge**: buttons on ChallengeDetail when active/paused
-10. ✅ **Delete cancelled challenge**: permanent delete button on ChallengeDetail
-11. ✅ **Weekly stats on Dashboard**: streak counter 🔥 in header
+10. ✅ **Delete challenge**: permanent delete button (any status) on ChallengeDetail
+11. ✅ **Streak counter on Dashboard**: 🔥 + day count pill in header
+12. ✅ **Momentum score**: 14-day weighted completion rate, inline in hero card with trend label (↑/→/↓)
+13. ✅ **Recovery analytics**: breaks / comebacks / resilience % / avg comeback days in Challenge Report
+14. ✅ **Active challenge cards on Dashboard**: per-challenge today progress (X/Y) + thin bar + Report link
+15. ✅ **Telegram notifications**: linking flow via one-time code; send_telegram on morning/evening/task events
+16. **Weekly review**: Sunday evening Celery task — strongest challenge, best day, completion % trend; new notification type
+17. **Weekday patterns**: % completion by day of week chart in Reports
+18. **Streak protection grace day**: optional 1-day grace period setting
+19. **Burnout detection**: Celery task detecting sustained low completion rate, sends alert notification
+20. **Smart insights**: text conclusions on Reports page based on patterns
