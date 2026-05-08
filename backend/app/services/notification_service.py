@@ -58,16 +58,19 @@ async def dispatch(
     devices = await _get_user_devices(db, user.id)
 
     if devices:
+        any_sent = False
         for device in devices:
             try:
                 await send_push(device.push_subscription, push_data)
                 await _log(db, user.id, ntype, NotificationChannel.push, NotificationStatus.sent, push_data)
-                return
+                any_sent = True
             except Exception as e:
                 await _log(
                     db, user.id, ntype, NotificationChannel.push,
                     NotificationStatus.failed, push_data, str(e)
                 )
+        if any_sent:
+            return
 
     # fallback: email with translated text
     if user.email:
