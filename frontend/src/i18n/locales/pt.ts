@@ -42,6 +42,13 @@ const pt = {
     login_failed: "Falha ao entrar",
     register_failed: "Falha ao registrar",
   },
+  momentum: {
+    label: "Momentum 14 dias",
+    trend_up: "↑ Melhorando",
+    trend_down: "↓ Caindo",
+    trend_stable: "→ Estável",
+    days: "{{count}} dias com tarefas",
+  },
   dashboard: {
     greeting: "Olá, {{name}}! 👋",
     today_progress: "Progresso de hoje",

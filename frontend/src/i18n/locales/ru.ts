@@ -42,6 +42,13 @@ const ru = {
     login_failed: "Ошибка входа",
     register_failed: "Ошибка регистрации",
   },
+  momentum: {
+    label: "Моментум 14 дней",
+    trend_up: "↑ Растёт",
+    trend_down: "↓ Падает",
+    trend_stable: "→ Стабильно",
+    days: "{{count}} дн. с задачами",
+  },
   dashboard: {
     greeting: "Привет, {{name}}! 👋",
     today_progress: "Прогресс сегодня",

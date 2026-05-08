@@ -93,6 +93,7 @@ export const reportsApi = {
   monthly: (year: number, month: number) => api.get(`/reports/monthly/${year}/${month}`),
   challenge: (instanceId: number) => api.get(`/reports/challenge/${instanceId}`),
   streak: () => api.get("/reports/streak"),
+  momentum: () => api.get("/reports/momentum"),
 };
 
 // --- Telegram ---

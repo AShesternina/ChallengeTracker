@@ -19,6 +19,7 @@ export default function Dashboard() {
   const [challengeCount, setChallengeCount] = useState(0);
   const [streak, setStreak] = useState(0);
   const [weekDays, setWeekDays] = useState<{ date: string; rate: number; total: number }[]>([]);
+  const [momentum, setMomentum] = useState<{ score: number; trend: string; trend_delta: number; days_tracked: number } | null>(null);
 
   const dateLocale = i18n.language.startsWith("ru") ? ruLocale
     : i18n.language.startsWith("es") ? esLocale
@@ -34,12 +35,14 @@ export default function Dashboard() {
       challengesApi.my(),
       reportsApi.streak(),
       reportsApi.monthly(now.getFullYear(), now.getMonth() + 1),
+      reportsApi.momentum(),
     ])
-      .then(([daily, challenges, streakData, monthly]) => {
+      .then(([daily, challenges, streakData, monthly, momentumData]) => {
         setSummary(daily.data);
         const active = challenges.data.filter((c: { status: string }) => c.status === "active").length;
         setChallengeCount(active);
         setStreak(streakData.data.current_streak);
+        setMomentum(momentumData.data);
         // last 7 days
         const today = format(now, "yyyy-MM-dd");
         const last7 = monthly.data.days
@@ -106,6 +109,11 @@ export default function Dashboard() {
         <div className="absolute -right-2 bottom-2 w-16 h-16 rounded-full opacity-10"
           style={{ background: "white" }} />
       </div>
+
+      {/* Momentum */}
+      {momentum !== null && momentum.days_tracked > 0 && (
+        <MomentumCard momentum={momentum} />
+      )}
 
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-2.5">
@@ -188,6 +196,40 @@ function StatCard({ label, value, Icon, color }: {
       </div>
       <p className="text-[18px] font-black text-text-primary leading-none">{value}</p>
       <p className="text-[10px] text-text-tertiary mt-0.5 font-medium">{label}</p>
+    </div>
+  );
+}
+
+function MomentumCard({ momentum }: {
+  momentum: { score: number; trend: string; trend_delta: number; days_tracked: number }
+}) {
+  const { t } = useTranslation();
+  const trendKey = `momentum.trend_${momentum.trend}` as any;
+  const trendColor = momentum.trend === "up"
+    ? "var(--color-success)"
+    : momentum.trend === "down"
+    ? "var(--color-danger)"
+    : "var(--color-text-tertiary)";
+
+  return (
+    <div className="rounded-md px-4 py-3 flex items-center justify-between"
+      style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+      <div>
+        <p className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider">
+          {t("momentum.label")}
+        </p>
+        <p className="text-[11px] text-text-tertiary mt-0.5">
+          {t("momentum.days", { count: momentum.days_tracked })}
+        </p>
+      </div>
+      <div className="flex items-center gap-3">
+        <span className="text-[13px] font-bold" style={{ color: trendColor }}>
+          {t(trendKey)}{momentum.trend !== "stable" && momentum.trend_delta !== 0 ? ` ${Math.abs(momentum.trend_delta)}%` : ""}
+        </span>
+        <div className="text-right">
+          <p className="text-[28px] font-black text-text-primary leading-none">{momentum.score}%</p>
+        </div>
+      </div>
     </div>
   );
 }

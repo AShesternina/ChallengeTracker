@@ -23,6 +23,13 @@ class StreakReport(BaseModel):
     longest_streak: int
 
 
+class MomentumReport(BaseModel):
+    score: int          # 0–100 weighted completion rate over last 14 days
+    days_tracked: int   # days with tasks in last 14 days
+    trend: str          # "up" | "down" | "stable"
+    trend_delta: int    # percentage point change vs previous 7 days
+
+
 class ChallengeReport(BaseModel):
     challenge_instance_id: int
     challenge_title: str

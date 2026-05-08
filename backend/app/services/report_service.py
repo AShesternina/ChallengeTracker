@@ -7,8 +7,76 @@ from sqlalchemy.orm import selectinload
 
 from app.models.daily_task_instance import DailyTaskInstance, TaskStatus
 from app.models.challenge_instance import ChallengeInstance
-from app.schemas.reports import ChallengeReport, DayStats, MonthlyReport, StreakReport
+from app.schemas.reports import ChallengeReport, DayStats, MomentumReport, MonthlyReport, StreakReport
 from app.services.pause_utils import get_paused_dates, is_paused_on
+
+
+async def momentum_report(db: AsyncSession, user_id: int) -> MomentumReport:
+    """Weighted completion rate over last 14 days. Today = weight 14, 13 days ago = weight 1."""
+    from datetime import timedelta
+    today = date.today()
+    start = today - timedelta(days=13)
+
+    result = await db.execute(
+        select(DailyTaskInstance)
+        .where(
+            and_(
+                DailyTaskInstance.user_id == user_id,
+                DailyTaskInstance.date >= start,
+                DailyTaskInstance.date <= today,
+            )
+        )
+        .options(selectinload(DailyTaskInstance.challenge_instance))
+    )
+    tasks = list(result.scalars().all())
+
+    # Group by day, exclude paused
+    by_day: dict[date, list] = {}
+    for t in tasks:
+        if not is_paused_on(t.challenge_instance.pause_periods, t.date):
+            by_day.setdefault(t.date, []).append(t)
+
+    def _avg(day_list: list[date]) -> float | None:
+        weights, weighted = 0.0, 0.0
+        for d in day_list:
+            if d not in by_day:
+                continue
+            days_ago = (today - d).days
+            w = 14 - days_ago  # today=14, 13 days ago=1
+            day_tasks = by_day[d]
+            total = len(day_tasks)
+            if total == 0:
+                continue
+            rate = sum(1 for t in day_tasks if t.status == TaskStatus.completed) / total
+            weighted += w * rate
+            weights += w
+        return weighted / weights if weights else None
+
+    last_7 = [today - timedelta(days=i) for i in range(7)]
+    prev_7 = [today - timedelta(days=i) for i in range(7, 14)]
+
+    last_avg = _avg(last_7)
+    prev_avg = _avg(prev_7)
+
+    # Overall score using all 14 days
+    all_14 = [today - timedelta(days=i) for i in range(14)]
+    score_val = _avg(all_14)
+    score = round((score_val or 0) * 100)
+    days_tracked = sum(1 for d in all_14 if d in by_day and by_day[d])
+
+    # Trend
+    if last_avg is None or prev_avg is None:
+        trend, delta = "stable", 0
+    else:
+        delta = round((last_avg - prev_avg) * 100)
+        if delta >= 5:
+            trend = "up"
+        elif delta <= -5:
+            trend = "down"
+        else:
+            trend, delta = "stable", delta
+
+    return MomentumReport(score=score, days_tracked=days_tracked, trend=trend, trend_delta=delta)
 
 
 async def streak_report(db: AsyncSession, user_id: int) -> StreakReport:

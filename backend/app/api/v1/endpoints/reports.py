@@ -6,10 +6,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.user import User
-from app.schemas.reports import ChallengeReport, DayStats, MonthlyReport, StreakReport
-from app.services.report_service import challenge_report, daily_report, monthly_report, streak_report
+from app.schemas.reports import ChallengeReport, DayStats, MomentumReport, MonthlyReport, StreakReport
+from app.services.report_service import challenge_report, daily_report, momentum_report, monthly_report, streak_report
 
 router = APIRouter(prefix="/reports", tags=["reports"])
+
+
+@router.get("/momentum", response_model=MomentumReport)
+async def get_momentum(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    return await momentum_report(db, user.id)
 
 
 @router.get("/streak", response_model=StreakReport)

@@ -42,6 +42,13 @@ const es = {
     login_failed: "Error al iniciar sesión",
     register_failed: "Error al registrarse",
   },
+  momentum: {
+    label: "Impulso 14 días",
+    trend_up: "↑ Mejorando",
+    trend_down: "↓ Bajando",
+    trend_stable: "→ Estable",
+    days: "{{count}} días con tareas",
+  },
   dashboard: {
     greeting: "¡Hola, {{name}}! 👋",
     today_progress: "Progreso de hoy",

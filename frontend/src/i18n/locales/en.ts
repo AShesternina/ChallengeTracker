@@ -42,6 +42,13 @@ const en = {
     login_failed: "Login failed",
     register_failed: "Registration failed",
   },
+  momentum: {
+    label: "14-day momentum",
+    trend_up: "↑ Better",
+    trend_down: "↓ Lower",
+    trend_stable: "→ Stable",
+    days: "{{count}} days tracked",
+  },
   dashboard: {
     greeting: "Hey, {{name}}! 👋",
     today_progress: "Today's progress",
