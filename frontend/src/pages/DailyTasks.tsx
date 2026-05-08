@@ -140,11 +140,7 @@ export default function DailyTasks() {
         )}
 
         {pendingC.length === 0 && totalC > 0 && (
-          <div className="text-center py-8 rounded-md"
-            style={{ background: "var(--color-success-bg)", border: "1px solid var(--color-success)" }}>
-            <p className="text-3xl mb-2">✅</p>
-            <p className="font-bold text-success">{t("daily.all_done")}</p>
-          </div>
+          <CelebrationBanner message={t("daily.all_done")} />
         )}
 
         {pendingC.length > 0 && (
@@ -234,11 +230,7 @@ export default function DailyTasks() {
       {tab === "tasks" && (
         <>
           {pending.length === 0 && (summary?.total ?? 0) > 0 && (
-            <div className="text-center py-10 rounded-md"
-              style={{ background: "var(--color-success-bg)", border: "1px solid var(--color-success)" }}>
-              <p className="text-3xl mb-2">✅</p>
-              <p className="font-bold text-success">{t("daily.all_done")}</p>
-            </div>
+            <CelebrationBanner message={t("daily.all_done")} />
           )}
           {pending.length > 0 && (
             <div className="space-y-2">
@@ -281,6 +273,43 @@ export default function DailyTasks() {
         </div>
       )}
     </div>
+  );
+}
+
+function CelebrationBanner({ message }: { message: string }) {
+  const particles = ["🎉", "✨", "⭐", "💪", "🔥", "✨"];
+  return (
+    <>
+      <style>{`
+        @keyframes celebrateIn {
+          0%   { transform: scale(0.82) translateY(18px); opacity: 0; }
+          65%  { transform: scale(1.04) translateY(-4px); opacity: 1; }
+          100% { transform: scale(1)    translateY(0);    opacity: 1; }
+        }
+        @keyframes floatUp {
+          0%   { transform: translateY(0)    scale(1);   opacity: 0.95; }
+          100% { transform: translateY(-56px) scale(0.5); opacity: 0; }
+        }
+      `}</style>
+      <div className="relative">
+        {particles.map((p, i) => (
+          <span key={i} className="absolute text-xl pointer-events-none select-none"
+            style={{ left: `${6 + i * 16}%`, top: "10px",
+              animation: `floatUp 1.3s ease-out ${i * 0.11}s forwards` }}>
+            {p}
+          </span>
+        ))}
+        <div className="text-center py-8 rounded-md"
+          style={{
+            background: "var(--color-success-bg)",
+            border: "1px solid var(--color-success)",
+            animation: "celebrateIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards",
+          }}>
+          <p className="text-3xl mb-2">✅</p>
+          <p className="font-bold text-success">{message}</p>
+        </div>
+      </div>
+    </>
   );
 }
 
