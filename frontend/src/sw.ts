@@ -112,8 +112,6 @@ self.addEventListener("push", (event) => {
 
       return self.registration.showNotification(title, {
         body,
-        icon: "/icons/icon-192.png",
-        badge: "/icons/icon-192.png",
         data: { url: (data.url as string) || "/" },
       });
     })
