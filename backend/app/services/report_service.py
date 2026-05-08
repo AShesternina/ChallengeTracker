@@ -134,10 +134,9 @@ async def streak_report(db: AsyncSession, user_id: int, streak_protection: bool 
         if by_day[d]:
             current_streak += 1
         else:
-            if grace_available:
+            if grace_available and current_streak > 0:
                 grace_available = False
                 grace_day_used = True
-                # Don't increment, but continue backwards
             else:
                 break
         d = date.fromordinal(d.toordinal() - 1)
@@ -293,10 +292,7 @@ async def challenge_report(
     comebacks_count = len(comeback_durations)
     avg_comeback_days = round(sum(comeback_durations) / comebacks_count, 1) if comebacks_count else None
     if breaks_count == 0:
-        resilience_score = 100 if any(
-            all(t.status == TaskStatus.completed for t in by_day[d])
-            for d in by_day if d <= today and d not in paused_dates
-        ) else None
+        resilience_score = None  # no breaks → resilience not applicable
     else:
         resilience_score = round(comebacks_count / breaks_count * 100)
 
