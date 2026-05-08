@@ -70,7 +70,7 @@ export default function TaskCard({ task, onComplete, onSkip, onUndo, loading, sh
               {challengeTitle}
             </span>
           )}
-          <p className={`text-[14px] font-bold leading-tight ${isDone ? "line-through text-text-tertiary" : "text-text-primary"}`}>
+          <p className={`text-[14px] font-bold leading-tight ${isDone ? "text-text-secondary" : "text-text-primary"}`}>
             {challengeTitle}
           </p>
 
