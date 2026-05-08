@@ -168,6 +168,11 @@ const ru = {
     period: "Период",
     completion: "Выполнение",
     failed: "Не удалось загрузить отчёт",
+    recovery_title: "Аналитика восстановления",
+    resilience_score: "Устойчивость",
+    avg_comeback: "Среднее возвращение",
+    breaks: "Срывов",
+    comebacks: "Возвращений",
   },
   settings: {
     title: "Настройки",

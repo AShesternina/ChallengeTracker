@@ -18,6 +18,10 @@ interface Report {
   completion_rate: number;
   current_streak: number;
   longest_streak: number;
+  breaks_count: number;
+  comebacks_count: number;
+  avg_comeback_days: number | null;
+  resilience_score: number | null;
 }
 
 export default function ChallengeReport() {
@@ -108,6 +112,36 @@ export default function ChallengeReport() {
           bg={bg}
         />
       </div>
+
+      {/* Recovery analytics */}
+      {report.resilience_score !== null && (
+        <div className="rounded-md p-4 space-y-3"
+          style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+          <p className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider">
+            {t("challenge_report.recovery_title")}
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <InfoCell
+              label={t("challenge_report.resilience_score")}
+              value={`${report.resilience_score}%`}
+              color={report.resilience_score >= 75 ? "var(--color-success)" : report.resilience_score >= 40 ? "var(--color-warning)" : "var(--color-danger)"}
+            />
+            <InfoCell
+              label={t("challenge_report.avg_comeback")}
+              value={report.avg_comeback_days !== null ? `${report.avg_comeback_days} ${t("common.days")}` : "—"}
+            />
+            <InfoCell
+              label={t("challenge_report.breaks")}
+              value={String(report.breaks_count)}
+            />
+            <InfoCell
+              label={t("challenge_report.comebacks")}
+              value={String(report.comebacks_count)}
+              color={report.comebacks_count > 0 ? "var(--color-success)" : undefined}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Period */}
       <div className="rounded-md px-4 py-3"

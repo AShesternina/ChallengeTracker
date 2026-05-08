@@ -168,6 +168,11 @@ const en = {
     period: "Period",
     completion: "Completion",
     failed: "Failed to load report",
+    recovery_title: "Recovery Analytics",
+    resilience_score: "Resilience",
+    avg_comeback: "Avg comeback",
+    breaks: "Breaks",
+    comebacks: "Comebacks",
   },
   settings: {
     title: "Settings",

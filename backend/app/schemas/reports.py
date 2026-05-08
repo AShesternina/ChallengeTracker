@@ -41,3 +41,8 @@ class ChallengeReport(BaseModel):
     completion_rate: float
     current_streak: int
     longest_streak: int
+    # Recovery analytics
+    breaks_count: int
+    comebacks_count: int
+    avg_comeback_days: float | None   # None if no comebacks
+    resilience_score: int | None      # None if no data (< 2 days tracked)

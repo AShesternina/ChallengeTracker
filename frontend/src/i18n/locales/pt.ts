@@ -168,6 +168,11 @@ const pt = {
     period: "Período",
     completion: "Conclusão",
     failed: "Falha ao carregar relatório",
+    recovery_title: "Análise de recuperação",
+    resilience_score: "Resiliência",
+    avg_comeback: "Retorno médio",
+    breaks: "Quebras",
+    comebacks: "Retornos",
   },
   settings: {
     title: "Configurações",

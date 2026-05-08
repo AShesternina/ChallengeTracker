@@ -242,6 +242,38 @@ async def challenge_report(
 
     current_streak = streak
 
+    # ── Recovery analytics ────────────────────────────────────────────────────
+    breaks_count = 0
+    comeback_durations: list[int] = []
+    state = "none"  # "none" | "good" | "break"
+    break_start: date | None = None
+
+    for d in sorted(by_day.keys()):
+        if d > today or d in paused_dates:
+            continue
+        is_good = all(t.status == TaskStatus.completed for t in by_day[d])
+        if state == "none":
+            state = "good" if is_good else "none"
+        elif state == "good":
+            if not is_good:
+                state = "break"
+                breaks_count += 1
+                break_start = d
+        elif state == "break":
+            if is_good:
+                comeback_durations.append((d - break_start).days)  # type: ignore[operator]
+                state = "good"
+
+    comebacks_count = len(comeback_durations)
+    avg_comeback_days = round(sum(comeback_durations) / comebacks_count, 1) if comebacks_count else None
+    if breaks_count == 0:
+        resilience_score = 100 if any(
+            all(t.status == TaskStatus.completed for t in by_day[d])
+            for d in by_day if d <= today and d not in paused_dates
+        ) else None
+    else:
+        resilience_score = round(comebacks_count / breaks_count * 100)
+
     return ChallengeReport(
         challenge_instance_id=instance_id,
         challenge_title=instance.challenge.title,
@@ -253,4 +285,8 @@ async def challenge_report(
         completion_rate=round(completed / total, 2) if total else 0.0,
         current_streak=current_streak,
         longest_streak=longest_streak,
+        breaks_count=breaks_count,
+        comebacks_count=comebacks_count,
+        avg_comeback_days=avg_comeback_days,
+        resilience_score=resilience_score,
     )
