@@ -50,6 +50,8 @@ async def update_me(
         user.notification_evening_time = data.notification_evening_time
     if data.notify_task_reminders is not None:
         user.notify_task_reminders = data.notify_task_reminders
+    if data.streak_protection is not None:
+        user.streak_protection = data.streak_protection
     await db.flush()
     return user
 

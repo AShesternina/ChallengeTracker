@@ -220,6 +220,26 @@ async def test_update_notify_task_reminders(client: AsyncClient):
     assert r.json()["notify_task_reminders"] is True
 
 
+async def test_user_has_streak_protection_enabled_by_default(client: AsyncClient):
+    """New user has streak_protection=True by default."""
+    tokens = await register_and_login(client)
+    r = await client.get("/api/v1/users/me", headers=auth_headers(tokens))
+    data = r.json()
+    assert "streak_protection" in data
+    assert data["streak_protection"] is True
+
+
+async def test_update_streak_protection(client: AsyncClient):
+    """PATCH /users/me with streak_protection=False persists."""
+    tokens = await register_and_login(client)
+    headers = auth_headers(tokens)
+    r = await client.patch("/api/v1/users/me", json={"streak_protection": False}, headers=headers)
+    assert r.status_code == 200
+    assert r.json()["streak_protection"] is False
+    r2 = await client.get("/api/v1/users/me", headers=headers)
+    assert r2.json()["streak_protection"] is False
+
+
 async def test_user_has_telegram_chat_id_null(client: AsyncClient):
     """New user has telegram_chat_id=null."""
     tokens = await register_and_login(client)

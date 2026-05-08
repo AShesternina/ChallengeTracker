@@ -155,6 +155,7 @@ async def test_streak_no_tasks(client: AsyncClient):
     data = r.json()
     assert data["current_streak"] == 0
     assert data["longest_streak"] == 0
+    assert data["grace_day_used"] is False
 
 
 async def test_streak_after_completion(client: AsyncClient):
@@ -167,6 +168,7 @@ async def test_streak_after_completion(client: AsyncClient):
     data = r.json()
     assert data["current_streak"] == 1
     assert data["longest_streak"] == 1
+    assert data["grace_day_used"] is False
 
 
 async def test_streak_reset_after_undo(client: AsyncClient):
@@ -176,7 +178,27 @@ async def test_streak_reset_after_undo(client: AsyncClient):
     await client.post(f"/api/v1/tasks/{task['id']}/reset", headers=headers)
 
     r = await client.get("/api/v1/reports/streak", headers=headers)
-    assert r.json()["current_streak"] == 0
+    data = r.json()
+    assert data["current_streak"] == 0
+    assert data["grace_day_used"] is False
+
+
+async def test_streak_protection_default_true(client: AsyncClient):
+    """New user has streak_protection=True, reflected in /users/me."""
+    tokens = await register_and_login(client)
+    r = await client.get("/api/v1/users/me", headers=auth_headers(tokens))
+    assert r.json()["streak_protection"] is True
+
+
+async def test_streak_protection_disable_persists(client: AsyncClient):
+    """Disabling streak_protection persists and affects subsequent /users/me."""
+    tokens = await register_and_login(client)
+    headers = auth_headers(tokens)
+    r = await client.patch("/api/v1/users/me", json={"streak_protection": False}, headers=headers)
+    assert r.status_code == 200
+    assert r.json()["streak_protection"] is False
+    r2 = await client.get("/api/v1/users/me", headers=headers)
+    assert r2.json()["streak_protection"] is False
 
 
 # ── sequence_number / total_count in multi-task challenges ────────────────────

@@ -97,6 +97,58 @@ async def test_challenge_report_other_user(client: AsyncClient):
     assert r.status_code == 404
 
 
+async def test_streak_report_includes_grace_day_used(client: AsyncClient):
+    """StreakReport includes grace_day_used=False when there are no gaps."""
+    tokens, _ = await _setup_with_completed_task(client)
+    r = await client.get("/api/v1/reports/streak", headers=auth_headers(tokens))
+    assert r.status_code == 200
+    data = r.json()
+    assert "grace_day_used" in data
+    assert data["grace_day_used"] is False
+
+
+async def test_weekday_patterns_empty(client: AsyncClient):
+    """New user with no tasks gets 7 zeros."""
+    tokens = await register_and_login(client)
+    r = await client.get("/api/v1/reports/weekday-patterns", headers=auth_headers(tokens))
+    assert r.status_code == 200
+    data = r.json()
+    assert len(data["rates"]) == 7
+    assert len(data["totals"]) == 7
+    assert len(data["completed"]) == 7
+    assert all(v == 0.0 for v in data["rates"])
+    assert all(v == 0 for v in data["totals"])
+
+
+async def test_weekday_patterns_after_completion(client: AsyncClient):
+    """After completing a task today, the correct weekday slot has rate=1.0."""
+    tokens, _ = await _setup_with_completed_task(client)
+    r = await client.get("/api/v1/reports/weekday-patterns", headers=auth_headers(tokens))
+    assert r.status_code == 200
+    data = r.json()
+    today_wd = date.today().weekday()  # 0=Mon, 6=Sun
+    assert data["rates"][today_wd] == 1.0
+    assert data["totals"][today_wd] == 1
+    assert data["completed"][today_wd] == 1
+
+
+async def test_challenge_report_has_recovery_analytics_fields(client: AsyncClient):
+    """ChallengeReport response includes recovery analytics fields."""
+    tokens, instance_id = await _setup_with_completed_task(client)
+    r = await client.get(f"/api/v1/reports/challenge/{instance_id}", headers=auth_headers(tokens))
+    assert r.status_code == 200
+    data = r.json()
+    assert "breaks_count" in data
+    assert "comebacks_count" in data
+    assert "avg_comeback_days" in data
+    assert "resilience_score" in data
+    # Single completed day: no breaks, no comebacks
+    assert data["breaks_count"] == 0
+    assert data["comebacks_count"] == 0
+    assert data["avg_comeback_days"] is None
+    assert data["resilience_score"] is None
+
+
 async def test_daily_report_partial_completion(client: AsyncClient):
     """Daily report with 1 completed and 1 skipped task should have completion_rate=0.5."""
     tokens = await register_and_login(client)
