@@ -67,6 +67,9 @@ export default function CreateChallenge() {
     setUiType(tpl.type === "all_day" ? "all_day" : "timed");
     setDuration(tpl.default_duration_days);
     setTasksPerDay(tpl.tasks_per_day);
+    setTaskTimes(Array.from({ length: tpl.tasks_per_day }, (_, i) =>
+      String(7 + i).padStart(2, "0") + ":00"
+    ));
     setStep("configure");
   };
 
