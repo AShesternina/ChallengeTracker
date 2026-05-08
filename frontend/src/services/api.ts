@@ -59,6 +59,7 @@ export const userApi = {
     onboarding_completed?: boolean;
     notification_morning_time?: string;
     notification_evening_time?: string;
+    notify_task_reminders?: boolean;
   }) => api.patch("/users/me", data),
   deleteMe: () => api.delete("/users/me"),
 };

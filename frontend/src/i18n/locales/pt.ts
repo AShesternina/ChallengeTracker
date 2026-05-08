@@ -175,6 +175,8 @@ const pt = {
     notif_times: "Horários de notificação",
     morning_notification: "🌅 Lembrete matinal",
     evening_notification: "🌙 Relatório noturno",
+    task_reminders: "⏰ Lembrar no horário da tarefa",
+    task_reminders_hint: "Receba uma notificação quando cada tarefa estiver no horário",
     language: "Idioma",
     appearance: "Aparência",
     dark_mode: "Modo escuro",

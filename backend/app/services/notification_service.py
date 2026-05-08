@@ -93,6 +93,15 @@ async def send_morning_summary(db: AsyncSession, user: User, total_tasks: int) -
     await dispatch(db, user, NotificationType.morning_summary, push_data, email_title, email_body)
 
 
+async def send_task_reminder(db: AsyncSession, user: User, task_names: list[str]) -> None:
+    tasks_str = ", ".join(task_names)
+    count = len(task_names)
+    push_data = {"type": "task_reminder", "tasks": tasks_str, "count": count, "url": "/daily"}
+    email_title = f"⏰ {count} task(s) now"
+    email_body = tasks_str
+    await dispatch(db, user, NotificationType.task_reminder, push_data, email_title, email_body)
+
+
 async def send_daily_report(db: AsyncSession, user: User, completed: int, total: int) -> None:
     rate = round(completed / total * 100) if total else 0
     push_data = {"type": "daily_report", "completed": completed, "total": total, "rate": rate, "url": "/reports"}

@@ -133,6 +133,87 @@ def send_daily_reports(self):
     _run(_inner())
 
 
+@celery_app.task(name="app.workers.tasks.send_task_reminders", bind=True, max_retries=3)
+def send_task_reminders(self):
+    async def _inner():
+        import pytz
+        from sqlalchemy import select, and_
+        from app.core.database import AsyncSessionLocal
+        from app.models.user import User
+        from app.models.daily_task_instance import DailyTaskInstance, TaskStatus
+        from app.models.challenge_instance import ChallengeInstance, InstanceStatus
+        from app.models.challenge import Challenge
+        from app.models.notification_log import NotificationLog, NotificationType, NotificationStatus
+        from app.services.notification_service import send_task_reminder
+
+        now_utc = datetime.now(dt_timezone.utc)
+
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(
+                select(User).where(User.is_active == True, User.notify_task_reminders == True)
+            )
+            users = list(result.scalars().all())
+
+            for user in users:
+                try:
+                    user_tz = pytz.timezone(user.timezone)
+                except Exception:
+                    user_tz = pytz.UTC
+
+                user_now = now_utc.astimezone(user_tz)
+                today_local = user_now.date()
+                current_minutes = user_now.hour * 60 + user_now.minute
+
+                # Dedup: skip if task_reminder already sent in last 4 min
+                four_min_ago = now_utc - timedelta(minutes=4)
+                already = (await db.execute(
+                    select(NotificationLog).where(
+                        and_(
+                            NotificationLog.user_id == user.id,
+                            NotificationLog.type == NotificationType.task_reminder,
+                            NotificationLog.status == NotificationStatus.sent,
+                            NotificationLog.created_at >= four_min_ago,
+                        )
+                    )
+                )).scalar_one_or_none()
+                if already:
+                    continue
+
+                # Get pending timed tasks for today from active challenges
+                rows = (await db.execute(
+                    select(DailyTaskInstance, Challenge.title.label("ctitle"))
+                    .join(ChallengeInstance, DailyTaskInstance.challenge_instance_id == ChallengeInstance.id)
+                    .join(Challenge, ChallengeInstance.challenge_id == Challenge.id)
+                    .where(
+                        and_(
+                            DailyTaskInstance.user_id == user.id,
+                            DailyTaskInstance.date == today_local,
+                            DailyTaskInstance.status == TaskStatus.pending,
+                            DailyTaskInstance.scheduled_time.isnot(None),
+                            ChallengeInstance.status == InstanceStatus.active,
+                        )
+                    )
+                )).all()
+
+                # Filter by ±2 min window in user's local time
+                due_names = []
+                for task, title in rows:
+                    t = task.scheduled_time
+                    t_min = t.hour * 60 + t.minute
+                    if abs(t_min - current_minutes) <= 2:
+                        due_names.append(title)
+
+                if not due_names:
+                    continue
+
+                # Deduplicate challenge names (multi-tasks can share a title)
+                unique_names = list(dict.fromkeys(due_names))
+                await send_task_reminder(db, user, unique_names)
+                await db.commit()
+
+    _run(_inner())
+
+
 @celery_app.task(name="app.workers.tasks.complete_expired_challenges", bind=True, max_retries=3)
 def complete_expired_challenges_task(self):
     async def _inner():

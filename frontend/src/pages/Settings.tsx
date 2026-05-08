@@ -35,6 +35,7 @@ export default function Settings() {
   const [deviceId, setDeviceId] = useState<number | null>(null);
   const [morningTime, setMorningTime] = useState(user?.notification_morning_time || "08:00");
   const [eveningTime, setEveningTime] = useState(user?.notification_evening_time || "21:00");
+  const [taskReminders, setTaskReminders] = useState(user?.notify_task_reminders ?? false);
   const [savingTimes, setSavingTimes] = useState(false);
   const [savedTimes, setSavedTimes] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -241,6 +242,19 @@ export default function Settings() {
                   style={{ background: savedTimes ? "var(--color-success)" : "var(--color-accent)" }}>
                   {savingTimes ? t("common.saving") : savedTimes ? t("common.saved") : t("common.save")}
                 </button>
+
+                <div className="flex items-center justify-between pt-1">
+                  <div>
+                    <p className="text-[13px] font-semibold text-text-primary">{t("settings.task_reminders")}</p>
+                    <p className="text-[11px] text-text-tertiary mt-0.5">{t("settings.task_reminders_hint")}</p>
+                  </div>
+                  <Toggle enabled={taskReminders} loading={false} onToggle={async () => {
+                    const next = !taskReminders;
+                    setTaskReminders(next);
+                    const { data } = await userApi.update({ notify_task_reminders: next });
+                    setUser(data);
+                  }} />
+                </div>
               </div>
             )}
           </div>

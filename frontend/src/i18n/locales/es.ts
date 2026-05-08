@@ -175,6 +175,8 @@ const es = {
     notif_times: "Horarios de notificación",
     morning_notification: "🌅 Recordatorio matutino",
     evening_notification: "🌙 Informe vespertino",
+    task_reminders: "⏰ Recordar en el horario de la tarea",
+    task_reminders_hint: "Recibe una notificación cuando sea hora de cada tarea",
     language: "Idioma",
     appearance: "Apariencia",
     dark_mode: "Modo oscuro",

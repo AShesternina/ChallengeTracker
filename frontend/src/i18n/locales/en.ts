@@ -175,6 +175,8 @@ const en = {
     notif_times: "Notification times",
     morning_notification: "🌅 Morning reminder",
     evening_notification: "🌙 Evening report",
+    task_reminders: "⏰ Remind at task time",
+    task_reminders_hint: "Get notified when each timed task is due",
     language: "Language",
     appearance: "Appearance",
     dark_mode: "Dark mode",

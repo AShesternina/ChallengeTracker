@@ -11,6 +11,7 @@ class UserOut(BaseModel):
     onboarding_completed: bool
     notification_morning_time: str | None
     notification_evening_time: str | None
+    notify_task_reminders: bool
     is_active: bool
     is_verified: bool
     created_at: datetime
@@ -24,3 +25,4 @@ class UserUpdateRequest(BaseModel):
     onboarding_completed: bool | None = None
     notification_morning_time: str | None = None
     notification_evening_time: str | None = None
+    notify_task_reminders: bool | None = None

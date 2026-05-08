@@ -10,6 +10,7 @@ export interface User {
   onboarding_completed: boolean;
   notification_morning_time: string | null;
   notification_evening_time: string | null;
+  notify_task_reminders: boolean;
   is_active: boolean;
   is_verified: boolean;
 }

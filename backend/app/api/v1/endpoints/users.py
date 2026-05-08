@@ -48,6 +48,8 @@ async def update_me(
         if not _TIME_RE.match(data.notification_evening_time):
             raise HTTPException(status_code=400, detail="Invalid time format, use HH:MM")
         user.notification_evening_time = data.notification_evening_time
+    if data.notify_task_reminders is not None:
+        user.notify_task_reminders = data.notify_task_reminders
     await db.flush()
     return user
 

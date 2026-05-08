@@ -175,6 +175,8 @@ const ru = {
     notif_times: "Время уведомлений",
     morning_notification: "🌅 Утреннее напоминание",
     evening_notification: "🌙 Вечерний отчёт",
+    task_reminders: "⏰ Напоминать в время задачи",
+    task_reminders_hint: "Уведомление в момент когда нужно выполнить задачу",
     language: "Язык",
     appearance: "Внешний вид",
     dark_mode: "Тёмная тема",

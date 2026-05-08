@@ -32,6 +32,12 @@ const TRANSLATIONS: Record<string, Record<Lang, NotificationStrings>> = {
     es: { title: "Informe diario 📊",    body: "Completaste {completed}/{total} tareas hoy ({rate}%)." },
     pt: { title: "Relatório diário 📊",  body: "Você concluiu {completed}/{total} tarefas hoje ({rate}%)." },
   },
+  task_reminder: {
+    en: { title: "Time for your tasks! ⏰", body: "{tasks}" },
+    ru: { title: "Время задач! ⏰",         body: "{tasks}" },
+    es: { title: "¡Hora de las tareas! ⏰", body: "{tasks}" },
+    pt: { title: "Hora das tarefas! ⏰",    body: "{tasks}" },
+  },
 };
 
 const FALLBACK_LANG: Lang = "en";
