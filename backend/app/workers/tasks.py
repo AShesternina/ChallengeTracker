@@ -47,27 +47,23 @@ def send_morning_summaries(self):
                 if not _is_within_window(user_now.strftime("%H:%M"), pref):
                     continue
 
-                # Deduplicate: skip if already sent today in user's local date
-                today_local = user_now.date()
-                day_start = user_tz.localize(
-                    datetime.combine(today_local, datetime.min.time())
-                ).astimezone(dt_timezone.utc)
-                day_end = day_start + timedelta(days=1)
-
+                # Deduplicate: skip if already sent in last 30 min
+                # (allows re-send if user changed their preferred time today)
+                thirty_min_ago = now_utc - timedelta(minutes=30)
                 already = (await db.execute(
                     select(NotificationLog).where(
                         and_(
                             NotificationLog.user_id == user.id,
                             NotificationLog.type == NotificationType.morning_summary,
                             NotificationLog.status == NotificationStatus.sent,
-                            NotificationLog.created_at >= day_start,
-                            NotificationLog.created_at < day_end,
+                            NotificationLog.created_at >= thirty_min_ago,
                         )
                     )
                 )).scalar_one_or_none()
                 if already:
                     continue
 
+                today_local = user_now.date()
                 summary = await get_daily_tasks(db, user.id, today_local)
                 if summary.total > 0:
                     await send_morning_summary(db, user, summary.total)
@@ -105,26 +101,22 @@ def send_daily_reports(self):
                 if not _is_within_window(user_now.strftime("%H:%M"), pref):
                     continue
 
-                today_local = user_now.date()
-                day_start = user_tz.localize(
-                    datetime.combine(today_local, datetime.min.time())
-                ).astimezone(dt_timezone.utc)
-                day_end = day_start + timedelta(days=1)
-
+                # Deduplicate: skip if already sent in last 30 min
+                thirty_min_ago = now_utc - timedelta(minutes=30)
                 already = (await db.execute(
                     select(NotificationLog).where(
                         and_(
                             NotificationLog.user_id == user.id,
                             NotificationLog.type == NotificationType.daily_report,
                             NotificationLog.status == NotificationStatus.sent,
-                            NotificationLog.created_at >= day_start,
-                            NotificationLog.created_at < day_end,
+                            NotificationLog.created_at >= thirty_min_ago,
                         )
                     )
                 )).scalar_one_or_none()
                 if already:
                     continue
 
+                today_local = user_now.date()
                 stats = await daily_report(db, user.id, today_local)
                 if stats.total > 0:
                     await send_daily_report(db, user, stats.completed, stats.total)
