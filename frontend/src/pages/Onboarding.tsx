@@ -56,7 +56,6 @@ export default function OnboardingPage() {
 
   const markDone = async () => {
     // Update local store immediately — prevents RequireOnboarded redirect loop
-    // even if the API call is slow or fails
     if (user) setUser({ ...user, onboarding_completed: true });
     try {
       const { data } = await userApi.update({ onboarding_completed: true });
@@ -76,6 +75,18 @@ export default function OnboardingPage() {
     setUiType(tpl.type === "all_day" ? "all_day" : "timed");
     setDuration(tpl.default_duration_days);
     setTasksPerDay(tpl.tasks_per_day);
+    setTaskTimes(Array.from({ length: tpl.tasks_per_day }, (_, i) => `0${7 + i}:00`.slice(-5)));
+    setStep("configure");
+  };
+
+  const handleCreateOwn = () => {
+    setSelectedTemplate(null);
+    setTitle("");
+    setDisplayTitle("");
+    setUiType("timed");
+    setDuration(30);
+    setTasksPerDay(1);
+    setTaskTimes(["07:00"]);
     setStep("configure");
   };
 
@@ -103,11 +114,12 @@ export default function OnboardingPage() {
     }
   };
 
+  // ── Welcome ────────────────────────────────────────────────────────────────
   if (step === "welcome") {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12"
         style={{ background: "var(--color-bg)" }}>
-        <div className="w-full max-w-sm text-center">
+        <div className="w-full max-w-md text-center">
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl mb-6"
             style={{ background: "linear-gradient(135deg, var(--color-accent), #2563eb)" }}>
             <span className="text-4xl">⚡</span>
@@ -115,9 +127,19 @@ export default function OnboardingPage() {
           <h1 className="text-[28px] font-black text-text-primary mb-3" style={{ letterSpacing: "-0.5px" }}>
             {t("onboarding.welcome_title")}
           </h1>
-          <p className="text-[15px] text-text-secondary leading-relaxed mb-10">
+          <p className="text-[15px] text-text-secondary leading-relaxed mb-8">
             {t("onboarding.welcome_body")}
           </p>
+
+          <div className="text-left space-y-3 mb-10 px-2">
+            {(["welcome_f1", "welcome_f2", "welcome_f3"] as const).map((key) => (
+              <div key={key} className="flex items-start gap-3 px-4 py-3 rounded-xl"
+                style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+                <span className="text-[15px] leading-snug text-text-primary">{t(`onboarding.${key}`)}</span>
+              </div>
+            ))}
+          </div>
+
           <StepDots current={0} total={3} />
           <button onClick={() => setStep("pick")}
             className="w-full mt-8 py-3.5 rounded-md text-[15px] font-bold text-white transition-opacity hover:opacity-90"
@@ -129,25 +151,27 @@ export default function OnboardingPage() {
     );
   }
 
+  // ── Pick template ──────────────────────────────────────────────────────────
   if (step === "pick") {
     const groups = groupTemplatesByCategory(templates, i18n.language);
     return (
       <div className="min-h-screen px-4 py-8" style={{ background: "var(--color-bg)" }}>
-        <div className="max-w-sm mx-auto">
+        <div className="max-w-3xl mx-auto">
           <h2 className="text-[22px] font-black text-text-primary mb-1" style={{ letterSpacing: "-0.4px" }}>
             {t("onboarding.pick_title")}
           </h2>
-          <p className="text-[13px] text-text-tertiary mb-6">
+          <p className="text-[13px] text-text-tertiary mb-5">
             {t("onboarding.pick_subtitle")}
           </p>
           <StepDots current={1} total={3} />
-          <div className="mt-6 space-y-4">
+
+          <div className="mt-6 space-y-5">
             {groups.map(({ category, items }) => (
               <div key={category}>
                 <p className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider mb-2">
                   {category}
                 </p>
-                <div className="space-y-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {items.map((tpl) => (
                     <TemplateCard key={tpl.id} tpl={tpl} dark={dark} onClick={() => handlePickTemplate(tpl)} />
                   ))}
@@ -155,12 +179,24 @@ export default function OnboardingPage() {
               </div>
             ))}
           </div>
+
+          <div className="mt-6 pt-5" style={{ borderTop: "1px solid var(--color-border)" }}>
+            <button onClick={handleCreateOwn}
+              className="w-full py-3.5 rounded-md text-[14px] font-bold transition-colors"
+              style={{
+                background: "var(--color-surface)",
+                border: "1.5px dashed var(--color-border-strong)",
+                color: "var(--color-accent)",
+              }}>
+              {t("onboarding.pick_custom")}
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
-  // configure step
+  // ── Configure ──────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen px-4 py-8" style={{ background: "var(--color-bg)" }}>
       <div className="max-w-sm mx-auto">
