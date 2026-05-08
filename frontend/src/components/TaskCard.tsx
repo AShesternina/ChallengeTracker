@@ -47,15 +47,15 @@ export default function TaskCard({ task, onComplete, onSkip, onUndo, loading, sh
 
   return (
     <div
-      className="rounded-lg p-3.5 transition-all duration-200"
+      className={`rounded-lg transition-all duration-200 ${readOnly ? "p-2.5" : "p-3.5"}`}
       style={{
         background: cardBg,
         border: `1.5px solid ${isDone ? "var(--color-success-bg)" : isSkipped ? "var(--color-border)" : isInactive ? "var(--color-border)" : `${accent}35`}`,
         opacity: isSkipped || isInactive ? 0.55 : 1,
       }}
     >
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-[10px] flex items-center justify-center shrink-0 text-lg"
+      <div className={`flex items-center ${readOnly ? "gap-2" : "gap-3"}`}>
+        <div className={`${readOnly ? "w-8 h-8 rounded-md text-sm" : "w-10 h-10 rounded-[10px] text-lg"} flex items-center justify-center shrink-0`}
           style={{ background: isDone ? "var(--color-success-bg)" : bg }}>
           {isDone
             ? <CheckIcon size={18} className="text-success" strokeWidth={2.5} />
