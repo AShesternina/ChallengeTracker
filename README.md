@@ -210,12 +210,13 @@ DELETE /api/v1/notifications/devices/{id}
 
 ## Celery расписание (UTC)
 
-| Задача | Время |
-|--------|-------|
-| Генерация дневных задач | 00:05 |
-| Автозавершение истёкших челленджей | 00:10 |
-| Утреннее уведомление | 08:00 |
-| Вечерний отчёт | 21:00 |
+| Задача | Расписание | Примечание |
+|--------|-----------|------------|
+| Генерация дневных задач | 00:05 | фиксировано |
+| Автозавершение истёкших челленджей | 00:10 | фиксировано |
+| Утреннее уведомление | каждые 5 мин | фильтр по `notification_morning_time` ±4 мин в таймзоне юзера |
+| Вечерний отчёт | каждые 5 мин | фильтр по `notification_evening_time` ±4 мин |
+| Напоминания по задачам | каждые 5 мин | только если `notify_task_reminders=true`, ±2 мин от scheduled_time |
 
 ---
 
@@ -230,6 +231,8 @@ DELETE /api/v1/notifications/devices/{id}
 | `SECRET_KEY` | JWT signing key (менять в production!) |
 | `VAPID_PRIVATE_KEY` / `VAPID_PUBLIC_KEY` | Web Push (пусто → mock) |
 | `SENDGRID_API_KEY` | Email (пусто → console mock) |
+| `TELEGRAM_BOT_TOKEN` | Telegram Bot API токен (пусто → mock) |
+| `TELEGRAM_BOT_USERNAME` | Username бота без @ (для генерации ссылок) |
 | `CORS_ORIGINS` | JSON-список разрешённых origins |
 
 ---
@@ -271,4 +274,4 @@ docker exec challengetracker-backend-1 bash -c \
   "pip install -r requirements-test.txt -q && pytest tests/ -v --tb=short --cov=app --cov-report=term-missing"
 ```
 
-81 тест: test_auth (25) · test_challenges (15) · test_daily (11) · test_reports (8) · test_new_features (22)
+95 тестов: test_auth (32) · test_challenges (15) · test_daily (11) · test_reports (8) · test_new_features (22) · test_telegram (7)

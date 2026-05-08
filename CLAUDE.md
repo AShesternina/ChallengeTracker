@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Queue / Cache | Redis 7 |
 | Frontend | React 18, TypeScript, Vite, Tailwind CSS 3, PWA (vite-plugin-pwa) |
 | i18n | i18next + react-i18next (EN/RU/ES/PT, language stored in `User.language`) |
-| Notifications | Web Push data-only payload, SW translates via IndexedDB; SendGrid email fallback |
+| Notifications | Web Push (data-only, SW translates) + Telegram Bot; SendGrid email fallback |
 
 ## Running the project
 
@@ -69,7 +69,8 @@ backend/app/
     pause_utils.py        is_paused_on(), get_paused_dates() — shared pause logic, no circular imports
     language_service.py   detect_language(request) — IP geo + Accept-Language fallback
     notifications_i18n.py translated strings for email fallback (EN/RU/ES/PT)
-  api/v1/      FastAPI routers (auth, challenges, daily, reports, notifications, users)
+    telegram_service.py   send_telegram(chat_id, text) via Bot API (httpx); mock if token not set
+  api/v1/      FastAPI routers (auth, challenges, daily, reports, notifications, users, telegram)
   workers/     celery_app.py (beat schedule), tasks.py (sync wrappers calling async services)
 ```
 
@@ -82,8 +83,8 @@ frontend/src/
   components/    Layout, TaskCard, ProgressRing, Icons, PasswordInput, ConfirmModal
   pages/         Dashboard, DailyTasks, Challenges, CreateChallenge, ChallengeDetail,
                  ChallengeReport, Reports, Settings, Login, Register, Onboarding
-  store/         authStore (user + tokens + language + onboarding_completed), taskStore (daily summary), themeStore (dark mode)
-  services/      api.ts (Axios + JWT auto-refresh), push.ts (Web Push), sw-lang.ts (SW language sync)
+  store/         authStore (user + tokens + language + onboarding_completed + notification prefs + telegram_chat_id), taskStore, themeStore
+  services/      api.ts (Axios + JWT auto-refresh), push.ts (Web Push, returns device ID), sw-lang.ts (SW language sync), telegramApi
   utils/         category.ts (category detection from title), templateTranslations.ts (16 templates × 4 langs)
   i18n/locales/  en.ts, ru.ts, es.ts, pt.ts
   sw.ts          Service Worker: precache + push handler (data-only, translates via IndexedDB) + message handler
@@ -125,8 +126,11 @@ POST /api/v1/auth/refresh
 POST /api/v1/auth/logout                           # revokes refresh token in Redis
 
 GET  /api/v1/users/me
-PATCH /api/v1/users/me                              # accepts timezone, language, onboarding_completed
+PATCH /api/v1/users/me                              # accepts timezone, language, onboarding_completed, notification_morning_time, notification_evening_time, notify_task_reminders
 DELETE /api/v1/users/me                             # hard delete user + all data (cascades)
+POST /api/v1/users/me/telegram/generate-code        # generates one-time linking code, returns {code, bot_url}
+DELETE /api/v1/users/me/telegram                    # unlink Telegram account
+POST /api/v1/telegram/webhook                       # Telegram Bot webhook (receives /start <code>)
 
 GET  /api/v1/challenges/templates
 POST /api/v1/challenges
@@ -195,7 +199,7 @@ docker exec challengetracker-backend-1 alembic upgrade head
 docker exec challengetracker-backend-1 alembic revision --autogenerate -m "description"
 ```
 
-Migrations: `0001_initial` → `0002_seed_templates` → `0003_update_templates` → `0004_add_templates` → `0005_add_pause_periods` → `0006_add_user_language` → `0007_add_source_template_id` → `0008_remove_cancelled_status` → `0009_add_onboarding_completed`
+Migrations: `0001_initial` → ... → `0009_add_onboarding_completed` → `0010_add_notification_times` → `0011_add_notify_task_reminders` → `0012_add_telegram`
 
 PostgreSQL enums require explicit `CAST(:value AS enumtype)` — do NOT use `op.bulk_insert()` with enum columns.
 
@@ -226,22 +230,50 @@ Each has unique accent color and icon used across cards, progress bars, badges.
 
 Template name/description translations live in `utils/templateTranslations.ts`.
 
-## Notification dispatch (Variant B — data-only push)
+## Notification dispatch
 
-`notification_service.dispatch()` — push-first, email fallback:
-1. Registered push devices → **data-only Web Push** `{type, …data, url}` — no title/body in payload
-2. Service Worker receives data → reads language from IndexedDB → translates using built-in `TRANSLATIONS` dict → calls `showNotification()`
-3. Email fallback → `notifications_i18n.py` provides translated title+body by `user.language`
+`notification_service.dispatch()` — sends to all available channels:
+1. **Push** — all registered devices (`UserDevice`). Data-only payload `{type, …data, url}`. SW translates using `TRANSLATIONS` dict in `sw.ts`.
+2. **Telegram** — if `user.telegram_chat_id` is set, sends `<b>title</b>\nbody` via Bot API.
+3. **Email fallback** — only if both push and Telegram unavailable/failed. `notifications_i18n.py` provides translated text.
+
+**Dedup:** morning/evening Celery tasks skip send if same type was successfully sent in last 30 min. Task reminders skip if sent in last 4 min.
+
+**Notification types in `sw.ts` TRANSLATIONS:** `morning_summary`, `daily_report`, `task_reminder`
 
 **Adding a new push notification type:**
 - Backend: add `push_data = {"type": "my_type", ...}` and call `dispatch()`
-- Service Worker `sw.ts`: add `my_type` entry to the `TRANSLATIONS` object (all 4 languages)
-- No other changes needed — the SW handles display automatically
+- `sw.ts`: add `my_type` entry to the `TRANSLATIONS` object (all 4 languages)
+- No other changes needed
+
+**Push subscription lifecycle:**
+- `subscribeToPush()` returns device ID — store it in state for clean unsubscribe
+- On disable: call `sub.unsubscribe()` + `DELETE /notifications/devices/{id}`
+
+## Telegram bot
+
+User links Telegram account via Settings → "Connect Telegram":
+1. `POST /users/me/telegram/generate-code` → one-time code + `bot_url` (`t.me/BotName?start=<code>`)
+2. User opens link → presses Start in bot → webhook receives `/start <code>`
+3. `POST /telegram/webhook` finds user by `telegram_linking_code`, sets `telegram_chat_id`, clears code
+4. Frontend polls `/users/me` every 3s until `telegram_chat_id` appears
+
+`User.telegram_chat_id` (BigInteger) — null if not linked. `User.telegram_linking_code` (String 20) — cleared after use.
+
+**Note:** Telegram Bot API (`api.telegram.org`) may be unreachable from Russian VPS — sending fails silently (logged), linking webhook still works.
 
 **Adding a new language to notifications:**
 - `sw.ts` `TRANSLATIONS`: add language code to each notification type entry
 - `notifications_i18n.py`: add same language to `_MORNING_SUMMARY` and `_DAILY_REPORT`
 - `language_service.py`: add country codes and add to `SUPPORTED_LANGUAGES`
+
+## Push notification settings (User model)
+
+- `notification_morning_time` (String "HH:MM", default "08:00") — morning summary time in user's timezone
+- `notification_evening_time` (String "HH:MM", default "21:00") — evening report time in user's timezone
+- `notify_task_reminders` (bool, default false) — send push at each timed task's scheduled_time (±2 min)
+
+Celery morning/evening tasks run every 5 min and filter users whose local time matches their preference (±4 min window). Task reminders also run every 5 min.
 
 ## Multilanguage system
 
@@ -263,25 +295,27 @@ Use `const { t } = useTranslation()` and `t("section.key")`. Never use inline `i
 
 ## Celery beat schedule (UTC)
 
-| Task | Time |
-|------|------|
-| Generate daily tasks for all users | 00:05 |
-| Auto-complete expired challenges | 00:10 |
-| Morning summary notification | 08:00 |
-| Daily report notification | 21:00 |
+| Task | Schedule | Notes |
+|------|----------|-------|
+| Generate daily tasks for all users | 00:05 | fixed |
+| Auto-complete expired challenges | 00:10 | fixed |
+| Morning summary notification | every 5 min | filters by user's `notification_morning_time` ±4 min in their timezone |
+| Evening report notification | every 5 min | filters by user's `notification_evening_time` ±4 min |
+| Task reminders | every 5 min | sends to users with `notify_task_reminders=true` when timed task is due ±2 min |
 
 ## Environment
 
 Copy `backend/.env.example` → `backend/.env`. Key variables:
 - `SECRET_KEY` — change in production
-- `VAPID_PRIVATE_KEY` / `VAPID_PUBLIC_KEY` — leave empty to use mock push (logs to console)
+- `VAPID_PRIVATE_KEY` / `VAPID_PUBLIC_KEY` — leave empty to use mock push (logs to console). Generate: see README.
 - `SENDGRID_API_KEY` — leave empty to use mock email (logs to console)
+- `TELEGRAM_BOT_TOKEN` / `TELEGRAM_BOT_USERNAME` — leave empty to mock Telegram (logs to console)
 - `CORS_ORIGINS` — JSON list of allowed origins
 
 ## Running tests
 
 ```bash
-# Install test deps and run all 81 tests (local Docker only)
+# Install test deps and run all 95 tests (local Docker only)
 docker exec challengetracker-backend-1 pip install -r requirements-test.txt -q
 docker exec challengetracker-backend-1 pytest tests/ -v --tb=short
 
@@ -295,7 +329,7 @@ docker exec challengetracker-backend-1 pytest tests/test_auth.py::test_login_suc
 - Production server does NOT have `PYTEST_ALLOW=1` — pytest is blocked at import time with a clear error
 - `pytest` is also not installed in the production image (double protection)
 
-Test files: `test_auth.py` (25) · `test_challenges.py` (15) · `test_daily.py` (11) · `test_reports.py` (8) · `test_new_features.py` (22)
+Test files: `test_auth.py` (32) · `test_challenges.py` (15) · `test_daily.py` (11) · `test_reports.py` (8) · `test_new_features.py` (22) · `test_telegram.py` (7)
 
 ## Deployment (production)
 
