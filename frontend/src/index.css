@@ -76,24 +76,26 @@
 }
 
 @keyframes celebrateIn {
-  0%   { transform: scale(0.82) translateY(18px); opacity: 0; }
-  65%  { transform: scale(1.04) translateY(-4px); opacity: 1; }
+  0%   { transform: scale(0.88) translateY(12px); opacity: 0; }
+  65%  { transform: scale(1.03) translateY(-3px); opacity: 1; }
   100% { transform: scale(1)    translateY(0);    opacity: 1; }
 }
 
 @keyframes floatUp {
-  0%   { transform: translateY(0)     scale(1);   opacity: 0.95; }
-  100% { transform: translateY(-56px) scale(0.5); opacity: 0; }
+  0%   { transform: translateY(0)      scale(1.1); opacity: 1; }
+  60%  { opacity: 1; }
+  100% { transform: translateY(-80px)  scale(0.6); opacity: 0; }
 }
 
 .celebrate-banner {
-  animation: celebrateIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: celebrateIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 .celebrate-particle {
   position: absolute;
-  font-size: 1.25rem;
+  font-size: 1.75rem;
   pointer-events: none;
   user-select: none;
-  animation: floatUp 1.3s ease-out forwards;
+  animation: floatUp 1.6s ease-out forwards;
+  z-index: 10;
 }

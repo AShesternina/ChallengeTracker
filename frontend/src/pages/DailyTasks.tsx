@@ -284,14 +284,14 @@ function CelebrationBanner({ message }: { message: string }) {
     <div className="relative">
       {particles.map((p, i) => (
         <span key={i} className="celebrate-particle"
-          style={{ left: `${6 + i * 16}%`, top: "10px", animationDelay: `${i * 0.11}s` }}>
+          style={{ left: `${5 + i * 16}%`, top: "0px", animationDelay: `${i * 0.1}s` }}>
           {p}
         </span>
       ))}
-      <div className="celebrate-banner text-center py-8 rounded-md"
+      <div className="celebrate-banner text-center py-4 rounded-md"
         style={{ background: "var(--color-success-bg)", border: "1px solid var(--color-success)" }}>
-        <p className="text-3xl mb-2">✅</p>
-        <p className="font-bold text-success">{message}</p>
+        <p className="text-2xl mb-1">✅</p>
+        <p className="font-bold text-success text-[14px]">{message}</p>
       </div>
     </div>
   );
