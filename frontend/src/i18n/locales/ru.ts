@@ -159,6 +159,8 @@ const ru = {
     legend_less50: "<50%",
     legend_future: "Предстоит",
     legend_none: "Нет задач",
+    weekday_patterns: "По дням недели",
+    weekday_no_data: "Пока нет данных",
   },
   challenge_report: {
     total_tasks: "Всего задач",

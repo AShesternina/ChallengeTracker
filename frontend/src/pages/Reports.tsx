@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { format } from "date-fns";
+import { format, addDays, type Locale } from "date-fns";
 import { ru as ruLocale, es as esLocale, ptBR as ptLocale, enUS } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
 import { reportsApi, challengesApi, dailyApi } from "../services/api";
@@ -60,6 +60,8 @@ export default function Reports() {
   const [report, setReport] = useState<MonthlyReport | null>(null);
   const [challenges, setChallenges] = useState<ChallengeInstance[]>([]);
   const [loading, setLoading] = useState(false);
+  const [weekdayRates, setWeekdayRates] = useState<number[] | null>(null);
+  const [weekdayTotals, setWeekdayTotals] = useState<number[]>([]);
 
   // Day drill-down
   const [selectedDay, setSelectedDay] = useState<DayStats | null>(null);
@@ -82,6 +84,13 @@ export default function Reports() {
   };
 
   useEffect(() => { load(); }, [year, month]);
+
+  useEffect(() => {
+    reportsApi.weekdayPatterns().then(({ data }) => {
+      setWeekdayRates(data.rates);
+      setWeekdayTotals(data.totals);
+    }).catch(() => {});
+  }, []);
 
   const handleDayClick = async (day: DayStats) => {
     if (day.total === 0) return;
@@ -338,6 +347,11 @@ export default function Reports() {
             </p>
           </div>
 
+          {/* Weekday patterns */}
+          {weekdayRates && (
+            <WeekdayPatterns rates={weekdayRates} totals={weekdayTotals} dateLocale={dateLocale} />
+          )}
+
           {/* Active challenges list */}
           {challenges.length > 0 && (
             <div>
@@ -352,6 +366,64 @@ export default function Reports() {
             </div>
           )}
         </>
+      )}
+    </div>
+  );
+}
+
+function WeekdayPatterns({ rates, totals, dateLocale }: {
+  rates: number[];
+  totals: number[];
+  dateLocale: Locale;
+}) {
+  const { t } = useTranslation();
+  // 2024-01-01 is a Monday — use it to generate locale-aware day abbreviations
+  const monday = new Date(2024, 0, 1);
+  const dayNames = Array.from({ length: 7 }, (_, i) =>
+    format(addDays(monday, i), "EEE", { locale: dateLocale })
+  );
+  const hasAnyData = totals.some((n) => n > 0);
+
+  return (
+    <div className="rounded-md px-4 py-3"
+      style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+      <h3 className="font-bold text-text-primary text-[14px] mb-3">{t("reports.weekday_patterns")}</h3>
+      {!hasAnyData ? (
+        <p className="text-[13px] text-text-tertiary">{t("reports.weekday_no_data")}</p>
+      ) : (
+        <div className="space-y-2">
+          {rates.map((rate, i) => {
+            const pct = Math.round(rate * 100);
+            const hasData = totals[i] > 0;
+            const barColor = !hasData
+              ? "var(--color-surface2)"
+              : pct >= 80 ? "var(--color-success)"
+              : pct >= 50 ? "var(--color-warning)"
+              : "var(--color-danger)";
+            const textColor = !hasData
+              ? "var(--color-text-tertiary)"
+              : pct >= 80 ? "var(--color-success)"
+              : pct >= 50 ? "var(--color-warning)"
+              : "var(--color-danger)";
+
+            return (
+              <div key={i} className="flex items-center gap-2">
+                <span className="text-[11px] font-bold text-text-tertiary w-7 shrink-0 capitalize">
+                  {dayNames[i]}
+                </span>
+                <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: "var(--color-surface2)" }}>
+                  {hasData && (
+                    <div className="h-full rounded-full transition-all"
+                      style={{ width: `${pct}%`, background: barColor }} />
+                  )}
+                </div>
+                <span className="text-[11px] font-bold w-8 text-right shrink-0" style={{ color: textColor }}>
+                  {hasData ? `${pct}%` : "—"}
+                </span>
+              </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );

@@ -159,6 +159,8 @@ const es = {
     legend_less50: "<50%",
     legend_future: "Próximas",
     legend_none: "Sin tareas",
+    weekday_patterns: "Por día de la semana",
+    weekday_no_data: "Sin datos aún",
   },
   challenge_report: {
     total_tasks: "Total de tareas",

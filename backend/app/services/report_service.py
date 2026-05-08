@@ -7,7 +7,7 @@ from sqlalchemy.orm import selectinload
 
 from app.models.daily_task_instance import DailyTaskInstance, TaskStatus
 from app.models.challenge_instance import ChallengeInstance
-from app.schemas.reports import ChallengeReport, DayStats, MomentumReport, MonthlyReport, StreakReport
+from app.schemas.reports import ChallengeReport, DayStats, MomentumReport, MonthlyReport, StreakReport, WeekdayPatternsReport
 from app.services.pause_utils import get_paused_dates, is_paused_on
 
 
@@ -376,3 +376,35 @@ async def weekly_review_data(db: AsyncSession, user_id: int, today: date) -> dic
         "trend_delta": abs(delta),
         "best_challenge": best_challenge,
     }
+
+
+async def weekday_patterns(db: AsyncSession, user_id: int) -> WeekdayPatternsReport:
+    """Completion rate by day of week (Mon=0 … Sun=6) across all history."""
+    today = date.today()
+
+    result = await db.execute(
+        select(DailyTaskInstance)
+        .where(DailyTaskInstance.user_id == user_id)
+        .options(selectinload(DailyTaskInstance.challenge_instance))
+    )
+    tasks = list(result.scalars().all())
+
+    totals = [0] * 7
+    completed_counts = [0] * 7
+
+    for t in tasks:
+        if t.date > today:
+            continue
+        if is_paused_on(t.challenge_instance.pause_periods, t.date):
+            continue
+        wd = t.date.weekday()  # 0=Mon, 6=Sun
+        totals[wd] += 1
+        if t.status == TaskStatus.completed:
+            completed_counts[wd] += 1
+
+    rates = [
+        round(completed_counts[i] / totals[i], 2) if totals[i] > 0 else 0.0
+        for i in range(7)
+    ]
+
+    return WeekdayPatternsReport(totals=totals, completed=completed_counts, rates=rates)

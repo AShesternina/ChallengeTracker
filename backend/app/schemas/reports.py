@@ -46,3 +46,10 @@ class ChallengeReport(BaseModel):
     comebacks_count: int
     avg_comeback_days: float | None   # None if no comebacks
     resilience_score: int | None      # None if no data (< 2 days tracked)
+
+
+class WeekdayPatternsReport(BaseModel):
+    # 7 items, index 0=Monday ... 6=Sunday
+    totals: list[int]       # tasks seen per weekday
+    completed: list[int]    # completed tasks per weekday
+    rates: list[float]      # completion rate 0.0–1.0 per weekday

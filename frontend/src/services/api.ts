@@ -94,6 +94,7 @@ export const reportsApi = {
   challenge: (instanceId: number) => api.get(`/reports/challenge/${instanceId}`),
   streak: () => api.get("/reports/streak"),
   momentum: () => api.get("/reports/momentum"),
+  weekdayPatterns: () => api.get("/reports/weekday-patterns"),
 };
 
 // --- Telegram ---
