@@ -11,7 +11,8 @@ function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
   return output.buffer as ArrayBuffer;
 }
 
-export async function subscribeToPush(): Promise<void> {
+// Returns the backend device ID so the caller can delete it on unsubscribe
+export async function subscribeToPush(): Promise<number> {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
     throw new Error("Push not supported");
   }
@@ -33,8 +34,10 @@ export async function subscribeToPush(): Promise<void> {
     keys: { p256dh: string; auth: string };
   };
 
-  await notificationsApi.subscribe(
+  const { data: device } = await notificationsApi.subscribe(
     { endpoint: sub.endpoint, keys: sub.keys },
     navigator.userAgent
   );
+
+  return device.id as number;
 }

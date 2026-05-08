@@ -1,3 +1,4 @@
+import re
 import pytz
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import delete, select
@@ -38,6 +39,15 @@ async def update_me(
         user.language = data.language
     if data.onboarding_completed is not None:
         user.onboarding_completed = data.onboarding_completed
+    _TIME_RE = re.compile(r"^\d{2}:\d{2}$")
+    if data.notification_morning_time is not None:
+        if not _TIME_RE.match(data.notification_morning_time):
+            raise HTTPException(status_code=400, detail="Invalid time format, use HH:MM")
+        user.notification_morning_time = data.notification_morning_time
+    if data.notification_evening_time is not None:
+        if not _TIME_RE.match(data.notification_evening_time):
+            raise HTTPException(status_code=400, detail="Invalid time format, use HH:MM")
+        user.notification_evening_time = data.notification_evening_time
     await db.flush()
     return user
 

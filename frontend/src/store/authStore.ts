@@ -8,6 +8,8 @@ export interface User {
   timezone: string;
   language: string;
   onboarding_completed: boolean;
+  notification_morning_time: string | null;
+  notification_evening_time: string | null;
   is_active: boolean;
   is_verified: boolean;
 }

@@ -15,6 +15,8 @@ class User(Base):
     timezone: Mapped[str] = mapped_column(String(64), default="UTC")
     language: Mapped[str] = mapped_column(String(5), default="en")
     onboarding_completed: Mapped[bool] = mapped_column(Boolean, default=False)
+    notification_morning_time: Mapped[str | None] = mapped_column(String(5), nullable=True)
+    notification_evening_time: Mapped[str | None] = mapped_column(String(5), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     otp_code: Mapped[str | None] = mapped_column(String(6), nullable=True)

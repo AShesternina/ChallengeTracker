@@ -19,13 +19,14 @@ celery_app.conf.update(
 )
 
 celery_app.conf.beat_schedule = {
-    "morning-summary-8am": {
+    # Runs every 5 min — each task checks per-user preferred local time
+    "morning-summary": {
         "task": "app.workers.tasks.send_morning_summaries",
-        "schedule": crontab(hour=8, minute=0),
+        "schedule": crontab(minute="*/5"),
     },
-    "daily-report-9pm": {
+    "daily-report": {
         "task": "app.workers.tasks.send_daily_reports",
-        "schedule": crontab(hour=21, minute=0),
+        "schedule": crontab(minute="*/5"),
     },
     "generate-daily-tasks": {
         "task": "app.workers.tasks.generate_daily_tasks_for_all",

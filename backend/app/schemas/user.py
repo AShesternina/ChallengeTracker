@@ -9,6 +9,8 @@ class UserOut(BaseModel):
     timezone: str
     language: str
     onboarding_completed: bool
+    notification_morning_time: str | None
+    notification_evening_time: str | None
     is_active: bool
     is_verified: bool
     created_at: datetime
@@ -20,3 +22,5 @@ class UserUpdateRequest(BaseModel):
     timezone: str | None = None
     language: str | None = None
     onboarding_completed: bool | None = None
+    notification_morning_time: str | None = None
+    notification_evening_time: str | None = None

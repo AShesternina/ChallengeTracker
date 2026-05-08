@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { userApi } from "../services/api";
+import { userApi, notificationsApi } from "../services/api";
 import { useAuthStore } from "../store/authStore";
 import { useThemeStore } from "../store/themeStore";
 import { subscribeToPush } from "../services/push";
@@ -15,7 +15,6 @@ const TIMEZONES = [
   "Australia/Sydney",
 ];
 
-// Sorted alphabetically by label
 const LANGUAGES = [
   { code: "en", label: "English",   flag: "🇬🇧" },
   { code: "es", label: "Español",   flag: "🇪🇸" },
@@ -33,16 +32,29 @@ export default function Settings() {
   const [saved, setSaved] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
+  const [deviceId, setDeviceId] = useState<number | null>(null);
+  const [morningTime, setMorningTime] = useState(user?.notification_morning_time || "08:00");
+  const [eveningTime, setEveningTime] = useState(user?.notification_evening_time || "21:00");
+  const [savingTimes, setSavingTimes] = useState(false);
+  const [savedTimes, setSavedTimes] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    if ("serviceWorker" in navigator && "PushManager" in window) {
-      navigator.serviceWorker.ready.then(async (reg) => {
-        const sub = await reg.pushManager.getSubscription();
-        setPushEnabled(!!sub);
-      });
-    }
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+    navigator.serviceWorker.ready.then(async (reg) => {
+      const sub = await reg.pushManager.getSubscription();
+      if (!sub) return;
+      setPushEnabled(true);
+      // Find matching device ID in backend to enable clean unsubscribe
+      try {
+        const { data: devices } = await notificationsApi.devices();
+        const match = devices.find(
+          (d: any) => JSON.parse(d.push_subscription).endpoint === sub.endpoint
+        );
+        if (match) setDeviceId(match.id);
+      } catch {}
+    });
   }, []);
 
   const handleSave = async () => {
@@ -63,9 +75,7 @@ export default function Settings() {
     try {
       const { data } = await userApi.update({ language: code });
       setUser(data);
-    } catch {
-      // language already applied locally, silent fail
-    }
+    } catch {}
   };
 
   const handlePushToggle = async () => {
@@ -75,15 +85,35 @@ export default function Settings() {
         const reg = await navigator.serviceWorker.ready;
         const sub = await reg.pushManager.getSubscription();
         if (sub) await sub.unsubscribe();
+        if (deviceId !== null) {
+          await notificationsApi.unsubscribe(deviceId);
+          setDeviceId(null);
+        }
         setPushEnabled(false);
       } else {
-        await subscribeToPush();
+        const id = await subscribeToPush();
+        setDeviceId(id);
         setPushEnabled(true);
       }
     } catch (e) {
       console.error("Push toggle failed:", e);
     } finally {
       setPushLoading(false);
+    }
+  };
+
+  const handleSaveNotifTimes = async () => {
+    setSavingTimes(true);
+    try {
+      const { data } = await userApi.update({
+        notification_morning_time: morningTime,
+        notification_evening_time: eveningTime,
+      });
+      setUser(data);
+      setSavedTimes(true);
+      setTimeout(() => setSavedTimes(false), 2000);
+    } finally {
+      setSavingTimes(false);
     }
   };
 
@@ -172,14 +202,47 @@ export default function Settings() {
       {/* Push notifications */}
       <Section title={t("settings.push_notifications")}>
         {"PushManager" in window ? (
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[14px] font-semibold text-text-primary">{t("settings.web_push")}</p>
-              <p className="text-[12px] text-text-tertiary mt-0.5">
-                {pushEnabled ? t("settings.push_enabled") : t("settings.push_disabled")}
-              </p>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[14px] font-semibold text-text-primary">{t("settings.web_push")}</p>
+                <p className="text-[12px] text-text-tertiary mt-0.5">
+                  {pushEnabled ? t("settings.push_enabled") : t("settings.push_disabled")}
+                </p>
+              </div>
+              <Toggle enabled={pushEnabled} onToggle={handlePushToggle} loading={pushLoading} />
             </div>
-            <Toggle enabled={pushEnabled} onToggle={handlePushToggle} loading={pushLoading} />
+
+            {pushEnabled && (
+              <div className="pt-3 space-y-3" style={{ borderTop: "1px solid var(--color-border)" }}>
+                <p className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider">
+                  {t("settings.notif_times")}
+                </p>
+                <div className="flex items-center justify-between gap-3">
+                  <label className="text-[13px] font-semibold text-text-primary whitespace-nowrap">
+                    {t("settings.morning_notification")}
+                  </label>
+                  <input type="time" value={morningTime}
+                    onChange={(e) => setMorningTime(e.target.value)}
+                    className="px-3 py-1.5 rounded-md text-[13px] text-text-primary outline-none"
+                    style={{ background: "var(--color-surface2)", border: "1.5px solid var(--color-border)" }} />
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <label className="text-[13px] font-semibold text-text-primary whitespace-nowrap">
+                    {t("settings.evening_notification")}
+                  </label>
+                  <input type="time" value={eveningTime}
+                    onChange={(e) => setEveningTime(e.target.value)}
+                    className="px-3 py-1.5 rounded-md text-[13px] text-text-primary outline-none"
+                    style={{ background: "var(--color-surface2)", border: "1.5px solid var(--color-border)" }} />
+                </div>
+                <button onClick={handleSaveNotifTimes} disabled={savingTimes}
+                  className="w-full py-2 rounded-md text-[13px] font-bold text-white disabled:opacity-50 transition-opacity"
+                  style={{ background: savedTimes ? "var(--color-success)" : "var(--color-accent)" }}>
+                  {savingTimes ? t("common.saving") : savedTimes ? t("common.saved") : t("common.save")}
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <p className="text-[13px] text-text-tertiary">{t("settings.push_not_supported")}</p>
