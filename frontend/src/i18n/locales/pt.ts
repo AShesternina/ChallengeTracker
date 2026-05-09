@@ -14,7 +14,7 @@ const pt = {
     loading: "Carregando...",
     error: "Algo deu errado",
     back: "Voltar",
-    new: "+ Novo",
+    new: "Novo",
     done: "Feito",
     skip: "Pular",
     confirm_past_end: "A data de término já passou",

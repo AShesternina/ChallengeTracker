@@ -29,9 +29,9 @@ export default function Layout() {
   const initial = firstName[0]?.toUpperCase() ?? "U";
 
   return (
-    <div className="min-h-screen flex bg-bg overflow-x-hidden">
+    <div className="min-h-screen flex bg-bg">
       {/* ── Desktop sidebar ─────────────────────────────── */}
-      <aside className="hidden lg:flex flex-col w-60 h-screen sticky top-0 border-r border-border bg-surface shrink-0">
+      <aside className="hidden lg:flex flex-col w-60 h-screen fixed top-0 left-0 border-r border-border bg-surface z-40">
         <div className="px-5 pt-6 pb-4">
           <span className="text-[15px] font-black tracking-tight" style={{ color: "var(--color-accent)", letterSpacing: "-0.3px" }}>
             ChallengeTracker
@@ -70,7 +70,7 @@ export default function Layout() {
       </aside>
 
       {/* ── Main content ────────────────────────────────── */}
-      <div className="flex-1 flex flex-col min-h-screen">
+      <div className="flex-1 flex flex-col min-h-screen lg:ml-60">
         <main className="flex-1 max-w-2xl w-full mx-auto px-4 pt-5 pb-24 lg:pb-8">
           <Outlet />
         </main>

@@ -14,7 +14,7 @@ const en = {
     loading: "Loading...",
     error: "Something went wrong",
     back: "Back",
-    new: "+ New",
+    new: "New",
     done: "Done",
     skip: "Skip",
     confirm_past_end: "End date is in the past",

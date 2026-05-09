@@ -14,7 +14,7 @@ const es = {
     loading: "Cargando...",
     error: "Algo salió mal",
     back: "Atrás",
-    new: "+ Nuevo",
+    new: "Nuevo",
     done: "Hecho",
     skip: "Omitir",
     confirm_past_end: "La fecha de fin ya pasó",
