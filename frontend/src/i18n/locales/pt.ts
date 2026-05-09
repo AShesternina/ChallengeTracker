@@ -166,7 +166,7 @@ const pt = {
     tap_day_hint: "Toque em um dia para ver as tarefas",
   },
   insights: {
-    title: "Conclusões",
+    title: "Conclusões semanais",
     best_day: "Melhor dia — {{day}} ({{rate}}%)",
     worst_day: "{{day}} é o dia mais difícil ({{rate}}%)",
     weekends_easier: "Os fins de semana são mais fáceis que os dias úteis",
