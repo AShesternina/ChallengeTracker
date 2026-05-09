@@ -259,17 +259,19 @@ export default function Settings() {
                   {savingTimes ? t("common.saving") : savedTimes ? t("common.saved") : t("common.save")}
                 </button>
 
-                <div className="flex items-center justify-between pt-1">
-                  <div>
+                <div className="flex items-start justify-between gap-3 pt-1">
+                  <div className="min-w-0 flex-1">
                     <p className="text-[13px] font-semibold text-text-primary">{t("settings.task_reminders")}</p>
                     <p className="text-[11px] text-text-tertiary mt-0.5">{t("settings.task_reminders_hint")}</p>
                   </div>
+                  <div className="shrink-0 mt-0.5">
                   <Toggle enabled={taskReminders} loading={false} onToggle={async () => {
                     const next = !taskReminders;
                     setTaskReminders(next);
                     const { data } = await userApi.update({ notify_task_reminders: next });
                     setUser(data);
                   }} />
+                  </div>
                 </div>
               </div>
             )}
@@ -307,17 +309,19 @@ export default function Settings() {
 
       {/* Streak protection */}
       <Section title={t("detail.streak")}>
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
             <p className="text-[13px] font-semibold text-text-primary">{t("settings.streak_protection")}</p>
             <p className="text-[11px] text-text-tertiary mt-0.5">{t("settings.streak_protection_hint")}</p>
           </div>
-          <Toggle enabled={streakProtection} loading={false} onToggle={async () => {
-            const next = !streakProtection;
-            setStreakProtection(next);
-            const { data } = await userApi.update({ streak_protection: next });
-            setUser(data);
-          }} />
+          <div className="shrink-0 mt-0.5">
+            <Toggle enabled={streakProtection} loading={false} onToggle={async () => {
+              const next = !streakProtection;
+              setStreakProtection(next);
+              const { data } = await userApi.update({ streak_protection: next });
+              setUser(data);
+            }} />
+          </div>
         </div>
       </Section>
 
