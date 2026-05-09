@@ -267,40 +267,65 @@ export default function Reports() {
         {t("reports.title")}
       </h2>
 
-      {/* Month nav */}
-      <div className="flex items-center justify-between rounded-md px-4 py-2.5"
+      {/* Month header card — nav + stats combined */}
+      <div className="rounded-md px-4 pt-3 pb-4"
         style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
-        <button onClick={prevMonth}
-          className="w-8 h-8 flex items-center justify-center rounded-md transition-colors"
-          style={{ color: "var(--color-text-secondary)" }}>
-          <ArrowLeftIcon size={15} />
-        </button>
-        <span className="font-bold text-text-primary capitalize text-[15px]">{monthName}</span>
-        <button onClick={nextMonth}
-          className="w-8 h-8 flex items-center justify-center rounded-md transition-colors"
-          style={{ color: "var(--color-text-secondary)" }}>
-          <ChevronRightIcon size={15} strokeWidth={2.5} />
-        </button>
-      </div>
 
-      {loading && (
-        <div className="flex justify-center py-8">
-          <div className="w-7 h-7 rounded-full border-2 animate-spin"
-            style={{ borderColor: "var(--color-accent)", borderTopColor: "transparent" }} />
+        {/* Navigation row */}
+        <div className="flex items-center justify-between mb-3">
+          <button onClick={prevMonth}
+            className="w-8 h-8 flex items-center justify-center rounded-md transition-colors"
+            style={{ color: "var(--color-text-secondary)" }}>
+            <ArrowLeftIcon size={15} />
+          </button>
+          <span className="font-bold text-text-primary capitalize text-[15px]">{monthName}</span>
+          <button onClick={nextMonth}
+            className="w-8 h-8 flex items-center justify-center rounded-md transition-colors"
+            style={{ color: "var(--color-text-secondary)" }}>
+            <ChevronRightIcon size={15} strokeWidth={2.5} />
+          </button>
         </div>
-      )}
+
+        {loading && (
+          <div className="flex justify-center py-3">
+            <div className="w-5 h-5 rounded-full border-2 animate-spin"
+              style={{ borderColor: "var(--color-accent)", borderTopColor: "transparent" }} />
+          </div>
+        )}
+
+        {report && !loading && (() => {
+          const rate = Math.round(report.completion_rate * 100);
+          const barColor = rate >= 80 ? "var(--color-success)" : rate >= 50 ? "var(--color-warning)" : rate > 0 ? "var(--color-danger)" : "var(--color-surface2)";
+          const rateColor = rate >= 80 ? "var(--color-success)" : rate >= 50 ? "var(--color-warning)" : rate > 0 ? "var(--color-danger)" : "var(--color-text-tertiary)";
+          return (
+            <>
+              {/* Progress bar */}
+              <div className="h-1.5 rounded-full overflow-hidden mb-2.5" style={{ background: "var(--color-surface2)" }}>
+                <div className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${rate}%`, background: barColor }} />
+              </div>
+              {/* Stats row */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-[12px] text-text-tertiary">
+                    <span className="font-bold text-text-primary">{report.total_tasks}</span> {t("reports.total_tasks").toLowerCase()}
+                  </span>
+                  <span className="text-text-tertiary text-[10px]">·</span>
+                  <span className="text-[12px] text-text-tertiary">
+                    <span className="font-bold" style={{ color: "var(--color-success)" }}>{report.total_completed}</span> {t("reports.completed").toLowerCase()}
+                  </span>
+                </div>
+                <span className="text-[20px] font-black" style={{ color: rateColor, letterSpacing: "-0.5px" }}>
+                  {rate}%
+                </span>
+              </div>
+            </>
+          );
+        })()}
+      </div>
 
       {report && !loading && (
         <>
-          {/* Summary stats */}
-          <div className="grid grid-cols-3 gap-2.5">
-            <StatCell label={t("reports.total_tasks")} value={String(report.total_tasks)} color="var(--color-text-primary)" />
-            <StatCell label={t("reports.completed")} value={String(report.total_completed)} color="var(--color-success)" />
-            <StatCell label={t("reports.rate")}
-              value={`${Math.round(report.completion_rate * 100)}%`}
-              color="var(--color-accent)" />
-          </div>
-
           {/* Heatmap */}
           <div className="rounded-md p-4"
             style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
@@ -383,8 +408,8 @@ export default function Reports() {
             <p className="text-[10px] text-text-tertiary mt-2">{t("reports.tap_day_hint")}</p>
           </div>
 
-          {/* Smart insights */}
-          {insights.length > 0 && <InsightsCard insights={insights} />}
+          {/* Smart insights — only when this month has actual task data */}
+          {report.total_tasks > 0 && insights.length > 0 && <InsightsCard insights={insights} />}
 
           {/* Active challenges list */}
           {challenges.length > 0 && (
@@ -627,16 +652,6 @@ function InsightsCard({ insights }: { insights: Insight[] }) {
           </div>
         ))}
       </div>
-    </div>
-  );
-}
-
-function StatCell({ label, value, color }: { label: string; value: string; color: string }) {
-  return (
-    <div className="rounded-md px-3 py-3 text-center"
-      style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
-      <p className="text-[20px] font-black" style={{ color }}>{value}</p>
-      <p className="text-[10px] text-text-tertiary mt-0.5 font-medium">{label}</p>
     </div>
   );
 }
