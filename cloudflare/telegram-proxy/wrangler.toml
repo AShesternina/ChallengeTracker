@@ -1,0 +1,6 @@
+name = "tg-proxy"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+# Set PROXY_SECRET via Cloudflare dashboard → Workers → tg-proxy → Settings → Variables
+# or: wrangler secret put PROXY_SECRET

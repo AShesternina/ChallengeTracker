@@ -35,6 +35,8 @@ class Settings(BaseSettings):
 
     TELEGRAM_BOT_TOKEN: str = ""
     TELEGRAM_BOT_USERNAME: str = ""
+    TELEGRAM_PROXY_URL: str = ""    # e.g. https://tg-proxy.username.workers.dev
+    TELEGRAM_PROXY_SECRET: str = "" # must match PROXY_SECRET in Cloudflare Worker env
 
     SENDGRID_API_KEY: str = ""
     EMAIL_FROM: str = "noreply@example.com"
