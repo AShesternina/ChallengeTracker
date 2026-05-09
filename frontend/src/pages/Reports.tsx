@@ -531,9 +531,13 @@ function generateInsights(
   const worst = valid.reduce((a, b) => (a.rate < b.rate ? a : b));
 
   if (best.rate >= 0.6) {
+    const bestRate = Math.round(best.rate * 100);
+    const tied = valid.filter((d) => Math.round(d.rate * 100) === bestRate);
     insights.push({
       emoji: "🌟",
-      text: t("insights.best_day", { day: dayNames[best.i], rate: Math.round(best.rate * 100) }),
+      text: tied.length > 1
+        ? t("insights.best_days", { days: tied.map((d) => dayNames[d.i]).join(", "), rate: bestRate })
+        : t("insights.best_day", { day: dayNames[best.i], rate: bestRate }),
       type: "positive",
     });
   }

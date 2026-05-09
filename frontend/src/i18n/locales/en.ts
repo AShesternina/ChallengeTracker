@@ -168,6 +168,7 @@ const en = {
   insights: {
     title: "Weekly Insights",
     best_day: "Best day — {{day}} ({{rate}}%)",
+    best_days: "Best days — {{days}} ({{rate}}% each)",
     worst_day: "{{day}} is the toughest day ({{rate}}%)",
     weekends_easier: "Weekends are easier than weekdays",
     weekdays_easier: "Weekdays are more productive than weekends",

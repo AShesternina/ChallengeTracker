@@ -168,6 +168,7 @@ const ru = {
   insights: {
     title: "Выводы за неделю",
     best_day: "Лучший день — {{day}} ({{rate}}%)",
+    best_days: "Лучшие дни — {{days}} (все {{rate}}%)",
     worst_day: "{{day}} даётся тяжелее всего ({{rate}}%)",
     weekends_easier: "Выходные даются легче, чем будни",
     weekdays_easier: "Рабочие дни продуктивнее выходных",
