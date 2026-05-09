@@ -260,6 +260,7 @@ export default function Reports() {
   const insights = weekdayRates
     ? generateInsights(weekdayRates, weekdayTotals, momentumData, streakData, insightDayNames, t)
     : [];
+  const isCurrentMonth = year === now.getFullYear() && month === now.getMonth() + 1;
 
   return (
     <div className="space-y-4">
@@ -408,8 +409,8 @@ export default function Reports() {
             <p className="text-[10px] text-text-tertiary mt-2">{t("reports.tap_day_hint")}</p>
           </div>
 
-          {/* Smart insights — only when this month has actual task data */}
-          {report.total_tasks > 0 && insights.length > 0 && <InsightsCard insights={insights} />}
+          {/* Smart insights — only for current month */}
+          {isCurrentMonth && insights.length > 0 && <InsightsCard insights={insights} />}
 
           {/* Active challenges list */}
           {challenges.length > 0 && (
