@@ -232,6 +232,15 @@ const es = {
     confirm_delete_account_yes: "Sí, eliminar todo",
     confirm_delete_account_no: "Cancelar",
   },
+  install: {
+    title: "Instalar aplicación",
+    body: "Funciona sin navegador, carga más rápido",
+    button: "Instalar",
+    ios_hint: "Toca Compartir → Añadir a pantalla de inicio",
+    dismiss: "Ahora no",
+    settings_title: "Instalar aplicación",
+    settings_body: "Añade a tu pantalla de inicio para acceso rápido",
+  },
   onboarding: {
     welcome_title: "¡Bienvenido a ChallengeTracker!",
     welcome_body: "Tu gestor personal de hábitos y metas de varias semanas. Crea desafíos, obtén una lista de tareas diaria unificada y observa tu progreso.",

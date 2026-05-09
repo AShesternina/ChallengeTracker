@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuthStore } from "./store/authStore";
+import { useInstallStore } from "./store/installStore";
 import { setServiceWorkerLanguage } from "./services/sw-lang";
 import i18n from "./i18n";
 import Layout from "./components/Layout";
@@ -31,11 +32,35 @@ function RequireOnboarded({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   const user = useAuthStore((s) => s.user);
+  const { setDeferredPrompt, setInstalled } = useInstallStore();
 
   // On startup: sync language to SW from persisted user state
   useEffect(() => {
     const lang = user?.language || i18n.language || "en";
     setServiceWorkerLanguage(lang);
+  }, []);
+
+  // PWA install prompt
+  useEffect(() => {
+    const handleBeforeInstall = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    const handleInstalled = () => setInstalled(true);
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstall);
+    window.addEventListener("appinstalled", handleInstalled);
+
+    // Track standalone mode changes (app uninstalled)
+    const mq = window.matchMedia("(display-mode: standalone)");
+    const handleMQ = (e: MediaQueryListEvent) => setInstalled(e.matches);
+    mq.addEventListener("change", handleMQ);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
+      window.removeEventListener("appinstalled", handleInstalled);
+      mq.removeEventListener("change", handleMQ);
+    };
   }, []);
 
 

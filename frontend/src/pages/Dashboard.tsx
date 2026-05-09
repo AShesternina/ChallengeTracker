@@ -9,6 +9,7 @@ import { useTaskStore } from "../store/taskStore";
 import { useThemeStore } from "../store/themeStore";
 import ProgressRing from "../components/ProgressRing";
 import TaskCard from "../components/TaskCard";
+import InstallBanner from "../components/InstallBanner";
 import { FlameIcon, TargetIcon, CheckIcon } from "../components/Icons";
 import { useCategoryStyle } from "../utils/category";
 import { translateTemplateName } from "../utils/templateTranslations";
@@ -100,6 +101,8 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      <InstallBanner />
 
       {/* Hero progress card */}
       <div className="rounded-xl p-4 text-white relative overflow-hidden"

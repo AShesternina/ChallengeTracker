@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { userApi, notificationsApi, telegramApi } from "../services/api";
 import { useAuthStore } from "../store/authStore";
 import { useThemeStore } from "../store/themeStore";
+import { useInstallStore } from "../store/installStore";
 import { subscribeToPush } from "../services/push";
 import { setServiceWorkerLanguage } from "../services/sw-lang";
 import { SunIcon, MoonIcon } from "../components/Icons";
@@ -27,6 +28,7 @@ export default function Settings() {
   const navigate = useNavigate();
   const { user, setUser, logout } = useAuthStore();
   const { dark, toggle } = useThemeStore();
+  const { isInstalled, isIOS, deferredPrompt, triggerInstall } = useInstallStore();
   const [timezone, setTimezone] = useState(user?.timezone || "UTC");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -181,6 +183,27 @@ export default function Settings() {
           <Toggle enabled={dark} onToggle={toggle} loading={false} label={t("common.toggle_theme")} />
         </div>
       </Section>
+
+      {/* Install app */}
+      {!isInstalled && (deferredPrompt || isIOS) && (
+        <Section title={t("install.settings_title")}>
+          <div className="space-y-3">
+            <p className="text-[13px] text-text-secondary">{t("install.settings_body")}</p>
+            {isIOS ? (
+              <p className="text-[12px] text-text-secondary rounded-lg px-3 py-2"
+                style={{ background: "var(--color-surface2)" }}>
+                {t("install.ios_hint")}
+              </p>
+            ) : (
+              <button onClick={triggerInstall}
+                className="w-full py-2.5 rounded-md text-[13px] font-bold text-white"
+                style={{ background: "var(--color-accent)" }}>
+                {t("install.button")}
+              </button>
+            )}
+          </div>
+        </Section>
+      )}
 
       {/* Language */}
       <Section title={t("settings.language")}>
