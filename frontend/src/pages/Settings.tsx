@@ -178,7 +178,7 @@ export default function Settings() {
               {dark ? t("settings.dark_mode") : t("settings.light_mode")}
             </span>
           </div>
-          <Toggle enabled={dark} onToggle={toggle} loading={false} />
+          <Toggle enabled={dark} onToggle={toggle} loading={false} label={t("common.toggle_theme")} />
         </div>
       </Section>
 
@@ -234,7 +234,7 @@ export default function Settings() {
                   {pushEnabled ? t("settings.push_enabled") : t("settings.push_disabled")}
                 </p>
               </div>
-              <Toggle enabled={pushEnabled} onToggle={handlePushToggle} loading={pushLoading} />
+              <Toggle enabled={pushEnabled} onToggle={handlePushToggle} loading={pushLoading} label={t("settings.web_push")} />
             </div>
 
             {pushEnabled && (
@@ -272,7 +272,7 @@ export default function Settings() {
                     <p className="text-[11px] text-text-tertiary mt-0.5">{t("settings.task_reminders_hint")}</p>
                   </div>
                   <div className="shrink-0 mt-0.5">
-                  <Toggle enabled={taskReminders} loading={false} onToggle={async () => {
+                  <Toggle enabled={taskReminders} loading={false} label={t("settings.task_reminders")} onToggle={async () => {
                     const next = !taskReminders;
                     setTaskReminders(next);
                     const { data } = await userApi.update({ notify_task_reminders: next });
@@ -322,7 +322,7 @@ export default function Settings() {
             <p className="text-[11px] text-text-tertiary mt-0.5">{t("settings.streak_protection_hint")}</p>
           </div>
           <div className="shrink-0 mt-0.5">
-            <Toggle enabled={streakProtection} loading={false} onToggle={async () => {
+            <Toggle enabled={streakProtection} loading={false} label={t("settings.streak_protection")} onToggle={async () => {
               const next = !streakProtection;
               setStreakProtection(next);
               const { data } = await userApi.update({ streak_protection: next });
@@ -371,9 +371,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Toggle({ enabled, onToggle, loading }: { enabled: boolean; onToggle: () => void; loading: boolean }) {
+function Toggle({ enabled, onToggle, loading, label }: { enabled: boolean; onToggle: () => void; loading: boolean; label: string }) {
   return (
-    <button onClick={onToggle} disabled={loading}
+    <button onClick={onToggle} disabled={loading} aria-label={label} aria-pressed={enabled}
       className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
       style={{ background: enabled ? "var(--color-accent)" : "var(--color-border-strong)" }}>
       <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${enabled ? "translate-x-6" : "translate-x-1"}`} />
