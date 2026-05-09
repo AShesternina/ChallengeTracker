@@ -69,6 +69,28 @@ class ChallengeTemplateOut(BaseModel):
     tasks_per_day: int
     task_times: list[str] | None
     icon: str | None
+    slug: str | None = None
+
+    model_config = {"from_attributes": True}
+
+    @field_validator("task_times", mode="before")
+    @classmethod
+    def parse_task_times(cls, v):
+        if isinstance(v, str):
+            import json
+            return json.loads(v)
+        return v
+
+
+class PublicTemplateOut(BaseModel):
+    slug: str
+    title: str
+    description: str | None
+    type: ChallengeType
+    default_duration_days: int
+    tasks_per_day: int
+    task_times: list[str] | None
+    icon: str | None
 
     model_config = {"from_attributes": True}
 

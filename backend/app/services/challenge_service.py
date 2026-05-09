@@ -18,6 +18,11 @@ async def list_templates(db: AsyncSession) -> list[ChallengeTemplate]:
     return list(result.scalars().all())
 
 
+async def get_template_by_slug(db: AsyncSession, slug: str) -> ChallengeTemplate | None:
+    result = await db.execute(select(ChallengeTemplate).where(ChallengeTemplate.slug == slug))
+    return result.scalar_one_or_none()
+
+
 async def create_challenge(db: AsyncSession, user_id: int, data: ChallengeCreate) -> Challenge:
     challenge = Challenge(
         title=data.title,

@@ -10,6 +10,7 @@ from app.schemas.challenge import (
     ChallengeInstanceUpdate,
     ChallengeOut,
     ChallengeTemplateOut,
+    PublicTemplateOut,
     StartChallengeRequest,
 )
 from app.services.challenge_service import (
@@ -17,6 +18,7 @@ from app.services.challenge_service import (
     create_challenge,
     delete_instance,
     get_instance,
+    get_template_by_slug,
     get_user_challenges,
     list_templates,
     pause_instance,
@@ -31,6 +33,14 @@ router = APIRouter(prefix="/challenges", tags=["challenges"])
 @router.get("/templates", response_model=list[ChallengeTemplateOut])
 async def get_templates(db: AsyncSession = Depends(get_db)):
     return await list_templates(db)
+
+
+@router.get("/templates/{slug}", response_model=PublicTemplateOut)
+async def get_public_template(slug: str, db: AsyncSession = Depends(get_db)):
+    template = await get_template_by_slug(db, slug)
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    return template
 
 
 @router.post("", response_model=ChallengeOut, status_code=status.HTTP_201_CREATED)

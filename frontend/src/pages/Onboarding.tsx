@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { challengesApi, userApi } from "../services/api";
 import { useAuthStore } from "../store/authStore";
 import { useThemeStore } from "../store/themeStore";
 import { useCategoryStyle } from "../utils/category";
-import { translateTemplateName, translateTemplateDesc, getTemplateCategory } from "../utils/templateTranslations";
+import { translateTemplateName, translateTemplateDesc, getTemplateCategory, SLUG_TO_TITLE } from "../utils/templateTranslations";
 
 type Step = "welcome" | "pick" | "configure";
 type UIType = "timed" | "all_day";
@@ -32,6 +32,7 @@ const inputStyle = { background: "var(--color-surface2)", border: "1.5px solid v
 export default function OnboardingPage() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, setUser } = useAuthStore();
   const { dark } = useThemeStore();
 
@@ -51,7 +52,16 @@ export default function OnboardingPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    challengesApi.templates().then((r) => setTemplates(r.data));
+    challengesApi.templates().then((r) => {
+      const data: Template[] = r.data;
+      setTemplates(data);
+      const slug = searchParams.get("challenge");
+      if (slug) {
+        const targetTitle = SLUG_TO_TITLE[slug];
+        const match = data.find((t) => t.title === targetTitle);
+        if (match) handlePickTemplate(match);
+      }
+    });
   }, []);
 
   const markDone = async () => {

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { authApi, userApi } from "../services/api";
 import { useAuthStore } from "../store/authStore";
@@ -10,6 +10,8 @@ import { setServiceWorkerLanguage } from "../services/sw-lang";
 export default function Register() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const challengeSlug = searchParams.get("challenge");
   const { setTokens, setUser } = useAuthStore();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,7 +30,10 @@ export default function Register() {
       setUser(me.data);
       await i18n.changeLanguage(me.data.language || "en");
       setServiceWorkerLanguage(me.data.language || "en");
-      navigate(me.data.onboarding_completed ? "/" : "/onboarding");
+      const onboardingPath = challengeSlug
+        ? `/onboarding?challenge=${challengeSlug}`
+        : "/onboarding";
+      navigate(me.data.onboarding_completed ? "/" : onboardingPath);
     } catch (err: any) {
       setError(err.response?.data?.detail || t("auth.register_failed"));
     } finally {

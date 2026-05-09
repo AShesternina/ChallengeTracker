@@ -39,3 +39,4 @@ class ChallengeTemplate(Base):
     tasks_per_day: Mapped[int] = mapped_column(Integer, default=1)
     task_times: Mapped[str | None] = mapped_column(Text, nullable=True)
     icon: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    slug: Mapped[str | None] = mapped_column(String(100), unique=True, nullable=True)

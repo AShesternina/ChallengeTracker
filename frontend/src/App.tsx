@@ -16,6 +16,7 @@ import Reports from "./pages/Reports";
 import ChallengeReport from "./pages/ChallengeReport";
 import ChallengeDetail from "./pages/ChallengeDetail";
 import Settings from "./pages/Settings";
+import PublicChallenge from "./pages/PublicChallenge";
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated());
@@ -69,6 +70,7 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/challenge/:slug" element={<PublicChallenge />} />
         <Route path="/onboarding" element={<RequireAuth><OnboardingPage /></RequireAuth>} />
         <Route
           element={

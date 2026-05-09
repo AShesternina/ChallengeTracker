@@ -95,3 +95,22 @@ export function translateTemplateDesc(desc: string, lang: string): string {
 export function getTemplateCategory(title: string, lang: string): string {
   return TEMPLATE_CATEGORIES[title]?.[toLang(lang)] ?? "";
 }
+
+export const SLUG_TO_TITLE: Record<string, string> = {
+  "healthy-sleep": "Healthy Sleep",
+  "8-glasses-of-water": "8 Glasses of Water",
+  "daily-vitamins": "Daily Vitamins",
+  "no-sugar": "No Sugar",
+  "morning-pages": "Morning Pages",
+  "pomodoro-method": "Pomodoro Method",
+  "no-social-media-until-noon": "No Social Media Until Noon",
+  "morning-workout": "Morning Workout",
+  "push-ups-3x-day": "Push-ups 3x Day",
+  "10000-steps": "10,000 Steps",
+  "meditation": "Meditation",
+  "breathing-practice": "Breathing Practice",
+  "gratitude-journal": "Gratitude Journal",
+  "evening-review": "Evening Review",
+  "cold-shower": "Cold Shower",
+  "phone-free-evening": "Phone-Free Evening",
+};

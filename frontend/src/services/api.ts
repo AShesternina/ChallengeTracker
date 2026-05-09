@@ -77,6 +77,7 @@ export const dailyApi = {
 // --- Challenges ---
 export const challengesApi = {
   templates: () => api.get("/challenges/templates"),
+  getPublicTemplate: (slug: string) => api.get(`/challenges/templates/${slug}`),
   create: (data: unknown) => api.post("/challenges", data),
   start: (challenge_id: number, start_date: string) =>
     api.post("/challenges/start", { challenge_id, start_date }),
