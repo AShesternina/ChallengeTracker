@@ -341,7 +341,7 @@ export default function Reports() {
                     onMouseEnter={(e) => { if (hasData) (e.currentTarget as HTMLElement).style.transform = "scale(1.08)"; }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = "scale(1)"; }}
                     title={hasData ? `${day.date}: ${Math.round(day.completion_rate * day.total)}/${day.total}` : day.date}>
-                    <span className="text-[11px] font-bold leading-none" style={{ color: textColor }}>
+                    <span className="text-[13px] font-bold leading-none" style={{ color: textColor }}>
                       {dayNum}
                     </span>
                     {hasData && !isFutureDay && pct !== null && (
@@ -523,9 +523,9 @@ function generateInsights(
   const insights: Insight[] = [];
   const valid = weekdayRates
     .map((rate, i) => ({ rate, total: weekdayTotals[i], i }))
-    .filter((d) => d.total >= 3);
+    .filter((d) => d.total >= 1);
 
-  if (valid.length < 3) return [];
+  if (valid.length < 2) return [];
 
   const best = valid.reduce((a, b) => (a.rate > b.rate ? a : b));
   const worst = valid.reduce((a, b) => (a.rate < b.rate ? a : b));
