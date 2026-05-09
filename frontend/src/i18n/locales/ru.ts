@@ -161,6 +161,9 @@ const ru = {
     legend_none: "Нет задач",
     weekday_patterns: "По дням недели",
     weekday_no_data: "Пока нет данных",
+    tab_month: "Месяц",
+    tab_weekday: "По дням",
+    tap_day_hint: "Нажми на день чтобы увидеть задачи",
   },
   insights: {
     title: "Выводы",

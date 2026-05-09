@@ -161,6 +161,9 @@ const pt = {
     legend_none: "Sem tarefas",
     weekday_patterns: "Por dia da semana",
     weekday_no_data: "Sem dados ainda",
+    tab_month: "Mês",
+    tab_weekday: "Por dia",
+    tap_day_hint: "Toque em um dia para ver as tarefas",
   },
   insights: {
     title: "Conclusões",

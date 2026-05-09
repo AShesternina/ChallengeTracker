@@ -161,6 +161,9 @@ const en = {
     legend_none: "No tasks",
     weekday_patterns: "By day of week",
     weekday_no_data: "No data yet",
+    tab_month: "Month",
+    tab_weekday: "By weekday",
+    tap_day_hint: "Tap a day to see tasks",
   },
   insights: {
     title: "Insights",

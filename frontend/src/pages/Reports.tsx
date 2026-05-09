@@ -64,6 +64,7 @@ export default function Reports() {
   const [weekdayTotals, setWeekdayTotals] = useState<number[]>([]);
   const [momentumData, setMomentumData] = useState<{ trend: string } | null>(null);
   const [streakData, setStreakData] = useState<{ current_streak: number } | null>(null);
+  const [activityTab, setActivityTab] = useState<"month" | "weekday">("month");
 
   // Day drill-down
   const [selectedDay, setSelectedDay] = useState<DayStats | null>(null);
@@ -236,154 +237,180 @@ export default function Reports() {
   }
 
   // ── Main monthly view ────────────────────────────────────────────────────
+  const insightDayNames = Array.from({ length: 7 }, (_, i) =>
+    format(addDays(new Date(2024, 0, 1), i), "EEE", { locale: dateLocale })
+  );
+  const insights = weekdayRates
+    ? generateInsights(weekdayRates, weekdayTotals, momentumData, streakData, insightDayNames, t)
+    : [];
+
   return (
     <div className="space-y-4">
       <h2 className="text-[22px] font-black text-text-primary" style={{ letterSpacing: "-0.4px" }}>
         {t("reports.title")}
       </h2>
 
-      {/* Month nav */}
-      <div className="flex items-center justify-between rounded-md px-4 py-3"
+      {/* Activity card with tabs */}
+      <div className="rounded-md overflow-hidden"
         style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
-        <button onClick={prevMonth}
-          className="w-8 h-8 flex items-center justify-center rounded-md transition-colors hover:bg-surface2"
-          style={{ color: "var(--color-text-secondary)" }}>
-          <ArrowLeftIcon size={15} />
-        </button>
-        <span className="font-bold text-text-primary capitalize text-[15px]">{monthName}</span>
-        <button onClick={nextMonth}
-          className="w-8 h-8 flex items-center justify-center rounded-md transition-colors hover:bg-surface2"
-          style={{ color: "var(--color-text-secondary)" }}>
-          <ChevronRightIcon size={15} strokeWidth={2.5} />
-        </button>
+
+        {/* Tab switcher */}
+        <div className="flex gap-1 px-3 pt-3 pb-0">
+          {(["month", "weekday"] as const).map((tab) => (
+            <button key={tab} onClick={() => setActivityTab(tab)}
+              className="px-3 py-1.5 text-[12px] font-bold rounded-md transition-all"
+              style={{
+                background: activityTab === tab ? "var(--color-accent)" : "transparent",
+                color: activityTab === tab ? "white" : "var(--color-text-tertiary)",
+              }}>
+              {t(tab === "month" ? "reports.tab_month" : "reports.tab_weekday")}
+            </button>
+          ))}
+        </div>
+
+        {/* Month tab */}
+        {activityTab === "month" && (
+          <div className="p-4 pt-3">
+            {/* Month nav */}
+            <div className="flex items-center justify-between mb-3">
+              <button onClick={prevMonth}
+                className="w-8 h-8 flex items-center justify-center rounded-md transition-colors"
+                style={{ color: "var(--color-text-secondary)" }}>
+                <ArrowLeftIcon size={15} />
+              </button>
+              <span className="font-bold text-text-primary capitalize text-[14px]">{monthName}</span>
+              <button onClick={nextMonth}
+                className="w-8 h-8 flex items-center justify-center rounded-md transition-colors"
+                style={{ color: "var(--color-text-secondary)" }}>
+                <ChevronRightIcon size={15} strokeWidth={2.5} />
+              </button>
+            </div>
+
+            {loading && (
+              <div className="flex justify-center py-8">
+                <div className="w-7 h-7 rounded-full border-2 animate-spin"
+                  style={{ borderColor: "var(--color-accent)", borderTopColor: "transparent" }} />
+              </div>
+            )}
+
+            {report && !loading && (
+              <>
+                {/* Summary stats */}
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                  <StatCell label={t("reports.total_tasks")} value={String(report.total_tasks)} color="var(--color-text-primary)" />
+                  <StatCell label={t("reports.completed")} value={String(report.total_completed)} color="var(--color-success)" />
+                  <StatCell label={t("reports.rate")}
+                    value={`${Math.round(report.completion_rate * 100)}%`}
+                    color="var(--color-accent)" />
+                </div>
+
+                {/* Heatmap */}
+                <div className="grid grid-cols-7 gap-1 mb-2">
+                  {dayHeaders.map((d) => (
+                    <div key={d} className="text-center text-[10px] font-bold text-text-tertiary pb-0.5">{d}</div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-7 gap-1">
+                  {Array.from({ length: startOffset }).map((_, i) => (
+                    <div key={`pad-${i}`} />
+                  ))}
+                  {report.days.map((day) => {
+                    const todayStr = format(new Date(), "yyyy-MM-dd");
+                    const rate = day.total > 0 ? day.completion_rate : -1;
+                    const dayNum = Number(day.date.split("-")[2]);
+                    const isToday = day.date === todayStr;
+                    const isFutureDay = day.date > todayStr;
+                    const hasData = day.total > 0;
+
+                    let bg: string;
+                    let textColor: string;
+                    if (rate < 0) {
+                      bg = "var(--color-surface2)";
+                      textColor = "var(--color-text-tertiary)";
+                    } else if (isFutureDay) {
+                      bg = "#DBEAFE";
+                      textColor = "#60A5FA";
+                    } else if (rate >= 1) {
+                      bg = "var(--color-success)";
+                      textColor = "white";
+                    } else if (rate >= 0.5) {
+                      bg = "rgba(22,163,74,0.45)";
+                      textColor = "white";
+                    } else {
+                      bg = "#FED7AA";
+                      textColor = "#C2410C";
+                    }
+
+                    return (
+                      <button
+                        key={day.date}
+                        onClick={() => handleDayClick(day)}
+                        disabled={!hasData}
+                        className="aspect-square rounded-sm flex items-center justify-center transition-transform"
+                        style={{
+                          background: isToday && !hasData ? "var(--color-surface2)" : bg,
+                          boxShadow: isToday ? "0 0 0 3px var(--color-accent)" : "none",
+                          cursor: hasData ? "pointer" : "default",
+                          transform: "scale(1)",
+                          zIndex: isToday ? 1 : "auto",
+                          position: "relative",
+                        }}
+                        onMouseEnter={(e) => { if (hasData) (e.currentTarget as HTMLElement).style.transform = "scale(1.15)"; }}
+                        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = "scale(1)"; }}
+                        title={hasData ? `${day.date}: ${Math.round(day.completion_rate * day.total)}/${day.total}` : day.date}>
+                        <span className="text-[10px] font-bold" style={{ color: textColor }}>
+                          {dayNum}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Legend */}
+                <div className="flex flex-wrap gap-3 mt-3">
+                  <Legend color="var(--color-success)" label={t("reports.legend_100")} />
+                  <Legend color="rgba(22,163,74,0.45)" label={t("reports.legend_50")} />
+                  <Legend color="#FED7AA" label={t("reports.legend_less50")} />
+                  <Legend color="#DBEAFE" label={t("reports.legend_future")} />
+                  <Legend color="var(--color-surface2)" label={t("reports.legend_none")} />
+                </div>
+                <p className="text-[10px] text-text-tertiary mt-2">{t("reports.tap_day_hint")}</p>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Weekday tab */}
+        {activityTab === "weekday" && (
+          <div className="p-4 pt-3">
+            {weekdayRates
+              ? <WeekdayPatterns rates={weekdayRates} totals={weekdayTotals} dateLocale={dateLocale} />
+              : (
+                <div className="flex justify-center py-8">
+                  <div className="w-7 h-7 rounded-full border-2 animate-spin"
+                    style={{ borderColor: "var(--color-accent)", borderTopColor: "transparent" }} />
+                </div>
+              )
+            }
+          </div>
+        )}
       </div>
 
-      {loading && (
-        <div className="flex justify-center py-8">
-          <div className="w-7 h-7 rounded-full border-2 animate-spin"
-            style={{ borderColor: "var(--color-accent)", borderTopColor: "transparent" }} />
+      {/* Smart insights */}
+      {insights.length > 0 && <InsightsCard insights={insights} />}
+
+      {/* Active challenges list */}
+      {challenges.length > 0 && (
+        <div>
+          <p className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider mb-2">
+            {t("reports.active_challenges")}
+          </p>
+          <div className="space-y-2">
+            {challenges.map((ch) => (
+              <ChallengeRow key={ch.id} instance={ch} dark={dark} />
+            ))}
+          </div>
         </div>
-      )}
-
-      {report && !loading && (
-        <>
-          {/* Summary stats */}
-          <div className="grid grid-cols-3 gap-2.5">
-            <StatCell label={t("reports.total_tasks")} value={String(report.total_tasks)} color="var(--color-text-primary)" />
-            <StatCell label={t("reports.completed")} value={String(report.total_completed)} color="var(--color-success)" />
-            <StatCell label={t("reports.rate")}
-              value={`${Math.round(report.completion_rate * 100)}%`}
-              color="var(--color-accent)" />
-          </div>
-
-          {/* Heatmap */}
-          <div className="rounded-md p-4"
-            style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
-            <h3 className="font-bold text-text-primary text-[14px] mb-3">{t("reports.daily_completion")}</h3>
-
-            <div className="grid grid-cols-7 gap-1 mb-2">
-              {dayHeaders.map((d) => (
-                <div key={d} className="text-center text-[10px] font-bold text-text-tertiary pb-0.5">{d}</div>
-              ))}
-            </div>
-            <div className="grid grid-cols-7 gap-1">
-              {Array.from({ length: startOffset }).map((_, i) => (
-                <div key={`pad-${i}`} />
-              ))}
-              {report.days.map((day) => {
-                const todayStr = format(new Date(), "yyyy-MM-dd");
-                const rate = day.total > 0 ? day.completion_rate : -1;
-                const dayNum = Number(day.date.split("-")[2]);
-                const isToday = day.date === todayStr;
-                const isFutureDay = day.date > todayStr;
-                const hasData = day.total > 0;
-
-                let bg: string;
-                let textColor: string;
-                if (rate < 0) {
-                  bg = "var(--color-surface2)";
-                  textColor = "var(--color-text-tertiary)";
-                } else if (isFutureDay) {
-                  bg = "#DBEAFE";
-                  textColor = "#60A5FA";
-                } else if (rate >= 1) {
-                  bg = "var(--color-success)";
-                  textColor = "white";
-                } else if (rate >= 0.5) {
-                  bg = "rgba(22,163,74,0.45)";
-                  textColor = "white";
-                } else {
-                  bg = "#FED7AA";
-                  textColor = "#C2410C";
-                }
-
-                return (
-                  <button
-                    key={day.date}
-                    onClick={() => handleDayClick(day)}
-                    disabled={!hasData}
-                    className="aspect-square rounded-sm flex items-center justify-center transition-transform"
-                    style={{
-                      background: isToday && !hasData ? "var(--color-surface2)" : bg,
-                      boxShadow: isToday ? "0 0 0 3px var(--color-accent)" : "none",
-                      cursor: hasData ? "pointer" : "default",
-                      transform: "scale(1)",
-                      zIndex: isToday ? 1 : "auto",
-                      position: "relative",
-                    }}
-                    onMouseEnter={(e) => { if (hasData) (e.currentTarget as HTMLElement).style.transform = "scale(1.15)"; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = "scale(1)"; }}
-                    title={hasData ? `${day.date}: ${Math.round(day.completion_rate * day.total)}/${day.total}` : day.date}>
-                    <span className="text-[10px] font-bold" style={{ color: textColor }}>
-                      {dayNum}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Legend */}
-            <div className="flex flex-wrap gap-3 mt-3">
-              <Legend color="var(--color-success)" label={t("reports.legend_100")} />
-              <Legend color="rgba(22,163,74,0.45)" label={t("reports.legend_50")} />
-              <Legend color="#FED7AA" label={t("reports.legend_less50")} />
-              <Legend color="#DBEAFE" label={t("reports.legend_future")} />
-              <Legend color="var(--color-surface2)" label={t("reports.legend_none")} />
-            </div>
-            <p className="text-[10px] text-text-tertiary mt-2">
-              {i18n.language.startsWith("ru") ? "Нажми на день чтобы увидеть задачи" : "Tap a day to see tasks"}
-            </p>
-          </div>
-
-          {/* Weekday patterns */}
-          {weekdayRates && (
-            <WeekdayPatterns rates={weekdayRates} totals={weekdayTotals} dateLocale={dateLocale} />
-          )}
-
-          {/* Smart insights */}
-          {weekdayRates && (() => {
-            const monday = new Date(2024, 0, 1);
-            const dayNames = Array.from({ length: 7 }, (_, i) =>
-              format(addDays(monday, i), "EEE", { locale: dateLocale })
-            );
-            const insights = generateInsights(weekdayRates, weekdayTotals, momentumData, streakData, dayNames, t);
-            return insights.length > 0 ? <InsightsCard insights={insights} /> : null;
-          })()}
-
-          {/* Active challenges list */}
-          {challenges.length > 0 && (
-            <div>
-              <p className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider mb-2">
-                {t("reports.active_challenges")}
-              </p>
-              <div className="space-y-2">
-                {challenges.map((ch) => (
-                  <ChallengeRow key={ch.id} instance={ch} dark={dark} />
-                ))}
-              </div>
-            </div>
-          )}
-        </>
       )}
     </div>
   );
@@ -403,9 +430,7 @@ function WeekdayPatterns({ rates, totals, dateLocale }: {
   const hasAnyData = totals.some((n) => n > 0);
 
   return (
-    <div className="rounded-md px-4 py-3"
-      style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
-      <h3 className="font-bold text-text-primary text-[14px] mb-3">{t("reports.weekday_patterns")}</h3>
+    <div>
       {!hasAnyData ? (
         <p className="text-[13px] text-text-tertiary">{t("reports.weekday_no_data")}</p>
       ) : (
