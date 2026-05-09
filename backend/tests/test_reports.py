@@ -1,5 +1,5 @@
 import pytest
-from datetime import date
+from datetime import date, timedelta
 from httpx import AsyncClient
 
 from tests.conftest import auth_headers, register_and_login
@@ -147,6 +147,100 @@ async def test_challenge_report_has_recovery_analytics_fields(client: AsyncClien
     assert data["comebacks_count"] == 0
     assert data["avg_comeback_days"] is None
     assert data["resilience_score"] is None
+
+
+async def test_momentum_report_empty_user(client: AsyncClient):
+    """New user with no tasks: score=0, days_tracked=0, trend='stable'."""
+    tokens = await register_and_login(client)
+    r = await client.get("/api/v1/reports/momentum", headers=auth_headers(tokens))
+    assert r.status_code == 200
+    data = r.json()
+    assert "score" in data
+    assert "days_tracked" in data
+    assert "trend" in data
+    assert "trend_delta" in data
+    assert data["score"] == 0
+    assert data["days_tracked"] == 0
+    assert data["trend"] == "stable"
+
+
+async def test_momentum_report_after_completion(client: AsyncClient):
+    """After completing a task today, score > 0 and days_tracked == 1."""
+    tokens, _ = await _setup_with_completed_task(client)
+    r = await client.get("/api/v1/reports/momentum", headers=auth_headers(tokens))
+    assert r.status_code == 200
+    data = r.json()
+    assert data["days_tracked"] == 1
+    assert data["score"] > 0
+
+
+async def test_grace_day_fires_when_streak_active(client: AsyncClient):
+    """With streak_protection=True (default), missing 1 day doesn't break an active streak.
+
+    Setup: tasks completed 2 days ago and today, yesterday left pending.
+    Expected: current_streak=2, grace_day_used=True.
+    """
+    tokens = await register_and_login(client)
+    headers = auth_headers(tokens)
+    two_days_ago = (date.today() - timedelta(days=2)).isoformat()
+
+    # 7-day challenge starting 2 days ago — backfills tasks for all past days
+    r = await client.post("/api/v1/challenges", json={
+        "title": "Grace Test",
+        "type": "single",
+        "default_duration_days": 7,
+        "tasks_per_day": 1,
+        "task_times": ["08:00"],
+    }, headers=headers)
+    cid = r.json()["id"]
+    await client.post("/api/v1/challenges/start", json={
+        "challenge_id": cid, "start_date": two_days_ago,
+    }, headers=headers)
+
+    # Complete task 2 days ago
+    r = await client.get(f"/api/v1/daily/today?target_date={two_days_ago}", headers=headers)
+    task_id = r.json()["tasks"][0]["id"]
+    await client.post(f"/api/v1/tasks/{task_id}/complete", headers=headers)
+
+    # Yesterday's task stays pending (not completing = missed day)
+
+    # Complete today's task
+    r = await client.get("/api/v1/daily/today", headers=headers)
+    today_task_id = r.json()["tasks"][0]["id"]
+    await client.post(f"/api/v1/tasks/{today_task_id}/complete", headers=headers)
+
+    r = await client.get("/api/v1/reports/streak", headers=auth_headers(tokens))
+    assert r.status_code == 200
+    data = r.json()
+    assert data["grace_day_used"] is True
+    assert data["current_streak"] == 2
+
+
+async def test_grace_day_not_fired_without_prior_streak(client: AsyncClient):
+    """Grace day only fires when current_streak > 0 — missed first day gives streak=0."""
+    tokens = await register_and_login(client)
+    headers = auth_headers(tokens)
+    yesterday = (date.today() - timedelta(days=1)).isoformat()
+
+    # 7-day challenge starting yesterday — task is pending, nothing completed
+    r = await client.post("/api/v1/challenges", json={
+        "title": "No Grace Test",
+        "type": "single",
+        "default_duration_days": 7,
+        "tasks_per_day": 1,
+        "task_times": ["08:00"],
+    }, headers=headers)
+    cid = r.json()["id"]
+    await client.post("/api/v1/challenges/start", json={
+        "challenge_id": cid, "start_date": yesterday,
+    }, headers=headers)
+
+    # Neither yesterday nor today is completed — streak should be 0, no grace fired
+    r = await client.get("/api/v1/reports/streak", headers=headers)
+    assert r.status_code == 200
+    data = r.json()
+    assert data["current_streak"] == 0
+    assert data["grace_day_used"] is False
 
 
 async def test_daily_report_partial_completion(client: AsyncClient):

@@ -8,7 +8,7 @@
 - pause_periods: paused tasks visible but excluded from counts and reports
 """
 import pytest
-from datetime import date
+from datetime import date, timedelta
 from httpx import AsyncClient
 
 from tests.conftest import auth_headers, register_and_login
@@ -284,6 +284,57 @@ async def test_paused_tasks_counted_after_resume(client: AsyncClient):
     data = r.json()
     assert data["total"] == 1
     assert data["tasks"][0]["challenge_status"] == "active"
+
+
+async def test_streak_protection_disabled_breaks_on_missed_day(client: AsyncClient):
+    """When streak_protection=False, a missed day (pending tasks) resets streak to 0."""
+    tokens = await register_and_login(client)
+    headers = auth_headers(tokens)
+
+    # Disable streak protection
+    await client.patch("/api/v1/users/me", json={"streak_protection": False}, headers=headers)
+
+    yesterday = (date.today() - timedelta(days=1)).isoformat()
+
+    r = await client.post("/api/v1/challenges", json={
+        "title": "No Protection",
+        "type": "single",
+        "default_duration_days": 7,
+        "tasks_per_day": 1,
+        "task_times": ["08:00"],
+    }, headers=headers)
+    cid = r.json()["id"]
+    await client.post("/api/v1/challenges/start", json={
+        "challenge_id": cid, "start_date": yesterday,
+    }, headers=headers)
+
+    # Complete today's task, but yesterday stays pending (missed)
+    r = await client.get("/api/v1/daily/today", headers=headers)
+    today_task_id = r.json()["tasks"][0]["id"]
+    await client.post(f"/api/v1/tasks/{today_task_id}/complete", headers=headers)
+
+    r = await client.get("/api/v1/reports/streak", headers=headers)
+    data = r.json()
+    # Without protection, today's streak=1 but yesterday pending broke the backward count
+    # The backward walk: today=completed(streak=1), yesterday=pending(False)→break
+    assert data["current_streak"] == 1
+    assert data["grace_day_used"] is False
+
+
+async def test_weekday_patterns_excludes_paused_tasks(client: AsyncClient):
+    """Tasks from paused challenge days are excluded from weekday patterns."""
+    _, headers, instance = await _setup(client)
+
+    # Pause the challenge before completing anything
+    await client.post(f"/api/v1/challenges/instances/{instance['id']}/pause", headers=headers)
+
+    r = await client.get("/api/v1/reports/weekday-patterns", headers=headers)
+    assert r.status_code == 200
+    data = r.json()
+    today_wd = date.today().weekday()
+    # Paused tasks should NOT appear in patterns
+    assert data["totals"][today_wd] == 0
+    assert data["rates"][today_wd] == 0.0
 
 
 async def test_hard_delete_paused_instance(client: AsyncClient):
