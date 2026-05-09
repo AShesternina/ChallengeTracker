@@ -166,7 +166,7 @@ const ru = {
     tap_day_hint: "Нажми на день чтобы увидеть задачи",
   },
   insights: {
-    title: "Выводы за неделю",
+    title: "Trends",
     best_day: "Лучший день — {{day}} ({{rate}}%)",
     best_days: "Лучшие дни — {{days}} (все {{rate}}%)",
     worst_day: "{{day}} даётся тяжелее всего ({{rate}}%)",
