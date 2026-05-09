@@ -53,8 +53,9 @@ export default function InstallBanner() {
         </button>
       )}
       <button onClick={handleDismiss} aria-label={t("install.dismiss")}
-        className="shrink-0 text-text-tertiary hover:text-text-secondary transition-colors p-0.5">
-        <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+        className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full transition-colors"
+        style={{ color: "var(--color-text-tertiary)", background: "var(--color-surface2)" }}>
+        <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
           <line x1="1" y1="1" x2="13" y2="13" />
           <line x1="13" y1="1" x2="1" y2="13" />
         </svg>
