@@ -131,6 +131,7 @@ self.addEventListener("push", (event) => {
       return self.registration.showNotification(title, {
         body,
         data: { url: (data.url as string) || "/" },
+        requireInteraction: true,
       });
     })
   );
