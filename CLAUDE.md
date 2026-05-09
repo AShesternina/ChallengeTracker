@@ -347,7 +347,7 @@ Copy `backend/.env.example` → `backend/.env`. Key variables:
 ## Running tests
 
 ```bash
-# Install test deps and run all 103 tests (local Docker only)
+# Install test deps and run all 109 tests (local Docker only)
 docker exec challengetracker-backend-1 pip install -r requirements-test.txt -q
 docker exec challengetracker-backend-1 pytest tests/ -v --tb=short
 
@@ -361,7 +361,7 @@ docker exec challengetracker-backend-1 pytest tests/test_auth.py::test_login_suc
 - Production server does NOT have `PYTEST_ALLOW=1` — pytest is blocked at import time with a clear error
 - `pytest` is also not installed in the production image (double protection)
 
-Test files: `test_auth.py` (34) · `test_challenges.py` (15) · `test_daily.py` (11) · `test_reports.py` (12) · `test_new_features.py` (24) · `test_telegram.py` (7)
+Test files: `test_auth.py` (34) · `test_challenges.py` (15) · `test_daily.py` (11) · `test_reports.py` (16) · `test_new_features.py` (26) · `test_telegram.py` (7)
 
 ## Deployment (production)
 
@@ -383,7 +383,7 @@ docker exec challengetracker-backend-1 alembic upgrade head
 - **Token revocation**: logout blacklists refresh token in Redis. Access tokens are short-lived (30 min) and not blacklisted.
 - **Security headers**: `X-Frame-Options`, `X-Content-Type-Options`, `X-XSS-Protection`, `Referrer-Policy` added via middleware.
 - **Input validation**: `default_duration_days` 1–365, `tasks_per_day` 1–10, timezone validated against `pytz.all_timezones`.
-- **Daily backups**: cron at 03:00 UTC dumps DB to `/opt/backups/db_YYYY-MM-DD.gz` (7-day retention) on the VPS.
+- **Daily backups**: cron at 03:00 UTC dumps DB to `/opt/backups/db_YYYY-MM-DD.gz` (7-day retention) on the VPS. Local pull script: `scripts/pull_backup.ps1` (runs via Windows Task Scheduler at 07:00, saves to `%USERPROFILE%\Backups\ChallengeTracker\`, keeps 14 days). VPS backup script: `/opt/backup_db.sh`.
 
 ## Known issues / gotchas
 
@@ -391,3 +391,5 @@ docker exec challengetracker-backend-1 alembic upgrade head
 - **Vite HMR on Windows + Docker**: file watching sometimes misses changes — hard-refresh with `Ctrl+Shift+R` or restart container
 - **Port 5432**: not exposed to host. Backend connects via internal Docker network (`db:5432`)
 - **Frontend date**: Dashboard and DailyTasks always pass `?target_date=YYYY-MM-DD` from the browser to avoid server timezone mismatch
+- **VPS git pull**: the remote uses HTTPS (`github.com/AShesternina/ChallengeTracker`). If `git pull` fails with "could not read Username", copy changed files via scp or configure a GitHub deploy key with SSH remote.
+- **Desktop sidebar**: uses `position: fixed` (not sticky). Main content has `lg:ml-60` offset. `overflow-x: hidden` is on `html/body` only — do NOT add it to the Layout root div (breaks fixed positioning).

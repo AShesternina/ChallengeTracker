@@ -158,11 +158,13 @@ No web fonts loaded — system stack only.
 - **No emoji** — SVG only
 
 ### Desktop Sidebar
-- Width: 240px, fixed height
+- Width: 240px, `position: fixed`, full viewport height (`h-screen`), `top-0 left-0`, z-index 40
+- Main content has `lg:ml-60` to avoid overlap
 - Logo: 15px, weight 900, color `accent`
 - Nav items: icon (18px) + label (14px), active = `accentSoft` bg + `accent` color, radius 12px
-- Bottom: avatar + name/email + dark mode toggle
+- Bottom: avatar + name/email + dark mode toggle — always visible at bottom (flex-col layout)
 - Border-right: `border`
+- Note: do NOT add `overflow-x: hidden` to the Layout root div — breaks fixed positioning. It belongs on `html, body` only.
 
 ### Header (sticky)
 - Height: ~56px
@@ -343,16 +345,19 @@ Primary button shadow: `0 2px 8px accent+'40'`
 - CTA: "🚀 Запустить челлендж" primary full-width
 
 ### Reports
-- Month navigation (← May 2026 →)
-- 3 StatCards: Total / Completed (green) / Rate % (accent)
-- Heatmap: 7-col grid, day squares with hover scale
-  - 100%: `green`
-  - ≥50%: `catReading` (mid-green)
-  - <50%: `red`
-  - no tasks: `surface2`
-  - today: `accent` with white text
-- Legend: 4 colored squares + labels
+- **Month header card** (single card): `← Май 2026 →` nav row + thin progress bar (color-coded: green ≥80% / yellow ≥50% / red >0%) + stats row ("55 задач · 11 выполнено" left, large "20%" right). Spinner inline when loading.
+- **Heatmap**: 7-col grid, rectangular cells (`minHeight: 44px`), `gap-1.5`, rounded-md corners
+  - Inside each cell: day number (13px bold) + completion % (9px, only for past days with data)
+  - 100%: `green` bg, white text
+  - ≥50%: semi-green bg, white text
+  - <50%: `#FED7AA` bg, `#C2410C` text
+  - upcoming: `info-bg` / `info` (blue)
+  - no tasks: `surface2`, muted text
+  - today: `accent` ring outline
+- Legend: 5 squares + labels (100% / 50%+ / <50% / Upcoming / No tasks)
+- **Trends section** (only on current month, only when weekday data exists): auto-generated insights with colored left-border pills (green=positive, blue=neutral, yellow=warning)
 - Per-challenge list: icon + name + ProgressBar + chevron
+- Day drill-down uses shared `TaskCard` component (not a separate component)
 
 ### Settings
 - Section headers: 11px uppercase `textTertiary`
@@ -484,5 +489,5 @@ Two-step flow now has visual indicator: filled circle (step 1) → connector lin
 17. ✅ **Weekday patterns**: horizontal bars Mon–Sun with % completion in Reports (below heatmap)
 18. ✅ **Streak protection grace day**: User.streak_protection toggle in Settings; ⚡ badge on Dashboard
 19. ✅ **Burnout detection**: 3+ consecutive days <30% → supportive push; dedup 5 days; daily 12:00 UTC
-20. **Smart insights**: text conclusions on Reports page based on patterns
+20. ✅ **Trends (Smart insights)**: text conclusions on Reports page — best/worst day, weekday vs weekend, momentum trend, streak, consistency. Shown only on current month. Section title "Trends" / "Тренды".
 21. **Public challenge templates**: shareable /challenge/slug pages without auth
