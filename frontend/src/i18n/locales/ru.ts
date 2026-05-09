@@ -162,6 +162,18 @@ const ru = {
     weekday_patterns: "По дням недели",
     weekday_no_data: "Пока нет данных",
   },
+  insights: {
+    title: "Выводы",
+    best_day: "Лучший день — {{day}} ({{rate}}%)",
+    worst_day: "{{day}} даётся тяжелее всего ({{rate}}%)",
+    weekends_easier: "Выходные даются легче, чем будни",
+    weekdays_easier: "Рабочие дни продуктивнее выходных",
+    momentum_up: "Последние 7 дней лучше предыдущих",
+    momentum_down: "Небольшой спад за неделю — продолжай!",
+    streak_going: "{{n}} дней подряд — отличная серия!",
+    consistent: "Стабильный ритм — нет слабых дней в неделе",
+    variable: "Большой разброс — одни дни намного лучше других",
+  },
   challenge_report: {
     total_tasks: "Всего задач",
     completed: "Выполнено",

@@ -162,6 +162,18 @@ const en = {
     weekday_patterns: "By day of week",
     weekday_no_data: "No data yet",
   },
+  insights: {
+    title: "Insights",
+    best_day: "Best day — {{day}} ({{rate}}%)",
+    worst_day: "{{day}} is the toughest day ({{rate}}%)",
+    weekends_easier: "Weekends are easier than weekdays",
+    weekdays_easier: "Weekdays are more productive than weekends",
+    momentum_up: "Last 7 days better than the previous week",
+    momentum_down: "Slight dip this week — keep going!",
+    streak_going: "{{n}} days in a row — great streak!",
+    consistent: "Consistent rhythm — no weak days of the week",
+    variable: "High variation — some days are much better than others",
+  },
   challenge_report: {
     total_tasks: "Total tasks",
     completed: "Completed",

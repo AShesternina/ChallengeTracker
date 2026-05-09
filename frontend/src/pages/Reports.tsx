@@ -62,6 +62,8 @@ export default function Reports() {
   const [loading, setLoading] = useState(false);
   const [weekdayRates, setWeekdayRates] = useState<number[] | null>(null);
   const [weekdayTotals, setWeekdayTotals] = useState<number[]>([]);
+  const [momentumData, setMomentumData] = useState<{ trend: string } | null>(null);
+  const [streakData, setStreakData] = useState<{ current_streak: number } | null>(null);
 
   // Day drill-down
   const [selectedDay, setSelectedDay] = useState<DayStats | null>(null);
@@ -86,9 +88,15 @@ export default function Reports() {
   useEffect(() => { load(); }, [year, month]);
 
   useEffect(() => {
-    reportsApi.weekdayPatterns().then(({ data }) => {
-      setWeekdayRates(data.rates);
-      setWeekdayTotals(data.totals);
+    Promise.all([
+      reportsApi.weekdayPatterns(),
+      reportsApi.momentum(),
+      reportsApi.streak(),
+    ]).then(([wpRes, momRes, strRes]) => {
+      setWeekdayRates(wpRes.data.rates);
+      setWeekdayTotals(wpRes.data.totals);
+      setMomentumData({ trend: momRes.data.trend });
+      setStreakData({ current_streak: strRes.data.current_streak });
     }).catch(() => {});
   }, []);
 
@@ -352,6 +360,16 @@ export default function Reports() {
             <WeekdayPatterns rates={weekdayRates} totals={weekdayTotals} dateLocale={dateLocale} />
           )}
 
+          {/* Smart insights */}
+          {weekdayRates && (() => {
+            const monday = new Date(2024, 0, 1);
+            const dayNames = Array.from({ length: 7 }, (_, i) =>
+              format(addDays(monday, i), "EEE", { locale: dateLocale })
+            );
+            const insights = generateInsights(weekdayRates, weekdayTotals, momentumData, streakData, dayNames, t);
+            return insights.length > 0 ? <InsightsCard insights={insights} /> : null;
+          })()}
+
           {/* Active challenges list */}
           {challenges.length > 0 && (
             <div>
@@ -544,6 +562,109 @@ function ChallengeRow({ instance, dark }: { instance: ChallengeInstance; dark: b
       </div>
       <ChevronRightIcon size={14} className="text-text-tertiary shrink-0" />
     </Link>
+  );
+}
+
+interface Insight {
+  emoji: string;
+  text: string;
+  type: "positive" | "neutral" | "warning";
+}
+
+function generateInsights(
+  weekdayRates: number[],
+  weekdayTotals: number[],
+  momentum: { trend: string } | null,
+  streak: { current_streak: number } | null,
+  dayNames: string[],
+  t: (key: string, opts?: Record<string, unknown>) => string
+): Insight[] {
+  const insights: Insight[] = [];
+  const valid = weekdayRates
+    .map((rate, i) => ({ rate, total: weekdayTotals[i], i }))
+    .filter((d) => d.total >= 3);
+
+  if (valid.length < 3) return [];
+
+  const best = valid.reduce((a, b) => (a.rate > b.rate ? a : b));
+  const worst = valid.reduce((a, b) => (a.rate < b.rate ? a : b));
+
+  if (best.rate >= 0.6) {
+    insights.push({
+      emoji: "🌟",
+      text: t("insights.best_day", { day: dayNames[best.i], rate: Math.round(best.rate * 100) }),
+      type: "positive",
+    });
+  }
+
+  if (best.i !== worst.i && best.rate - worst.rate > 0.2 && worst.rate < 0.5) {
+    insights.push({
+      emoji: "💪",
+      text: t("insights.worst_day", { day: dayNames[worst.i], rate: Math.round(worst.rate * 100) }),
+      type: "warning",
+    });
+  }
+
+  const weekendDays = valid.filter((d) => d.i >= 5);
+  const weekdayDays = valid.filter((d) => d.i < 5);
+  if (weekendDays.length >= 2 && weekdayDays.length >= 3) {
+    const avgWe = weekendDays.reduce((s, d) => s + d.rate, 0) / weekendDays.length;
+    const avgWd = weekdayDays.reduce((s, d) => s + d.rate, 0) / weekdayDays.length;
+    if (Math.abs(avgWe - avgWd) > 0.15) {
+      insights.push({
+        emoji: avgWe > avgWd ? "🏖️" : "💼",
+        text: t(avgWe > avgWd ? "insights.weekends_easier" : "insights.weekdays_easier"),
+        type: "neutral",
+      });
+    }
+  }
+
+  if (momentum?.trend === "up") {
+    insights.push({ emoji: "📈", text: t("insights.momentum_up"), type: "positive" });
+  } else if (momentum?.trend === "down") {
+    insights.push({ emoji: "📉", text: t("insights.momentum_down"), type: "neutral" });
+  }
+
+  if (streak && streak.current_streak >= 7) {
+    insights.push({
+      emoji: "🔥",
+      text: t("insights.streak_going", { n: streak.current_streak }),
+      type: "positive",
+    });
+  }
+
+  if (valid.length >= 5) {
+    const mean = valid.reduce((s, d) => s + d.rate, 0) / valid.length;
+    const stdDev = Math.sqrt(valid.reduce((s, d) => s + Math.pow(d.rate - mean, 2), 0) / valid.length);
+    if (stdDev < 0.1) {
+      insights.push({ emoji: "⚡", text: t("insights.consistent"), type: "positive" });
+    } else if (stdDev > 0.25) {
+      insights.push({ emoji: "🌊", text: t("insights.variable"), type: "neutral" });
+    }
+  }
+
+  return insights.slice(0, 4);
+}
+
+function InsightsCard({ insights }: { insights: Insight[] }) {
+  const { t } = useTranslation();
+  const borderColor = { positive: "var(--color-success)", neutral: "var(--color-accent)", warning: "var(--color-warning)" };
+  const bgColor = { positive: "var(--color-success-bg)", neutral: "var(--color-info-bg)", warning: "var(--color-warning-bg)" };
+
+  return (
+    <div className="rounded-md px-4 py-3"
+      style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+      <h3 className="font-bold text-text-primary text-[14px] mb-3">{t("insights.title")}</h3>
+      <div className="space-y-2">
+        {insights.map((insight, i) => (
+          <div key={i} className="flex items-center gap-3 rounded-md px-3 py-2"
+            style={{ background: bgColor[insight.type], borderLeft: `3px solid ${borderColor[insight.type]}` }}>
+            <span className="text-base shrink-0">{insight.emoji}</span>
+            <p className="text-[13px] font-semibold text-text-primary">{insight.text}</p>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
