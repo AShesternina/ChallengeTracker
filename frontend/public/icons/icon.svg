@@ -1,4 +1,24 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background -->
   <rect width="512" height="512" rx="112" fill="#6366f1"/>
-  <text x="256" y="340" font-family="system-ui, -apple-system, sans-serif" font-size="240" font-weight="900" text-anchor="middle" fill="white">CT</text>
+  <!-- Flame shape -->
+  <path d="M256 96
+    C256 96 320 176 320 240
+    C320 260 312 276 300 288
+    C308 268 304 248 292 236
+    C292 268 272 288 256 304
+    C240 288 220 268 220 236
+    C208 248 204 268 212 288
+    C200 276 192 260 192 240
+    C192 176 256 96 256 96Z"
+    fill="white" opacity="0.95"/>
+  <!-- Inner flame glow -->
+  <path d="M256 192
+    C256 192 284 228 284 256
+    C284 272 274 284 262 292
+    C266 278 264 264 256 256
+    C248 264 246 278 250 292
+    C238 284 228 272 228 256
+    C228 228 256 192 256 192Z"
+    fill="#a5b4fc" opacity="0.8"/>
 </svg>

@@ -239,7 +239,7 @@ const ru = {
     ios_hint: "Нажмите Share → Добавить на экран",
     dismiss: "Не сейчас",
     settings_title: "Установить приложение",
-    settings_body: "Добавьте на главный экран для быстрого доступа",
+    settings_body: "Добавить на главный экран",
   },
   onboarding: {
     welcome_title: "Добро пожаловать!",

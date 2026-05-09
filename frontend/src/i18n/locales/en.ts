@@ -239,7 +239,7 @@ const en = {
     ios_hint: "Tap Share → Add to Home Screen",
     dismiss: "Not now",
     settings_title: "Install App",
-    settings_body: "Add to your home screen for quick access",
+    settings_body: "Add to home screen for quick access",
   },
   onboarding: {
     welcome_title: "Welcome to ChallengeTracker!",

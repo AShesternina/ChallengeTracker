@@ -187,16 +187,19 @@ export default function Settings() {
       {/* Install app */}
       {!isInstalled && (deferredPrompt || isIOS) && (
         <Section title={t("install.settings_title")}>
-          <div className="space-y-3">
-            <p className="text-[13px] text-text-secondary">{t("install.settings_body")}</p>
-            {isIOS ? (
-              <p className="text-[12px] text-text-secondary rounded-lg px-3 py-2"
-                style={{ background: "var(--color-surface2)" }}>
-                {t("install.ios_hint")}
-              </p>
-            ) : (
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="text-lg shrink-0" aria-hidden="true">📱</span>
+              <div className="min-w-0">
+                <p className="text-[13px] font-semibold text-text-primary">{t("install.settings_body")}</p>
+                {isIOS && (
+                  <p className="text-[11px] text-text-tertiary mt-0.5">{t("install.ios_hint")}</p>
+                )}
+              </div>
+            </div>
+            {!isIOS && (
               <button onClick={triggerInstall}
-                className="w-full py-2.5 rounded-md text-[13px] font-bold text-white"
+                className="shrink-0 px-3 py-1.5 rounded-md text-[12px] font-bold text-white"
                 style={{ background: "var(--color-accent)" }}>
                 {t("install.button")}
               </button>

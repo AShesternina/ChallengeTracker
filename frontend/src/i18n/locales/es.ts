@@ -239,7 +239,7 @@ const es = {
     ios_hint: "Toca Compartir → Añadir a pantalla de inicio",
     dismiss: "Ahora no",
     settings_title: "Instalar aplicación",
-    settings_body: "Añade a tu pantalla de inicio para acceso rápido",
+    settings_body: "Añadir a la pantalla de inicio",
   },
   onboarding: {
     welcome_title: "¡Bienvenido a ChallengeTracker!",
