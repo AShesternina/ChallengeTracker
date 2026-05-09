@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { format, addDays } from "date-fns";
+import { format } from "date-fns";
 import { ru as ruLocale, es as esLocale, ptBR as ptLocale, enUS } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
 import { reportsApi, challengesApi, dailyApi } from "../services/api";
@@ -44,8 +44,21 @@ interface DayTask {
   challenge_status: string;
 }
 
-const DAY_HEADERS_RU = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
-const DAY_HEADERS_EN = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+// Heatmap column headers (compact)
+const DAY_HEADERS: Record<string, string[]> = {
+  ru: ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"],
+  en: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"],
+  es: ["Lu", "Ma", "Mi", "Ju", "Vi", "Sá", "Do"],
+  pt: ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"],
+};
+
+// Day abbreviations used in insight sentences
+const INSIGHT_DAY_NAMES: Record<string, string[]> = {
+  ru: ["пн", "вт", "ср", "чт", "пт", "сб", "вс"],
+  en: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+  es: ["lun", "mar", "mié", "jue", "vie", "sáb", "dom"],
+  pt: ["seg", "ter", "qua", "qui", "sex", "sáb", "dom"],
+};
 
 export default function Reports() {
   const { t, i18n } = useTranslation();
@@ -87,7 +100,7 @@ export default function Reports() {
 
   useEffect(() => { load(); }, [year, month]);
 
-  useEffect(() => {
+  const loadAnalytics = () => {
     Promise.all([
       reportsApi.weekdayPatterns(),
       reportsApi.momentum(),
@@ -98,7 +111,9 @@ export default function Reports() {
       setMomentumData({ trend: momRes.data.trend });
       setStreakData({ current_streak: strRes.data.current_streak });
     }).catch(() => {});
-  }, []);
+  };
+
+  useEffect(() => { loadAnalytics(); }, []);
 
   const handleDayClick = async (day: DayStats) => {
     if (day.total === 0) return;
@@ -134,6 +149,7 @@ export default function Reports() {
           days: r.days.map((d) => d.date === selectedDay.date ? updated : d),
         } : r);
       }
+      loadAnalytics();
     } finally {
       setActionLoading(null);
     }
@@ -151,7 +167,11 @@ export default function Reports() {
   };
 
   const monthName = format(new Date(year, month - 1), "LLLL yyyy", { locale: dateLocale });
-  const dayHeaders = i18n.language.startsWith("ru") ? DAY_HEADERS_RU : DAY_HEADERS_EN;
+  const langKey = i18n.language.startsWith("ru") ? "ru"
+    : i18n.language.startsWith("es") ? "es"
+    : i18n.language.startsWith("pt") ? "pt"
+    : "en";
+  const dayHeaders = DAY_HEADERS[langKey];
   const startOffset = (new Date(year, month - 1, 1).getDay() + 6) % 7;
 
   // ── Day detail view ──────────────────────────────────────────────────────
@@ -236,9 +256,7 @@ export default function Reports() {
   }
 
   // ── Main monthly view ────────────────────────────────────────────────────
-  const insightDayNames = Array.from({ length: 7 }, (_, i) =>
-    format(addDays(new Date(2024, 0, 1), i), "EEE", { locale: dateLocale })
-  );
+  const insightDayNames = INSIGHT_DAY_NAMES[langKey];
   const insights = weekdayRates
     ? generateInsights(weekdayRates, weekdayTotals, momentumData, streakData, insightDayNames, t)
     : [];
