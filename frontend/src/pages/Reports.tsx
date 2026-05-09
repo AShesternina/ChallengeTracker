@@ -6,7 +6,8 @@ import { useTranslation } from "react-i18next";
 import { reportsApi, challengesApi, dailyApi } from "../services/api";
 import { useThemeStore } from "../store/themeStore";
 import { useCategoryStyle } from "../utils/category";
-import { ChevronRightIcon, ArrowLeftIcon, CheckIcon, ClockIcon, UndoIcon } from "../components/Icons";
+import { ChevronRightIcon, ArrowLeftIcon } from "../components/Icons";
+import TaskCard from "../components/TaskCard";
 import { translateTemplateName } from "../utils/templateTranslations";
 
 interface DayStats {
@@ -240,13 +241,21 @@ export default function Reports() {
             </p>
             {dayTasks.map((task) => {
               const isEditable = !isFuture && task.challenge_status !== "paused";
+              const dailyTask = {
+                ...task,
+                type: task.type as "single" | "multi" | "all_day",
+                challenge_instance_id: 0,
+                date: d.date,
+                completed_at: null,
+              };
               return (
-                <DayTaskRow key={task.id} task={task} dark={dark} lang={i18n.language}
+                <TaskCard key={task.id} task={dailyTask}
+                  readOnly={!isEditable}
                   loading={actionLoading === task.id}
-                  editable={isEditable}
-                  onComplete={() => handleTaskAction(task.id, "complete")}
-                  onSkip={() => handleTaskAction(task.id, "skip")}
-                  onUndo={() => handleTaskAction(task.id, "reset")} />
+                  onComplete={isEditable ? () => handleTaskAction(task.id, "complete") : undefined}
+                  onSkip={isEditable ? () => handleTaskAction(task.id, "skip") : undefined}
+                  onUndo={isEditable ? () => handleTaskAction(task.id, "reset") : undefined}
+                />
               );
             })}
           </div>
@@ -432,90 +441,6 @@ export default function Reports() {
 }
 
 
-function DayTaskRow({ task, dark, lang, loading, editable, onComplete, onSkip, onUndo }: {
-  task: DayTask; dark: boolean; lang: string; loading: boolean; editable: boolean;
-  onComplete: () => void; onSkip: () => void; onUndo: () => void;
-}) {
-  const { icon, accent, bg } = useCategoryStyle(task.challenge_title, dark);
-  const isDone = task.status === "completed";
-  const isSkipped = task.status === "skipped";
-  const isPending = task.status === "pending";
-  const isPaused = task.challenge_status === "paused";
-  const isInactive = isPaused;
-  const isRu = lang.startsWith("ru");
-
-  return (
-    <div className="rounded-md p-3.5 transition-all"
-      style={{
-        background: isDone ? "var(--color-success-bg)" : isSkipped ? "var(--color-surface2)" : "var(--color-surface)",
-        border: `1.5px solid ${isDone ? "var(--color-success-bg)" : isSkipped ? "var(--color-border)" : isInactive ? "var(--color-border)" : `${accent}35`}`,
-        opacity: isSkipped || isInactive ? 0.55 : 1,
-      }}>
-      <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0 text-base"
-          style={{ background: isDone ? "var(--color-success-bg)" : bg }}>
-          {isDone ? <CheckIcon size={16} strokeWidth={2.5} className="text-success" /> : <span>{icon}</span>}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className={`text-[13px] font-bold truncate ${isDone ? "line-through text-text-tertiary" : "text-text-primary"}`}>
-            {translateTemplateName(task.challenge_title, lang)}
-          </p>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            {task.scheduled_time && (
-              <span className="flex items-center gap-1 text-[11px] font-semibold text-text-tertiary">
-                <ClockIcon size={10} strokeWidth={2} />
-                {task.scheduled_time.slice(0, 5)}
-              </span>
-            )}
-            {task.sequence_number != null && task.total_count != null && (
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                style={{ background: `${accent}18`, color: accent }}>
-                {task.sequence_number} {isRu ? "из" : "of"} {task.total_count}
-              </span>
-            )}
-            {task.type === "all_day" && task.sequence_number == null && (
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                style={{ background: "var(--color-surface2)", color: "var(--color-text-tertiary)" }}>
-                {isRu ? "весь день" : "all day"}
-              </span>
-            )}
-          </div>
-        </div>
-
-        {editable && !isInactive && (
-          <div className="flex items-center gap-1.5 shrink-0">
-            {isPending && (
-              <>
-                <button onClick={onSkip} disabled={loading}
-                  className="px-2.5 py-1.5 text-[11px] font-semibold rounded-sm disabled:opacity-40 transition-colors"
-                  style={{ border: "1.5px solid var(--color-border-strong)", color: "var(--color-text-secondary)" }}>
-                  {isRu ? "Пропуск" : "Skip"}
-                </button>
-                <button onClick={onComplete} disabled={loading}
-                  className="px-2.5 py-1.5 text-[11px] font-bold text-white rounded-sm disabled:opacity-40"
-                  style={{ background: accent }}>
-                  {isRu ? "Готово" : "Done"}
-                </button>
-              </>
-            )}
-            {!isPending && (
-              <button onClick={onUndo} disabled={loading}
-                className="p-1.5 rounded-sm text-text-tertiary hover:text-text-secondary transition-colors"
-                title={isRu ? "Отменить" : "Undo"}>
-                <UndoIcon size={14} />
-              </button>
-            )}
-          </div>
-        )}
-        {isInactive && (
-          <span className="text-[10px] font-bold text-text-tertiary shrink-0">
-            {isRu ? "пауза" : "paused"}
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
 
 function ChallengeRow({ instance, dark }: { instance: ChallengeInstance; dark: boolean }) {
   const { i18n } = useTranslation();
