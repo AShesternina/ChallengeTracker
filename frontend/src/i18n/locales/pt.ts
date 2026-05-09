@@ -166,7 +166,7 @@ const pt = {
     tap_day_hint: "Toque em um dia para ver as tarefas",
   },
   insights: {
-    title: "Trends",
+    title: "Tendências",
     best_day: "Melhor dia — {{day}} ({{rate}}%)",
     best_days: "Melhores dias — {{days}} ({{rate}}% cada)",
     worst_day: "{{day}} é o dia mais difícil ({{rate}}%)",
