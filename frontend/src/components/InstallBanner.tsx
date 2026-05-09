@@ -27,36 +27,38 @@ export default function InstallBanner() {
   };
 
   return (
-    <div className="rounded-xl p-4 space-y-3"
+    <div className="rounded-xl px-3 py-3 flex items-center gap-3"
       style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2.5">
-          <span className="text-xl" aria-hidden="true">📱</span>
-          <div>
-            <p className="text-[14px] font-bold text-text-primary">{t("install.title")}</p>
-            <p className="text-[12px] text-text-tertiary mt-0.5">{t("install.body")}</p>
-          </div>
-        </div>
-        <button onClick={handleDismiss} aria-label={t("install.dismiss")}
-          className="text-text-tertiary hover:text-text-secondary p-1 shrink-0 transition-colors">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <line x1="1" y1="1" x2="13" y2="13" />
-            <line x1="13" y1="1" x2="1" y2="13" />
-          </svg>
-        </button>
+
+      {/* App icon */}
+      <img src="/icons/icon.svg" alt="" aria-hidden="true"
+        className="w-11 h-11 rounded-xl shrink-0"
+        style={{ boxShadow: "0 2px 8px rgba(99,102,241,0.25)" }} />
+
+      {/* Text */}
+      <div className="flex-1 min-w-0">
+        <p className="text-[13px] font-bold text-text-primary leading-tight">{t("install.title")}</p>
+        <p className="text-[11px] text-text-tertiary mt-0.5 leading-tight">{t("install.body")}</p>
+        {isIOS && (
+          <p className="text-[11px] text-text-secondary mt-1">{t("install.ios_hint")}</p>
+        )}
       </div>
 
-      {isIOS ? (
-        <p className="text-[12px] text-text-secondary bg-surface2 rounded-lg px-3 py-2">
-          {t("install.ios_hint")}
-        </p>
-      ) : (
+      {/* Actions */}
+      {!isIOS && (
         <button onClick={handleInstall}
-          className="w-full py-2.5 rounded-md text-[13px] font-bold text-white transition-opacity"
+          className="shrink-0 px-3 py-1.5 rounded-lg text-[12px] font-bold text-white"
           style={{ background: "var(--color-accent)" }}>
           {t("install.button")}
         </button>
       )}
+      <button onClick={handleDismiss} aria-label={t("install.dismiss")}
+        className="shrink-0 text-text-tertiary hover:text-text-secondary transition-colors p-0.5">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <line x1="1" y1="1" x2="13" y2="13" />
+          <line x1="13" y1="1" x2="1" y2="13" />
+        </svg>
+      </button>
     </div>
   );
 }
