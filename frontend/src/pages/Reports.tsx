@@ -283,13 +283,13 @@ export default function Reports() {
 
         {/* Navigation row */}
         <div className="flex items-center justify-between mb-3">
-          <button onClick={prevMonth}
+          <button onClick={prevMonth} aria-label={t("reports.prev_month")}
             className="w-8 h-8 flex items-center justify-center rounded-md transition-colors"
             style={{ color: "var(--color-text-secondary)" }}>
             <ArrowLeftIcon size={15} />
           </button>
           <span className="font-bold text-text-primary capitalize text-[15px]">{monthName}</span>
-          <button onClick={nextMonth}
+          <button onClick={nextMonth} aria-label={t("reports.next_month")}
             className="w-8 h-8 flex items-center justify-center rounded-md transition-colors"
             style={{ color: "var(--color-text-secondary)" }}>
             <ChevronRightIcon size={15} strokeWidth={2.5} />

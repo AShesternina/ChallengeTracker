@@ -15,6 +15,7 @@ const es = {
     error: "Algo salió mal",
     back: "Atrás",
     new: "Nuevo",
+    toggle_theme: "Cambiar tema",
     done: "Hecho",
     skip: "Omitir",
     confirm_past_end: "La fecha de fin ya pasó",
@@ -164,6 +165,8 @@ const es = {
     tab_month: "Mes",
     tab_weekday: "Por día",
     tap_day_hint: "Toca un día para ver las tareas",
+    prev_month: "Mes anterior",
+    next_month: "Mes siguiente",
   },
   insights: {
     title: "Tendencias",

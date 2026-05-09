@@ -63,7 +63,7 @@ export default function Layout() {
             <p className="text-[13px] font-semibold text-text-primary truncate">{firstName}</p>
             <p className="text-[11px] text-text-tertiary truncate">{user?.email}</p>
           </div>
-          <button onClick={toggle} className="text-text-tertiary hover:text-text-secondary transition-colors p-1">
+          <button onClick={toggle} aria-label={t("common.toggle_theme")} className="text-text-tertiary hover:text-text-secondary transition-colors p-1">
             {dark ? <SunIcon size={16} /> : <MoonIcon size={16} />}
           </button>
         </div>

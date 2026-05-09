@@ -121,7 +121,7 @@ export default function TaskCard({ task, onComplete, onSkip, onUndo, loading, sh
               {!isPending && onUndo && (
                 <button onClick={() => onUndo(task.id)} disabled={loading}
                   className="p-1.5 rounded-sm text-text-tertiary hover:text-text-secondary transition-colors"
-                  title={t("task.undo")}>
+                  aria-label={t("task.undo")}>
                   <UndoIcon size={14} />
                 </button>
               )}

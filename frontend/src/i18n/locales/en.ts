@@ -15,6 +15,7 @@ const en = {
     error: "Something went wrong",
     back: "Back",
     new: "New",
+    toggle_theme: "Toggle theme",
     done: "Done",
     skip: "Skip",
     confirm_past_end: "End date is in the past",
@@ -164,6 +165,8 @@ const en = {
     tab_month: "Month",
     tab_weekday: "By weekday",
     tap_day_hint: "Tap a day to see tasks",
+    prev_month: "Previous month",
+    next_month: "Next month",
   },
   insights: {
     title: "Trends",

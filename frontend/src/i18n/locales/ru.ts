@@ -15,6 +15,7 @@ const ru = {
     error: "Что-то пошло не так",
     back: "Назад",
     new: "Новый",
+    toggle_theme: "Сменить тему",
     done: "Готово",
     skip: "Пропустить",
     confirm_past_end: "Дата окончания в прошлом",
@@ -164,6 +165,8 @@ const ru = {
     tab_month: "Месяц",
     tab_weekday: "По дням",
     tap_day_hint: "Нажми на день чтобы увидеть задачи",
+    prev_month: "Предыдущий месяц",
+    next_month: "Следующий месяц",
   },
   insights: {
     title: "Тренды",
