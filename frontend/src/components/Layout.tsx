@@ -29,7 +29,7 @@ export default function Layout() {
   const initial = firstName[0]?.toUpperCase() ?? "U";
 
   return (
-    <div className="min-h-screen flex bg-bg">
+    <div className="min-h-screen flex bg-bg overflow-x-hidden">
       {/* ── Desktop sidebar ─────────────────────────────── */}
       <aside className="hidden lg:flex flex-col w-60 h-screen sticky top-0 border-r border-border bg-surface shrink-0">
         <div className="px-5 pt-6 pb-4">

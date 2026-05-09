@@ -236,22 +236,22 @@ export default function Settings() {
                   {t("settings.notif_times")}
                 </p>
                 <div className="flex items-center justify-between gap-3">
-                  <label className="text-[13px] font-semibold text-text-primary whitespace-nowrap">
+                  <label className="text-[13px] font-semibold text-text-primary truncate flex-1">
                     {t("settings.morning_notification")}
                   </label>
                   <input type="time" value={morningTime}
                     onChange={(e) => setMorningTime(e.target.value)}
-                    className="px-3 py-1.5 rounded-md text-[13px] text-text-primary outline-none"
-                    style={{ background: "var(--color-surface2)", border: "1.5px solid var(--color-border)" }} />
+                    className="px-2 py-1.5 rounded-md text-[13px] text-text-primary outline-none shrink-0"
+                    style={{ background: "var(--color-surface2)", border: "1.5px solid var(--color-border)", width: "110px" }} />
                 </div>
                 <div className="flex items-center justify-between gap-3">
-                  <label className="text-[13px] font-semibold text-text-primary whitespace-nowrap">
+                  <label className="text-[13px] font-semibold text-text-primary truncate flex-1">
                     {t("settings.evening_notification")}
                   </label>
                   <input type="time" value={eveningTime}
                     onChange={(e) => setEveningTime(e.target.value)}
-                    className="px-3 py-1.5 rounded-md text-[13px] text-text-primary outline-none"
-                    style={{ background: "var(--color-surface2)", border: "1.5px solid var(--color-border)" }} />
+                    className="px-2 py-1.5 rounded-md text-[13px] text-text-primary outline-none shrink-0"
+                    style={{ background: "var(--color-surface2)", border: "1.5px solid var(--color-border)", width: "110px" }} />
                 </div>
                 <button onClick={handleSaveNotifTimes} disabled={savingTimes}
                   className="w-full py-2 rounded-md text-[13px] font-bold text-white disabled:opacity-50 transition-opacity"
