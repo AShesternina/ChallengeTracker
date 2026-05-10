@@ -367,7 +367,8 @@ Primary button shadow: `0 2px 8px accent+'40'`
   - **Appearance**: dark mode toggle
   - **Language**: segmented control (EN / RU / ES / PT)
   - **Push Notifications**: web push toggle; when enabled → morning time picker + evening time picker + task reminders toggle
-  - **Telegram**: connect/disconnect (Telegram Bot for notifications; "coming soon" if bot unreachable)
+  - **Install App**: кнопка установки PWA (скрыта если уже установлено; iOS показывает инструкцию)
+  - **Telegram**: connect/disconnect через one-time code; работает через Cloudflare Worker прокси
   - **Danger zone**: Delete Account (ConfirmModal)
 - Sign Out: full-width Ghost button above danger zone
 
@@ -475,9 +476,9 @@ Two-step flow now has visual indicator: filled circle (step 1) → connector lin
 3. ✅ **Empty states / Onboarding**: 3-step modal for new users
 4. ✅ **Challenge templates**: step 1 template cards pre-fill step 2 form with translated title/description
 5. ✅ **Reports per-challenge**: active challenges list with progress bars after heatmap, links to Challenge Report
-6. **Accessibility**: add `aria-label` to all icon-only buttons, implement focus trap in modals
+6. ✅ **Accessibility**: `aria-label` на всех icon-only кнопках (Layout, TaskCard, Reports, Settings toggles); focus trap в ConfirmModal (portal + inert на #root + Escape + восстановление фокуса)
 7. ✅ **Push notifications settings**: morning/evening time pickers + task reminders toggle + streak protection toggle
-8. **Offline banner**: PWA offline state indicator needed
+8. ~~**Offline banner**~~: решено не реализовывать — сценарий редкий, браузер сам показывает ошибку сети
 9. ✅ **Pause/Resume challenge**: buttons on ChallengeDetail when active/paused
 10. ✅ **Delete challenge**: permanent delete button (any status) on ChallengeDetail
 11. ✅ **Streak counter on Dashboard**: 🔥 + day count pill; ⚡ when grace day used
@@ -490,4 +491,6 @@ Two-step flow now has visual indicator: filled circle (step 1) → connector lin
 18. ✅ **Streak protection grace day**: User.streak_protection toggle in Settings; ⚡ badge on Dashboard
 19. ✅ **Burnout detection**: 3+ consecutive days <30% → supportive push; dedup 5 days; daily 12:00 UTC
 20. ✅ **Trends (Smart insights)**: text conclusions on Reports page — best/worst day, weekday vs weekend, momentum trend, streak, consistency. Shown only on current month. Section title "Trends" / "Тренды".
-21. **Public challenge templates**: shareable /challenge/slug pages without auth
+21. ✅ **Public challenge templates**: `/challenge/:slug` — страница без авторизации, SEO, growth loop. Регистрация по ссылке → онбординг с предвыбранным шаблоном.
+22. ✅ **PWA Install Prompt**: InstallBanner на Dashboard (макс. 2 показа, cooldown 2 дня), кнопка в Settings. iOS: инструкция Share → Add to Home Screen. Иконка приложения — пламя на indigo (SVG). `requireInteraction: true` для пушей.
+23. ✅ **Telegram proxy**: Cloudflare Worker `tg-proxy.a-shesternina.workers.dev` — двусторонний прокси. Обходит блокировку api.telegram.org на российском VPS. Webhook зарегистрирован через Worker.

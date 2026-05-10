@@ -83,9 +83,12 @@ frontend/src/
   components/    Layout, TaskCard, ProgressRing, Icons, PasswordInput, ConfirmModal
   pages/         Dashboard, DailyTasks, Challenges, CreateChallenge, ChallengeDetail,
                  ChallengeReport, Reports, Settings, Login, Register, Onboarding
-  store/         authStore (user + tokens + language + onboarding_completed + notification prefs + streak_protection + telegram_chat_id), taskStore, themeStore
+  components/    Layout, TaskCard, ProgressRing, Icons, PasswordInput, ConfirmModal, InstallBanner
+  pages/         Dashboard, DailyTasks, Challenges, CreateChallenge, ChallengeDetail,
+                 ChallengeReport, Reports, Settings, Login, Register, Onboarding, PublicChallenge
+  store/         authStore (user + tokens + language + onboarding_completed + notification prefs + streak_protection + telegram_chat_id), taskStore, themeStore, installStore
   services/      api.ts (Axios + JWT auto-refresh), push.ts (Web Push, returns device ID), sw-lang.ts (SW language sync), telegramApi
-  utils/         category.ts (category detection from title), templateTranslations.ts (16 templates × 4 langs)
+  utils/         category.ts (category detection from title), templateTranslations.ts (16 templates × 4 langs + SLUG_TO_TITLE map)
   i18n/locales/  en.ts, ru.ts, es.ts, pt.ts
   sw.ts          Service Worker: precache + push handler (data-only, translates via IndexedDB) + message handler
 ```
@@ -133,6 +136,7 @@ DELETE /api/v1/users/me/telegram                    # unlink Telegram account
 POST /api/v1/telegram/webhook                       # Telegram Bot webhook (receives /start <code>)
 
 GET  /api/v1/challenges/templates
+GET  /api/v1/challenges/templates/{slug}    # public — no auth required
 POST /api/v1/challenges
 POST /api/v1/challenges/start
 GET  /api/v1/challenges/my
@@ -201,7 +205,7 @@ docker exec challengetracker-backend-1 alembic upgrade head
 docker exec challengetracker-backend-1 alembic revision --autogenerate -m "description"
 ```
 
-Migrations: `0001_initial` → ... → `0009_add_onboarding_completed` → `0010_add_notification_times` → `0011_add_notify_task_reminders` → `0012_add_telegram` → `0013_add_weekly_review_notification_type` → `0014_add_streak_protection` → `0015_add_burnout_alert_notification_type`
+Migrations: `0001_initial` → ... → `0009_add_onboarding_completed` → `0010_add_notification_times` → `0011_add_notify_task_reminders` → `0012_add_telegram` → `0013_add_weekly_review_notification_type` → `0014_add_streak_protection` → `0015_add_burnout_alert_notification_type` → `0016_add_template_slugs`
 
 PostgreSQL enums require explicit `CAST(:value AS enumtype)` — do NOT use `op.bulk_insert()` with enum columns.
 
@@ -289,7 +293,11 @@ User links Telegram account via Settings → "Connect Telegram":
 
 `User.telegram_chat_id` (BigInteger) — null if not linked. `User.telegram_linking_code` (String 20) — cleared after use.
 
-**Note:** Telegram Bot API (`api.telegram.org`) may be unreachable from Russian VPS — sending fails silently (logged), linking webhook still works.
+**Telegram proxy:** `api.telegram.org` is blocked on Russian VPS. Solution: Cloudflare Worker `tg-proxy.a-shesternina.workers.dev` acts as bidirectional proxy:
+- Outbound (VPS → Telegram): Worker rewrites requests to `api.telegram.org`, protected by `X-Proxy-Secret` header
+- Inbound (Telegram → VPS): Worker `/webhook` path forwards to `api.tracker.shura.pro/api/v1/telegram/webhook`
+
+Set `TELEGRAM_PROXY_URL` + `TELEGRAM_PROXY_SECRET` in `.env` to enable. Without these, `send_telegram()` falls back to direct `api.telegram.org` (works in EU, fails in Russia).
 
 **Adding a new language to notifications:**
 - `sw.ts` `TRANSLATIONS`: add language code to each notification type entry
@@ -342,12 +350,14 @@ Copy `backend/.env.example` → `backend/.env`. Key variables:
 - `VAPID_PRIVATE_KEY` / `VAPID_PUBLIC_KEY` — leave empty to use mock push (logs to console). Generate: see README.
 - `SENDGRID_API_KEY` — leave empty to use mock email (logs to console)
 - `TELEGRAM_BOT_TOKEN` / `TELEGRAM_BOT_USERNAME` — leave empty to mock Telegram (logs to console)
+- `TELEGRAM_PROXY_URL` — Cloudflare Worker URL (e.g. `https://tg-proxy.a-shesternina.workers.dev`); leave empty for direct connection
+- `TELEGRAM_PROXY_SECRET` — must match `PROXY_SECRET` env var in the Cloudflare Worker
 - `CORS_ORIGINS` — JSON list of allowed origins
 
 ## Running tests
 
 ```bash
-# Install test deps and run all 109 tests (local Docker only)
+# Install test deps and run all 112 tests (local Docker only)
 docker exec challengetracker-backend-1 pip install -r requirements-test.txt -q
 docker exec challengetracker-backend-1 pytest tests/ -v --tb=short
 
@@ -361,7 +371,9 @@ docker exec challengetracker-backend-1 pytest tests/test_auth.py::test_login_suc
 - Production server does NOT have `PYTEST_ALLOW=1` — pytest is blocked at import time with a clear error
 - `pytest` is also not installed in the production image (double protection)
 
-Test files: `test_auth.py` (34) · `test_challenges.py` (15) · `test_daily.py` (11) · `test_reports.py` (16) · `test_new_features.py` (26) · `test_telegram.py` (7)
+Test files: `test_auth.py` (34) · `test_challenges.py` (18) · `test_daily.py` (11) · `test_reports.py` (16) · `test_new_features.py` (26) · `test_telegram.py` (7)
+
+`conftest.py` uses `drop_all + create_all` before each test session to ensure schema is always up to date with current models.
 
 ## Deployment (production)
 
@@ -393,3 +405,6 @@ docker exec challengetracker-backend-1 alembic upgrade head
 - **Frontend date**: Dashboard and DailyTasks always pass `?target_date=YYYY-MM-DD` from the browser to avoid server timezone mismatch
 - **VPS git pull**: the remote uses HTTPS (`github.com/AShesternina/ChallengeTracker`). If `git pull` fails with "could not read Username", copy changed files via scp or configure a GitHub deploy key with SSH remote.
 - **Desktop sidebar**: uses `position: fixed` (not sticky). Main content has `lg:ml-60` offset. `overflow-x: hidden` is on `html/body` only — do NOT add it to the Layout root div (breaks fixed positioning).
+- **ConfirmModal focus trap**: uses `createPortal` to render in `<body>` + sets `inert` on `#root` while open. This is the only correct pattern — previous approaches using keydown interception failed.
+- **PWA install prompt**: `beforeinstallprompt` event is captured in `App.tsx` and stored in `installStore`. `InstallBanner` shows on Dashboard (max 2 times, 2-day cooldown). Settings shows install button when not installed. `requireInteraction: true` on all push notifications (stay until dismissed).
+- **Public templates**: `/challenge/:slug` route is outside `<RequireAuth>`. `PublicChallenge.tsx` calls `GET /challenges/templates/{slug}` (no auth). After register → onboarding with `?challenge=slug` pre-selects template via `SLUG_TO_TITLE` map in `templateTranslations.ts`.

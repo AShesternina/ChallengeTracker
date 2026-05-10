@@ -104,7 +104,9 @@ docker compose up --build
 
 **⚡ Защита серии:** toggle — один пропущенный день не ломает серию (grace day). Включена по умолчанию.
 
-**Telegram:** подключение аккаунта через one-time code. После связки уведомления дублируются в Telegram.
+**Telegram:** подключение аккаунта через one-time code. После связки уведомления дублируются в Telegram. Отправка через Cloudflare Worker прокси (обходит блокировку api.telegram.org на российских серверах).
+
+**Установить приложение:** InstallBanner на Dashboard (показывается макс. 2 раза) + кнопка в Настройках. iOS: инструкция Share → Add to Home Screen. Уведомления остаются до закрытия пользователем (`requireInteraction: true`).
 
 **Удаление аккаунта** — кнопка внизу. После подтверждения удаляет пользователя и все его данные без возможности восстановления.
 
@@ -170,14 +172,15 @@ backend/app/
   schemas/            — Pydantic schemas
   services/           — вся бизнес-логика (в т.ч. language_service, notifications_i18n)
   workers/            — Celery app + scheduled tasks
-alembic/              — миграции (0001 → ... → 0015)
+alembic/              — миграции (0001 → ... → 0016)
 
 frontend/src/
-  components/         — Layout, TaskCard, ProgressRing, Icons, PasswordInput, ConfirmModal
-  pages/              — все экраны (+ Onboarding)
-  store/              — authStore (+ language + onboarding_completed + streak_protection + telegram_chat_id), taskStore, themeStore
+  components/         — Layout, TaskCard, ProgressRing, Icons, PasswordInput, ConfirmModal, InstallBanner
+  pages/              — все экраны (+ Onboarding, PublicChallenge)
+  store/              — authStore (+ language + onboarding_completed + streak_protection + telegram_chat_id), taskStore, themeStore, installStore
   services/           — api.ts, push.ts, sw-lang.ts
-  utils/              — category.ts, templateTranslations.ts (16 шаблонов × 4 языка)
+  utils/              — category.ts, templateTranslations.ts (16 шаблонов × 4 языка + SLUG_TO_TITLE)
+cloudflare/           — Telegram proxy Worker (telegram-proxy/worker.js)
   i18n/locales/       — en.ts, ru.ts, es.ts, pt.ts
   sw.ts               — Service Worker: кэш + push-перевод через IndexedDB (5 типов уведомлений)
 ```
@@ -199,6 +202,7 @@ POST /api/v1/users/me/telegram/generate-code       # one-time linking code
 DELETE /api/v1/users/me/telegram                   # отвязать Telegram
 
 GET  /api/v1/challenges/templates
+GET  /api/v1/challenges/templates/{slug}   # публичный — без авторизации
 POST /api/v1/challenges
 POST /api/v1/challenges/start
 GET  /api/v1/challenges/my
@@ -255,6 +259,8 @@ DELETE /api/v1/notifications/devices/{id}
 | `SENDGRID_API_KEY` | Email (пусто → console mock) |
 | `TELEGRAM_BOT_TOKEN` | Telegram Bot API токен (пусто → mock) |
 | `TELEGRAM_BOT_USERNAME` | Username бота без @ (для генерации ссылок) |
+| `TELEGRAM_PROXY_URL` | Cloudflare Worker URL для проксирования Telegram (пусто → прямое подключение) |
+| `TELEGRAM_PROXY_SECRET` | Секрет для Worker (должен совпадать с `PROXY_SECRET` в Cloudflare) |
 | `CORS_ORIGINS` | JSON-список разрешённых origins |
 
 ---
@@ -296,4 +302,4 @@ docker exec challengetracker-backend-1 bash -c \
   "pip install -r requirements-test.txt -q && pytest tests/ -v --tb=short --cov=app --cov-report=term-missing"
 ```
 
-109 тестов: test_auth (34) · test_challenges (15) · test_daily (11) · test_reports (16) · test_new_features (26) · test_telegram (7)
+112 тестов: test_auth (34) · test_challenges (18) · test_daily (11) · test_reports (16) · test_new_features (26) · test_telegram (7)
