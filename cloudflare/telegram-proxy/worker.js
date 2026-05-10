@@ -1,36 +1,45 @@
 /**
- * Cloudflare Worker — Telegram API proxy
+ * Cloudflare Worker — двусторонний Telegram прокси
  *
- * Forwards requests to api.telegram.org.
- * Protected by X-Proxy-Secret header to prevent public abuse.
+ * 1. GET|POST /webhook — входящие обновления от Telegram → пересылает на VPS
+ * 2. Всё остальное — исходящие запросы VPS → api.telegram.org (защищено X-Proxy-Secret)
  *
- * Environment variables (set in Cloudflare dashboard):
- *   PROXY_SECRET — random secret string, must match TELEGRAM_PROXY_SECRET in backend .env
+ * Env vars (Cloudflare dashboard → Workers → tg-proxy → Settings → Variables):
+ *   PROXY_SECRET — секрет для защиты исходящих запросов
+ *   BACKEND_URL  — URL бэкенда, например https://api.tracker.shura.pro
  */
 
 export default {
   async fetch(request, env) {
-    // Reject requests without the correct secret
+    const url = new URL(request.url);
+
+    // Входящий webhook от Telegram → пересылаем на VPS
+    if (url.pathname === "/webhook") {
+      const target = `${env.BACKEND_URL}/api/v1/telegram/webhook`;
+      return fetch(target, {
+        method: request.method,
+        headers: request.headers,
+        body: request.body,
+      });
+    }
+
+    // Исходящие запросы VPS → Telegram: проверяем секрет
     if (request.headers.get("X-Proxy-Secret") !== env.PROXY_SECRET) {
       return new Response("Forbidden", { status: 403 });
     }
 
-    // Rewrite URL: worker.yourname.workers.dev/... → api.telegram.org/...
-    const url = new URL(request.url);
+    // Перенаправляем на api.telegram.org
     url.hostname = "api.telegram.org";
     url.port = "";
     url.protocol = "https:";
 
-    // Forward without the proxy secret header
     const headers = new Headers(request.headers);
     headers.delete("X-Proxy-Secret");
 
-    const proxyRequest = new Request(url.toString(), {
+    return fetch(url.toString(), {
       method: request.method,
       headers,
       body: request.body,
     });
-
-    return fetch(proxyRequest);
   },
 };
