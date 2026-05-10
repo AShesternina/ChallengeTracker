@@ -43,6 +43,8 @@ export default function Settings() {
   const [savedTimes, setSavedTimes] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [telegramLinking, setTelegramLinking] = useState(false);
+  const [telegramPolling, setTelegramPolling] = useState(false);
 
   useEffect(() => {
     // Always load fresh user data so settings are in sync across devices
@@ -134,6 +136,29 @@ export default function Settings() {
     await telegramApi.unlink();
     const { data } = await userApi.me();
     setUser(data);
+  };
+
+  const handleTelegramConnect = async () => {
+    setTelegramLinking(true);
+    try {
+      const { data } = await telegramApi.generateCode();
+      window.open(data.bot_url, "_blank");
+      setTelegramPolling(true);
+      const interval = setInterval(async () => {
+        const me = await userApi.me();
+        if (me.data.telegram_chat_id) {
+          setUser(me.data);
+          setTelegramPolling(false);
+          clearInterval(interval);
+        }
+      }, 3000);
+      setTimeout(() => {
+        clearInterval(interval);
+        setTelegramPolling(false);
+      }, 120000);
+    } finally {
+      setTelegramLinking(false);
+    }
   };
 
   const handleDeleteAccount = async () => {
@@ -315,7 +340,7 @@ export default function Settings() {
       </Section>
 
       {/* Telegram */}
-      <Section title={`Telegram (${t("settings.coming_soon")})`}>
+      <Section title="Telegram">
         {user?.telegram_chat_id ? (
           <div className="flex items-center justify-between">
             <div>
@@ -331,11 +356,15 @@ export default function Settings() {
         ) : (
           <div>
             <p className="text-[13px] text-text-tertiary mb-3">{t("settings.telegram_hint")}</p>
-            <button disabled
-              className="w-full py-2.5 rounded-md text-[13px] font-bold text-white opacity-40 cursor-not-allowed"
-              style={{ background: "#2AABEE" }}>
-              {t("settings.telegram_connect")}
-            </button>
+            {telegramPolling ? (
+              <p className="text-[13px] text-text-tertiary text-center py-2">{t("settings.telegram_waiting")}</p>
+            ) : (
+              <button onClick={handleTelegramConnect} disabled={telegramLinking}
+                className="w-full py-2.5 rounded-md text-[13px] font-bold text-white disabled:opacity-50 transition-opacity"
+                style={{ background: "#2AABEE" }}>
+                {t("settings.telegram_connect")}
+              </button>
+            )}
           </div>
         )}
       </Section>
