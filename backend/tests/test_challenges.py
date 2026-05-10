@@ -179,6 +179,34 @@ async def test_update_instance_type_change(client: AsyncClient):
     assert r.json()["challenge"]["type"] == "all_day"
 
 
+# ── public template by slug ───────────────────────────────────────────────────
+
+async def test_get_public_template_by_slug(client: AsyncClient):
+    """GET /challenges/templates/{slug} returns template data without auth."""
+    r = await client.get("/api/v1/challenges/templates/morning-workout")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["slug"] == "morning-workout"
+    assert data["title"] == "Morning Workout"
+    assert data["type"] == "single"
+    assert data["default_duration_days"] == 30
+    assert data["tasks_per_day"] == 1
+    assert data["icon"] == "💪"
+
+
+async def test_get_public_template_not_found(client: AsyncClient):
+    """GET /challenges/templates/{slug} returns 404 for unknown slug."""
+    r = await client.get("/api/v1/challenges/templates/does-not-exist")
+    assert r.status_code == 404
+
+
+async def test_get_public_template_no_auth_required(client: AsyncClient):
+    """Public template endpoint works without Authorization header."""
+    r = await client.get("/api/v1/challenges/templates/meditation")
+    assert r.status_code == 200
+    assert r.json()["slug"] == "meditation"
+
+
 async def test_create_challenge_with_source_template_id(client: AsyncClient):
     """source_template_id is stored and returned in ChallengeOut."""
     tokens = await register_and_login(client)
