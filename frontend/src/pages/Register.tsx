@@ -17,6 +17,8 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [registered, setRegistered] = useState(false);
+  const [resendDone, setResendDone] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,16 +32,51 @@ export default function Register() {
       setUser(me.data);
       await i18n.changeLanguage(me.data.language || "en");
       setServiceWorkerLanguage(me.data.language || "en");
-      const onboardingPath = challengeSlug
-        ? `/onboarding?challenge=${challengeSlug}`
-        : "/onboarding";
-      navigate(me.data.onboarding_completed ? "/" : onboardingPath);
+      setRegistered(true);
     } catch (err: any) {
       setError(err.response?.data?.detail || t("auth.register_failed"));
     } finally {
       setLoading(false);
     }
   };
+
+  const handleResend = async () => {
+    try {
+      await authApi.resendVerification();
+      setResendDone(true);
+    } catch {}
+  };
+
+  const handleContinue = () => {
+    const onboardingPath = challengeSlug ? `/onboarding?challenge=${challengeSlug}` : "/onboarding";
+    navigate(onboardingPath);
+  };
+
+  if (registered) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4" style={{ background: "var(--color-bg)" }}>
+        <div className="w-full max-w-sm text-center space-y-4">
+          <div className="text-5xl">📬</div>
+          <h1 className="text-[22px] font-bold text-text-primary">{t("auth.check_email")}</h1>
+          <p className="text-[14px] text-text-secondary leading-relaxed">
+            {t("auth.check_email_body").replace("{email}", email)}
+          </p>
+          <button
+            onClick={handleContinue}
+            className="w-full py-3 rounded-xl text-[15px] font-bold text-white"
+            style={{ background: "var(--color-accent)" }}>
+            {t("auth.go_to_app")}
+          </button>
+          <button
+            onClick={handleResend}
+            disabled={resendDone}
+            className="w-full py-2 text-[13px] font-semibold text-text-secondary disabled:opacity-50">
+            {resendDone ? t("auth.resend_done") : t("auth.resend_verification")}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4"

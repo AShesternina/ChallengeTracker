@@ -22,6 +22,7 @@ class User(Base):
     theme: Mapped[str] = mapped_column(String(10), default="light")
     telegram_chat_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     telegram_linking_code: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    email_verification_token: Mapped[str | None] = mapped_column(String(64), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     otp_code: Mapped[str | None] = mapped_column(String(6), nullable=True)

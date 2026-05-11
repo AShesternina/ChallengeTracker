@@ -48,6 +48,10 @@ export const authApi = {
     api.post("/auth/verify/otp", { phone, otp }),
   loginEmail: (email: string, password: string) =>
     api.post("/auth/login/email", { email, password }),
+  verifyEmail: (token: string) =>
+    api.get(`/auth/verify-email?token=${encodeURIComponent(token)}`),
+  resendVerification: () =>
+    api.post("/auth/resend-verification"),
 };
 
 // --- User ---

@@ -1,4 +1,5 @@
 import random
+import secrets
 import string
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -24,16 +25,66 @@ async def register_email(db: AsyncSession, data: RegisterEmailRequest, language:
     if existing.scalar_one_or_none():
         raise AuthError("Invalid email or password")
 
+    token = secrets.token_urlsafe(32)
     user = User(
         email=data.email,
         hashed_password=hash_password(data.password),
         timezone=data.timezone,
         language=language,
-        is_verified=True,
+        is_verified=False,
+        email_verification_token=token,
     )
     db.add(user)
     await db.flush()
+    await _send_verification_email(user.email, token, language)
     return user
+
+
+async def _send_verification_email(email: str, token: str, lang: str = "en") -> None:
+    from app.core.config import settings
+    from app.services.email_service import email_adapter
+
+    base_url = settings.FRONTEND_URL or "https://tracker.shura.pro"
+    link = f"{base_url}/verify-email?token={token}"
+
+    subjects = {
+        "en": "Confirm your email — ChallengeTracker",
+        "ru": "Подтвердите email — ChallengeTracker",
+        "es": "Confirma tu correo — ChallengeTracker",
+        "pt": "Confirme seu e-mail — ChallengeTracker",
+    }
+    bodies = {
+        "en": ("Confirm your email", f"Click the link to verify your account:\n{link}",
+               f"<h2>Almost there! 🎉</h2><p>Click the button below to confirm your email and start your first challenge.</p><p><a href='{link}' style='display:inline-block;padding:12px 24px;background:#6366f1;color:#fff;border-radius:8px;text-decoration:none;font-weight:bold'>Confirm email →</a></p><p style='color:#888;font-size:12px'>Or copy this link: {link}</p>"),
+        "ru": ("Подтвердите email", f"Перейдите по ссылке, чтобы подтвердить аккаунт:\n{link}",
+               f"<h2>Почти готово! 🎉</h2><p>Нажмите кнопку, чтобы подтвердить email и начать первый челлендж.</p><p><a href='{link}' style='display:inline-block;padding:12px 24px;background:#6366f1;color:#fff;border-radius:8px;text-decoration:none;font-weight:bold'>Подтвердить email →</a></p><p style='color:#888;font-size:12px'>Или скопируйте ссылку: {link}</p>"),
+        "es": ("Confirma tu correo", f"Haz clic en el enlace para verificar tu cuenta:\n{link}",
+               f"<h2>¡Casi listo! 🎉</h2><p>Haz clic en el botón para confirmar tu correo y comenzar tu primer desafío.</p><p><a href='{link}' style='display:inline-block;padding:12px 24px;background:#6366f1;color:#fff;border-radius:8px;text-decoration:none;font-weight:bold'>Confirmar correo →</a></p><p style='color:#888;font-size:12px'>O copia este enlace: {link}</p>"),
+        "pt": ("Confirme seu e-mail", f"Clique no link para verificar sua conta:\n{link}",
+               f"<h2>Quase lá! 🎉</h2><p>Clique no botão para confirmar seu e-mail e começar seu primeiro desafio.</p><p><a href='{link}' style='display:inline-block;padding:12px 24px;background:#6366f1;color:#fff;border-radius:8px;text-decoration:none;font-weight:bold'>Confirmar e-mail →</a></p><p style='color:#888;font-size:12px'>Ou copie este link: {link}</p>"),
+    }
+
+    subject, text, html = bodies.get(lang, bodies["en"])
+    await email_adapter.send(email, subjects.get(lang, subjects["en"]), html, text)
+
+
+async def verify_email_token(db: AsyncSession, token: str) -> None:
+    result = await db.execute(select(User).where(User.email_verification_token == token))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise AuthError("Invalid or expired verification link")
+    user.is_verified = True
+    user.email_verification_token = None
+    await db.flush()
+
+
+async def resend_verification(db: AsyncSession, user: User) -> None:
+    if user.is_verified:
+        raise AuthError("Email already verified")
+    token = secrets.token_urlsafe(32)
+    user.email_verification_token = token
+    await db.flush()
+    await _send_verification_email(user.email, token, user.language)
 
 
 async def register_phone(db: AsyncSession, data: RegisterPhoneRequest) -> str:

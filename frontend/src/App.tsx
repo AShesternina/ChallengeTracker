@@ -19,6 +19,7 @@ import ChallengeReport from "./pages/ChallengeReport";
 import ChallengeDetail from "./pages/ChallengeDetail";
 import Settings from "./pages/Settings";
 import ChangePassword from "./pages/ChangePassword";
+import VerifyEmail from "./pages/VerifyEmail";
 import PublicChallenge from "./pages/PublicChallenge";
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -86,6 +87,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/challenge/:slug" element={<PublicChallenge />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/onboarding" element={<RequireAuth><OnboardingPage /></RequireAuth>} />
         <Route
           element={
