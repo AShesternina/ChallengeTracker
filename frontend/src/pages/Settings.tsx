@@ -285,9 +285,7 @@ export default function Settings() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[14px] font-semibold text-text-primary">{t("settings.web_push")}</p>
-                <p className="text-[12px] text-text-tertiary mt-0.5">
-                  {pushEnabled ? t("settings.push_enabled") : t("settings.push_disabled")}
-                </p>
+                <p className="text-[12px] text-text-tertiary mt-0.5">{t("settings.push_device_hint")}</p>
               </div>
               <Toggle enabled={pushEnabled} onToggle={handlePushToggle} loading={pushLoading} label={t("settings.web_push")} />
             </div>
