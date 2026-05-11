@@ -440,3 +440,33 @@ async def test_resend_verification_authenticated(client: AsyncClient):
     tokens = await register_and_login(client)
     r = await client.post("/api/v1/auth/resend-verification", headers=auth_headers(tokens))
     assert r.status_code == 204
+
+
+async def test_user_name_default_null(client: AsyncClient):
+    """Newly registered user has name=null."""
+    tokens = await register_and_login(client)
+    r = await client.get("/api/v1/users/me", headers=auth_headers(tokens))
+    assert r.status_code == 200
+    assert r.json()["name"] is None
+
+
+async def test_update_user_name(client: AsyncClient):
+    """PATCH /users/me {name} saves and returns the name."""
+    tokens = await register_and_login(client)
+    headers = auth_headers(tokens)
+    r = await client.patch("/api/v1/users/me", json={"name": "Шура"}, headers=headers)
+    assert r.status_code == 200
+    assert r.json()["name"] == "Шура"
+    # Persisted on next GET
+    r2 = await client.get("/api/v1/users/me", headers=headers)
+    assert r2.json()["name"] == "Шура"
+
+
+async def test_update_user_name_empty_clears_to_null(client: AsyncClient):
+    """PATCH /users/me {name: ''} clears the name to null."""
+    tokens = await register_and_login(client)
+    headers = auth_headers(tokens)
+    await client.patch("/api/v1/users/me", json={"name": "Шура"}, headers=headers)
+    r = await client.patch("/api/v1/users/me", json={"name": ""}, headers=headers)
+    assert r.status_code == 200
+    assert r.json()["name"] is None

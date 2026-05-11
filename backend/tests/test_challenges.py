@@ -263,3 +263,39 @@ async def test_start_challenge_future_stays_active(client: AsyncClient):
     tokens = await register_and_login(client)
     instance = await _create_and_start(client, auth_headers(tokens))
     assert instance["status"] == "active"
+
+
+async def test_templates_v2_count(client: AsyncClient):
+    """After migration 0020, template library has at least 36 entries."""
+    r = await client.get("/api/v1/challenges/templates")
+    assert r.status_code == 200
+    assert len(r.json()) >= 36
+
+
+async def test_templates_v2_new_slugs(client: AsyncClient):
+    """New v2 templates are accessible by slug (public endpoint)."""
+    new_slugs = [
+        "no-alcohol", "no-smoking", "no-late-snacks",
+        "blood-pressure-check", "daily-vegetables",
+        "read-20-pages", "learn-20-words", "coding-practice",
+        "deep-work-2-hours", "daily-planning", "3-main-tasks",
+        "15-min-cleaning", "clean-desk", "declutter",
+        "daily-expense-tracking", "no-spend-day", "daily-savings",
+        "call-loved-ones", "family-time", "meet-a-friend", "self-care-day",
+    ]
+    for slug in new_slugs:
+        r = await client.get(f"/api/v1/challenges/templates/{slug}")
+        assert r.status_code == 200, f"slug '{slug}' returned {r.status_code}"
+        assert r.json()["slug"] == slug
+
+
+async def test_templates_v2_fields(client: AsyncClient):
+    """New templates have required fields: title, slug, type, icon."""
+    r = await client.get("/api/v1/challenges/templates")
+    templates = {t["slug"]: t for t in r.json() if t.get("slug")}
+    for slug in ("no-alcohol", "daily-planning", "read-20-pages"):
+        tpl = templates[slug]
+        assert tpl["title"]
+        assert tpl["icon"]
+        assert tpl["type"] in ("single", "multi", "all_day")
+        assert tpl["default_duration_days"] > 0
