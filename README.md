@@ -38,46 +38,36 @@ docker compose up --build
 
 ## Разделы приложения
 
-**Онбординг:** новый пользователь после регистрации попадает на 3-шаговый визард — Приветствие → Выбор шаблона → Настройка и запуск. На последнем шаге есть кнопка «Пропустить». После онбординга флаг `onboarding_completed` сохраняется в профиле.
+**Онбординг:** новый пользователь после регистрации попадает на визард — Приветствие (3 категории-тизера + «все категории») → Категория → Шаблоны → Настройка и запуск. На последнем шаге есть кнопка «Пропустить». После онбординга флаг `onboarding_completed` сохраняется в профиле.
 
 Навигация: **5 вкладок** — Главная / Сегодня / Челленджи / Отчёты / Настройки.
 
 ### 🏠 Главная (Dashboard)
 
-- Прогресс сегодня — круговой индикатор с процентом и счётчиком `выполнено / всего`
-- **Momentum badge** — 14-дневный взвешенный % выполнения с трендом (↑/→/↓) прямо в hero-карточке
-- Streak 🔥 — счётчик дней подряд; ⚡ если grace day использован
-- Три статы — Активные / Выполнено / Пропущено
-- **Карточки активных челленджей** — иконка + название + прогресс X/Y за сегодня + кнопка «Отчёт»
-- Быстрые действия — «Задачи на сегодня» и «Новый челлендж»
-- Превью задач — первые 3 задачи дня со статусом
+- **Hero-карточка** (кликабельна → Сегодня) — круговой индикатор, счётчик `выполнено / всего`, **Momentum badge** (14-дневный взвешенный % с трендом ↑/→/↓)
+- **Streak** 🔥 — счётчик дней подряд в заголовке; ⚡ если grace day использован
+- **Карточки активных челленджей** — иконка + название + прогресс X/Y за сегодня (кликабельны → детали)
+- **Превью задач** — первые 3 задачи дня со статусом (read-only) + «Все N →»
 
 ### 📋 Сегодня (Daily Tasks)
 
-Два режима просмотра (переключатель):
+Два таба: **Задачи** / **Мои челленджи**.
 
-**По задачам** — все задачи всех челленджей единым списком: сначала ожидающие, затем выполненные/пропущенные.
+**Задачи** — все задачи всех челленджей единым списком (ожидающие → выполненные/пропущенные). Прогресс вынесен в заголовок: счётчик `X/Y` + тонкая линия под заголовком.
 
-**По челленджам** — задачи сгруппированы по челленджам. Каждая карточка группы показывает иконку, прогресс-бар за сегодня, счётчик. Тап → провал внутрь с задачами только этого челленджа.
+**Мои челленджи** — полное управление: три таба Активные / Пауза / Завершённые со счётчиками. Карточки кликабельны → страница челленджа. Внизу кнопка «Новый челлендж» → библиотека.
 
-Карточка задачи содержит: иконку категории, название, время, бейдж `N из M` для multi-задач, бейдж «весь день» для all_day, кнопки **Готово** / **Пропуск** / **↩ Отмена**.
+Карточка задачи: иконка категории, название, время, бейдж `N из M` для multi-задач, бейдж «весь день» для all_day, кнопки **Готово** / **Пропуск** / **↩ Отмена**.
 
-Прогресс-бар в header обновляется при отметке задач.
+### 🎯 Челленджи (Challenges) — Библиотека шаблонов
 
-### 🎯 Челленджи (Challenges)
+Главный экран — сетка из 9 категорий. Тап на категорию → список 4 шаблонов. Тап на шаблон → форма создания с предзаполненными параметрами. Кнопка «Создать с нуля» → пустая форма напрямую (без шага выбора шаблона, `?scratch=1`).
 
-**Фильтр:** три таба — Активные / Пауза / Завершённые. Счётчик на каждом табе.
+**9 категорий:** Здоровье и питание · Спорт · Образование · Ментальное здоровье · Продуктивность · Быт и порядок · Финансы · Отказ от привычек · Отношения
 
-**Список:** карточки с иконкой категории, статус-бейджем, прогресс-баром (% дней), диапазоном дат.
+**Управление «Мои челленджи»** перенесено в раздел Сегодня (второй таб).
 
-**Создание (2 шага):**
-- Шаг 1 — выбор шаблона (Morning Workout 💪 / Reading 📚 / Meditation 🧘 / Water 💧 / No Sugar 🚫) или с нуля
-- Шаг 2 — название, описание, тип (⏰ По расписанию / 🌅 На весь день), длительность, количество задач в день, время, дата начала
-- Если дата окончания уже прошла — показывается confirm; челлендж сразу попадает в Завершённые
-
-**Повторить:** кнопка на странице завершённого челленджа открывает предзаполненную форму (шаг 2) с датой начала = сегодня. Все параметры можно изменить перед запуском.
-
-**Детали:** прогресс дней, инфо-сетка, текущая серия 🔥 и лучшая серия 🏆, кнопки Редактировать / Отчёт / Приостановить (или Возобновить) / Повторить (для завершённых) / Удалить навсегда.
+**Детали челленджа** (`/challenges/:id`): прогресс дней, инфо-сетка, текущая серия 🔥 и лучшая серия 🏆, кнопки Редактировать / Отчёт / Приостановить (или Возобновить) / Повторить (для завершённых) / Удалить навсегда.
 
 ### 📊 Отчёты (Reports)
 
@@ -98,7 +88,9 @@ docker compose up --build
 
 ### ⚙️ Настройки (Settings)
 
-Профиль, тёмная тема, язык (English / Español / Português / Русский), часовой пояс.
+**Профиль** — имя (необязательно, показывается в уведомлениях), email, часовой пояс. Переключатель темы (◑/☀️/🌙) в заголовке страницы.
+
+**Язык** — English / Español / Português / Русский.
 
 **Push-уведомления:** toggle вкл/выкл; при включении — тайм-пикеры утреннего напоминания и вечернего отчёта, toggle «Напоминать во время задачи» (сохраняется сразу, без кнопки Сохранить).
 
@@ -126,12 +118,17 @@ docker compose up --build
 |-----------|--------|------|
 | workout | 💪 | Оранжевый |
 | water | 💧 | Голубой |
-| reading | 📚 | Зелёный |
+| reading | 📖 | Зелёный |
 | meditation | 🧘 | Фиолетовый |
 | nosugar | 🚫 | Серый |
 | sleep | 😴 | Индиго |
 | productivity | ⚡ | Жёлтый |
 | mental | 🌿 | Изумрудный |
+| education | 📚 | Синий |
+| home | 🧹 | Тауп |
+| finance | 💰 | Зелёный |
+| quit | 🚭 | Красный |
+| relationships | ❤️ | Розовый |
 
 ## Статусы челленджей
 
@@ -172,14 +169,14 @@ backend/app/
   schemas/            — Pydantic schemas
   services/           — вся бизнес-логика (в т.ч. language_service, notifications_i18n)
   workers/            — Celery app + scheduled tasks
-alembic/              — миграции (0001 → ... → 0016)
+alembic/              — миграции (0001 → ... → 0020)
 
 frontend/src/
   components/         — Layout, TaskCard, ProgressRing, Icons, PasswordInput, ConfirmModal, InstallBanner
-  pages/              — все экраны (+ Onboarding, PublicChallenge)
-  store/              — authStore (+ language + theme + onboarding_completed + streak_protection + telegram_chat_id), taskStore, themeStore (system/light/dark), installStore
-  services/           — api.ts, push.ts, sw-lang.ts
-  utils/              — category.ts, templateTranslations.ts (16 шаблонов × 4 языка + SLUG_TO_TITLE)
+  pages/              — Dashboard, DailyTasks, Challenges, CreateChallenge, ChallengeDetail, ChallengeReport, Reports, Settings, ChangePassword, Login, Register, Onboarding, PublicChallenge, VerifyEmail
+  store/              — authStore (user incl. name + tokens + language + theme + onboarding + notif prefs + streak_protection + telegram_chat_id), taskStore, themeStore (system/light/dark), installStore
+  services/           — api.ts, push.ts, sw-lang.ts, telegramApi
+  utils/              — category.ts (13 категорий), templateTranslations.ts (36 шаблонов × 4 языка + 9 категорий + SLUG_TO_TITLE)
 cloudflare/           — Telegram proxy Worker (telegram-proxy/worker.js)
   i18n/locales/       — en.ts, ru.ts, es.ts, pt.ts
   sw.ts               — Service Worker: кэш + push-перевод через IndexedDB (5 типов уведомлений)
@@ -196,10 +193,14 @@ POST /api/v1/auth/refresh
 POST /api/v1/auth/logout
 
 GET  /api/v1/users/me
-PATCH /api/v1/users/me                             # timezone, language, onboarding_completed, notification times, notify_task_reminders, streak_protection
+PATCH /api/v1/users/me                             # name, timezone, language, onboarding_completed, notification times, notify_task_reminders, streak_protection, theme
 DELETE /api/v1/users/me                            # удалить аккаунт и все данные
+POST /api/v1/users/me/change-password              # {current_password, new_password}
 POST /api/v1/users/me/telegram/generate-code       # one-time linking code
 DELETE /api/v1/users/me/telegram                   # отвязать Telegram
+
+GET  /api/v1/auth/verify-email?token=              # верификация email (публичный)
+POST /api/v1/auth/resend-verification              # повторно отправить ссылку
 
 GET  /api/v1/challenges/templates
 GET  /api/v1/challenges/templates/{slug}   # публичный — без авторизации
@@ -225,7 +226,8 @@ GET  /api/v1/reports/monthly/{year}/{month}
 GET  /api/v1/reports/challenge/{instance_id}       # + recovery analytics
 
 GET  /api/v1/notifications/vapid-public-key
-POST /api/v1/notifications/subscribe
+POST /api/v1/notifications/subscribe               # upsert by endpoint
+POST /api/v1/notifications/resubscribe             # no-auth; вызывается SW при pushsubscriptionchange
 GET  /api/v1/notifications/devices
 DELETE /api/v1/notifications/devices/{id}
 ```
@@ -304,4 +306,4 @@ docker exec challengetracker-backend-1 bash -c \
   "pip install -r requirements-test.txt -q && pytest tests/ -v --tb=short --cov=app --cov-report=term-missing"
 ```
 
-124 теста: test_auth (43) · test_challenges (18) · test_daily (12) · test_reports (16) · test_new_features (29) · test_telegram (7)
+130 тестов: test_auth (46) · test_challenges (21) · test_daily (12) · test_reports (15) · test_new_features (29) · test_telegram (7)

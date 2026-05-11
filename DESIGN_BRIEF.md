@@ -88,12 +88,17 @@ Each challenge type has a semantic color used for: card border accent, icon back
 |----------|-------------|----------|-------------|---------|
 | workout (💪) | `#f97316` | `#fff7ed` | `#fb923c` | `rgba(251,146,60,0.12)` |
 | water (💧) | `#0ea5e9` | `#f0f9ff` | `#38bdf8` | `rgba(56,189,248,0.12)` |
-| reading (📚) | `#16a34a` | `#f0fdf4` | `#4ade80` | `rgba(74,222,128,0.12)` |
+| reading (📖) | `#16a34a` | `#f0fdf4` | `#4ade80` | `rgba(74,222,128,0.12)` |
 | meditation (🧘) | `#8b5cf6` | `#f5f3ff` | `#a78bfa` | `rgba(167,139,250,0.12)` |
-| nosugar (🍭) | `#71717a` | `#f4f4f5` | `#a1a1aa` | `rgba(161,161,170,0.12)` |
+| nosugar (🚫) | `#71717a` | `#f4f4f5` | `#a1a1aa` | `rgba(161,161,170,0.12)` |
 | sleep (😴) | `#6366f1` | `#eef2ff` | `#818cf8` | `rgba(129,140,248,0.12)` |
 | productivity (⚡) | `#f59e0b` | `#fffbeb` | `#fbbf24` | `rgba(251,191,36,0.12)` |
 | mental (🌿) | `#10b981` | `#ecfdf5` | `#34d399` | `rgba(52,211,153,0.12)` |
+| education (📚) | `#3b82f6` | `#eff6ff` | `#60a5fa` | `rgba(96,165,250,0.12)` |
+| home (🧹) | `#78716c` | `#fafaf9` | `#a8a29e` | `rgba(168,162,158,0.12)` |
+| finance (💰) | `#22c55e` | `#f0fdf4` | `#4ade80` | `rgba(74,222,128,0.12)` |
+| quit (🚭) | `#ef4444` | `#fef2f2` | `#f87171` | `rgba(248,113,113,0.12)` |
+| relationships (❤️) | `#ec4899` | `#fdf2f8` | `#f472b6` | `rgba(244,114,182,0.12)` |
 
 ---
 
@@ -282,48 +287,42 @@ Primary button shadow: `0 2px 8px accent+'40'`
 - "No account? Register" link: `accent` weight 700
 
 ### Dashboard
-**Header**: date (11px `textTertiary`) + greeting 20px weight 900 + streak pill (🔥 + count) — no logo, no avatar
+**Header**: date (11px `textTertiary`) + greeting 20px weight 900 (uses `user.name` if set, else email prefix) + streak pill (🔥 + count) — no logo, no avatar
 
-**Hero card**: gradient purple→blue, ProgressRing (white, 76px) + "2/15" large number (34px) + "N осталось"  
+**Hero card** (clickable → `/daily`): gradient purple→blue, ProgressRing (white, 76px) + "2/15" large number (34px) + "N осталось"  
 **Momentum badge** (inline, right side of hero card, separated by vertical divider):  
 - Score: 22px weight 900 white  
 - Trend label: 10px (↑ Better / → Stable / ↓ Lower)  
 - Caption: "Momentum" 9px white/50  
 - Shown only when days_tracked > 0
 
-**Stats row**: 3 equal StatCards — Active / Done (green) / Skipped (warning)
-
-**Active challenges section**: per-challenge cards below stats  
-- Category icon (32×32) + title (13px bold) + X/Y counter + thin progress bar (1px) + Report link  
-- Report link → `/reports/challenge/:id`
-
-**Quick actions**: 2-column grid — Primary "Задачи сегодня" + Ghost "Новый челлендж"
+**Active challenges section**: per-challenge cards (clickable → challenge detail)  
+- Category icon (32×32) + title (13px bold) + X/Y counter + thin progress bar (1px)
 
 **Tasks preview**: max 3 compact TaskCards (readOnly variant), "View all N →" link
 
+_Note: Stats row (Active/Done/Skipped) and quick action buttons removed — redundant with nav and hero card._
+
 ### Daily Tasks
-**Header**: sticky, title + date + `done/total` pill + progress bar + view toggle
+**Header**: date + title + inline progress (`X/Y` right-aligned + thin progress line below title) — only on Tasks tab.
 
-**View toggle**: "По времени" | "По челленджам" — segmented control in `surface2`
+**Tab switcher**: "Задачи" | "Мои челленджи" — segmented control in `surface2`.
 
-**Timeline view** ("По времени"):
-- Left column (44px): time label in `accent` weight 800, vertical connector line
-- Right: TaskCard with `showChallengeName=true` (challenge name badge)
-- Tasks sorted strictly by time ascending; all-day tasks at bottom
-- Multiple tasks at same time slot grouped under one time label
+**Tasks tab**:
+- Pending tasks → done/skipped tasks
+- All-done state: green banner with 🎉
 
-**Grouped view** ("По челленджам"):
-- Challenge section card: icon + name + day badge + today progress bar + overall % + chevron
-- **Collapsed**: compact time pills row at bottom showing each task slot (tappable)
-- **Expanded** (tap to open): inner timeline with time labels + full TaskCards
-- Chevron rotates 90° when open
+**Мои челленджи tab**:
+- Sub-filter: Active / Paused / Completed (segmented with counts)
+- Challenge cards (clickable → detail page)
+- "Новый челлендж" dashed button at bottom → `/challenges`
 
-**All-done state**: green banner with 🎉
-
-### Challenges List
-- "+ Новый" button in header (accent filled)
-- Challenge cards with category icon, progress bar, date range, status badge
-- Hover lift effect
+### Challenges — Template Library
+- Header: "Челленджи" + subtitle "36 challenges in 9 categories"
+- **Category grid** (2–3 col): emoji + category name + challenge count. Tap → template list.
+- **Template list**: clickable cards (icon + name + description + duration/frequency meta + `›`). Tap → `/challenges/new?template=ID`
+- **"Create from scratch"** dashed button at bottom of both screens → `/challenges/new?scratch=1`
+- My Challenges management moved to Today page (second tab).
 
 ### Challenge Detail
 - Large category icon (52×52, radius 14)
@@ -362,17 +361,18 @@ Primary button shadow: `0 2px 8px accent+'40'`
 ### Settings
 - Section headers: 11px uppercase `textTertiary`
 - Rows in Card: label (14px) + right element
-- **Theme selector**: 3-button segmented control (◑ system / ☀️ light / 🌙 dark) в заголовке страницы Настроек (справа от заголовка). Хранится в аккаунте, синхронизируется между устройствами.
+- **Theme selector**: 3-button segmented control (◑ system / ☀️ light / 🌙 dark) в заголовке страницы (справа от заголовка). Хранится в аккаунте, синхронизируется между устройствами.
 - Sections:
-  - **Profile**: email, timezone
+  - **Profile**: avatar (first letter of name or email) + name input (editable, saves on button or Enter) + email
   - **Language**: segmented control (EN / RU / ES / PT)
+  - **Timezone**: select + Save button
   - **Push Notifications**: web push toggle с подписью "Работает только на этом устройстве" (per-device)
   - **Telegram**: connect/disconnect через one-time code; работает через Cloudflare Worker прокси
-  - **Notification times**: (отдельная секция, всегда видна) morning time picker + evening time picker + task reminders toggle
+  - **Notification times**: (отдельная секция, всегда видна) morning time picker + evening time picker + task reminders toggle + Save button
   - **Streak protection**: toggle
   - **Install App**: кнопка установки PWA (скрыта если уже установлено; iOS показывает инструкцию)
   - **Account**: email + верификация (⚠️ + кнопка resend если не подтверждён) + "Сменить пароль →" (→ `/settings/change-password`) + Sign Out + Delete Account (ConfirmModal)
-- Change Password page (`/settings/change-password`): отдельная страница с хедером "Сменить пароль" + back button, 3 поля (текущий/новый/подтверждение), автоматический редирект в Настройки после успеха
+- Change Password page (`/settings/change-password`): отдельная страница с хедером + back button, 3 поля (текущий/новый/подтверждение), редирект в Настройки после успеха
 
 ---
 
@@ -496,3 +496,9 @@ Two-step flow now has visual indicator: filled circle (step 1) → connector lin
 21. ✅ **Public challenge templates**: `/challenge/:slug` — страница без авторизации, SEO, growth loop. Регистрация по ссылке → онбординг с предвыбранным шаблоном.
 22. ✅ **PWA Install Prompt**: InstallBanner на Dashboard (макс. 2 показа, cooldown 2 дня), кнопка в Settings. iOS: инструкция Share → Add to Home Screen. Иконка приложения — пламя на indigo (SVG). `requireInteraction: true` для пушей.
 23. ✅ **Telegram proxy**: Cloudflare Worker `tg-proxy.a-shesternina.workers.dev` — двусторонний прокси. Обходит блокировку api.telegram.org на российском VPS. Webhook зарегистрирован через Worker.
+24. ✅ **Email verification**: при регистрации `is_verified=False` + письмо со ссылкой. `GET /auth/verify-email?token=` верифицирует. Статус отображается в Настройках → Аккаунт; resend кнопка если не подтверждён.
+25. ✅ **Change password**: отдельная страница `/settings/change-password` — форма с текущим и новым паролем.
+26. ✅ **User.name**: необязательное поле профиля. Редактируется в Настройках → Профиль. Используется в уведомлениях и заголовке Dashboard. Аватар показывает первую букву имени.
+27. ✅ **Template library redesign**: 36 шаблонов в 9 категориях. Страница Челленджи = библиотека (категории → шаблоны). Управление «Мои челленджи» перенесено во вкладку Сегодня.
+28. ✅ **Onboarding redesign**: Welcome с 3 категориями-тизерами → Категория → Шаблоны → Настройка. Без step-dots. Имя пользователя убрано из онбординга, перенесено в Настройки.
+29. ✅ **Dashboard simplification**: убраны блок статистики (Active/Done/Skipped) и быстрые действия. Hero-карточка кликабельна → Сегодня. Карточки активных челленджей кликабельны → детали.

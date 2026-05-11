@@ -86,7 +86,7 @@ frontend/src/
                  PublicChallenge, VerifyEmail
   store/         authStore (user + tokens + language + theme + onboarding_completed + notification prefs + streak_protection + telegram_chat_id), taskStore, themeStore (system/light/dark), installStore
   services/      api.ts (Axios + JWT auto-refresh), push.ts (Web Push, force fresh token on subscribe), sw-lang.ts (SW language sync), telegramApi
-  utils/         category.ts (category detection from title), templateTranslations.ts (16 templates × 4 langs + SLUG_TO_TITLE map)
+  utils/         category.ts (13 categories), templateTranslations.ts (36 templates × 4 langs + 9 category keys + SLUG_TO_TITLE map)
   i18n/locales/  en.ts, ru.ts, es.ts, pt.ts
   sw.ts          Service Worker: precache + push handler + pushsubscriptionchange (auto-resubscribe) + SET_LANGUAGE/SET_VAPID_KEY message handlers
 ```
@@ -129,7 +129,7 @@ GET  /api/v1/auth/verify-email?token=              # verifies email token, sets 
 POST /api/v1/auth/resend-verification              # resend verification email (auth required, 3/min)
 
 GET  /api/v1/users/me
-PATCH /api/v1/users/me                              # accepts timezone, language, onboarding_completed, notification_morning_time, notification_evening_time, notify_task_reminders, streak_protection, theme
+PATCH /api/v1/users/me                              # accepts name, timezone, language, onboarding_completed, notification_morning_time, notification_evening_time, notify_task_reminders, streak_protection, theme
 DELETE /api/v1/users/me                             # hard delete user + all data (cascades)
 POST /api/v1/users/me/change-password              # {current_password, new_password}
 POST /api/v1/users/me/telegram/generate-code        # generates one-time linking code, returns {code, bot_url}
@@ -160,7 +160,7 @@ GET  /api/v1/reports/monthly/{year}/{month}
 GET  /api/v1/reports/challenge/{instance_id}   # includes recovery analytics fields
 
 GET  /api/v1/notifications/vapid-public-key
-POST /api/v1/notifications/subscribe              # upsert by endpoint
+POST /api/v1/notifications/subscribe              # upsert by endpoint (no duplicates)
 POST /api/v1/notifications/resubscribe            # no-auth; called by SW on pushsubscriptionchange
 GET  /api/v1/notifications/devices
 DELETE /api/v1/notifications/devices/{id}
@@ -172,10 +172,15 @@ New users are redirected to `/onboarding` after registration (and on login if `o
 
 - `User.onboarding_completed` (bool, default `false`) — set to `true` via `PATCH /users/me {onboarding_completed: true}`
 - `RequireOnboarded` guard in `App.tsx` redirects unonboarded users from all Layout routes to `/onboarding`
-- Onboarding page (`pages/Onboarding.tsx`): 3 steps — Welcome → Template pick → Configure & launch
-- Skip button available only on the last step (configure)
+- Onboarding page (`pages/Onboarding.tsx`): **Welcome → Category → Templates → Configure**
+  - Welcome: big question "Над чем хотите работать?" + 3 featured category cards + "see all categories" link
+  - Category: full 9-category grid (when "see all" is tapped)
+  - Templates: list of templates in the selected category
+  - Configure: challenge form (title, type, duration, times, start date)
+- Skip button on Configure step only
 - After completing or skipping: local store updated **before** API call to prevent redirect loop
 - Existing users have `onboarding_completed=true` (set in migration 0009)
+- `?challenge=slug` pre-selects a template via `SLUG_TO_TITLE` map
 
 ## Account deletion
 
@@ -208,7 +213,7 @@ docker exec challengetracker-backend-1 alembic upgrade head
 docker exec challengetracker-backend-1 alembic revision --autogenerate -m "description"
 ```
 
-Migrations: `0001_initial` → ... → `0009_add_onboarding_completed` → `0010_add_notification_times` → `0011_add_notify_task_reminders` → `0012_add_telegram` → `0013_add_weekly_review_notification_type` → `0014_add_streak_protection` → `0015_add_burnout_alert_notification_type` → `0016_add_template_slugs` → `0017_add_user_theme` → `0018_add_email_verification_token`
+Migrations: `0001_initial` → ... → `0009_add_onboarding_completed` → `0010_add_notification_times` → `0011_add_notify_task_reminders` → `0012_add_telegram` → `0013_add_weekly_review_notification_type` → `0014_add_streak_protection` → `0015_add_burnout_alert_notification_type` → `0016_add_template_slugs` → `0017_add_user_theme` → `0018_add_email_verification_token` → `0019_add_user_name` → `0020_add_new_templates`
 
 PostgreSQL enums require explicit `CAST(:value AS enumtype)` — do NOT use `op.bulk_insert()` with enum columns.
 
@@ -257,10 +262,25 @@ Key fields in `schemas/daily.py`:
 ## Category system (frontend)
 
 `utils/category.ts` detects category from challenge title keywords and returns icon + colors.
-Categories: `workout | water | reading | meditation | nosugar | sleep | productivity | mental | default`
+Categories: `workout | water | reading | meditation | nosugar | sleep | productivity | mental | education | home | finance | quit | relationships | default`
 Each has unique accent color and icon used across cards, progress bars, badges.
 
 Template name/description translations live in `utils/templateTranslations.ts`.
+
+## Template library
+
+36 templates in 9 ordered categories (display order matters):
+1. 🥗 Health & Nutrition — Daily Vitamins, Blood Pressure Check, 8 Glasses of Water, Daily Vegetables
+2. 🏃 Sport — 10,000 Steps, Morning Workout, Push-ups 3x Day, Cold Shower
+3. 📚 Education — Read 20 Pages, 1 Course Lesson Daily, Learn 20 Words, Coding Practice
+4. 🧘 Mental Health — Meditation, Gratitude Journal, Morning Pages, Breathing Practice
+5. 💼 Productivity — Deep Work 2 Hours, Daily Planning, No Social Media Until Noon, 3 Main Tasks
+6. 🧹 Home & Order — 15 Min Cleaning, Clean Desk, Declutter, Minimalism 1 Item
+7. 💰 Finance — Daily Expense Tracking, No Spend Day, Daily Savings, Financial Journal
+8. 🚫 Quit Habits — No Alcohol, No Smoking, No Sugar, No Late Snacks
+9. ❤️ Relationships — Call Loved Ones, Family Time, Meet a Friend, Self-Care Day
+
+`CATEGORY_ORDER`, `CATEGORY_LABELS`, `TEMPLATE_CATEGORY_MAP` exported from `templateTranslations.ts` — all category/template UI must use these. Category key = `"🥗 Health & Nutrition"` (English internal key). Old templates (16 from initial seed) remain in DB for backward compat but are not shown in the library UI.
 
 ## Notification dispatch
 
@@ -317,6 +337,7 @@ Set `TELEGRAM_PROXY_URL` + `TELEGRAM_PROXY_SECRET` in `.env` to enable. Without 
 
 ## Push notification settings (User model)
 
+- `name` (String 100, nullable) — display name, editable in Settings → Profile; used in notifications
 - `notification_morning_time` (String "HH:MM", default "08:00") — morning summary time in user's timezone
 - `notification_evening_time` (String "HH:MM", default "21:00") — evening report time in user's timezone
 - `notify_task_reminders` (bool, default false) — send push at each timed task's scheduled_time (±2 min)
@@ -341,7 +362,7 @@ Celery morning/evening tasks run every 5 min and filter users whose local time m
 **Adding UI translations:** Add keys to ALL four locale files: `en.ts`, `ru.ts`, `es.ts`, `pt.ts`.
 Use `const { t } = useTranslation()` and `t("section.key")`. Never use inline `i18n.language === "ru" ? ... : ...` — always use `t()`.
 
-**Template translations:** 16 templates × 4 languages live in `utils/templateTranslations.ts` (NOT in i18n locale files — the locale `template_titles` sections were removed as dead code). Template challenges store the **English canonical title** in the DB (`Challenge.title`) and `source_template_id` for reference. Always call `translateTemplateName(title, i18n.language)` when displaying challenge titles — applies to all components (TaskCard, Challenges, DailyTasks, Reports, ChallengeDetail, ChallengeReport).
+**Template translations:** 36 templates × 4 languages live in `utils/templateTranslations.ts` (NOT in i18n locale files). Template challenges store the **English canonical title** in the DB (`Challenge.title`) and `source_template_id` for reference. Always call `translateTemplateName(title, i18n.language)` when displaying challenge titles — applies to all components (TaskCard, Challenges, DailyTasks, Reports, ChallengeDetail, ChallengeReport). Challenge title translations also maintained in `notifications_i18n.py` (`_CHALLENGE_TITLES` dict) for push/Telegram notifications.
 
 **Adding a new language:** see README.md → section «Добавление нового языка».
 
@@ -373,7 +394,7 @@ Copy `backend/.env.example` → `backend/.env`. Key variables:
 ## Running tests
 
 ```bash
-# Install test deps and run all 124 tests (local Docker only)
+# Install test deps and run all 130 tests (local Docker only)
 docker exec challengetracker-backend-1 pip install -r requirements-test.txt -q
 docker exec challengetracker-backend-1 pytest tests/ -v --tb=short
 
@@ -387,7 +408,7 @@ docker exec challengetracker-backend-1 pytest tests/test_auth.py::test_login_suc
 - Production server does NOT have `PYTEST_ALLOW=1` — pytest is blocked at import time with a clear error
 - `pytest` is also not installed in the production image (double protection)
 
-Test files: `test_auth.py` (43) · `test_challenges.py` (18) · `test_daily.py` (12) · `test_reports.py` (16) · `test_new_features.py` (29) · `test_telegram.py` (7)
+Test files: `test_auth.py` (46) · `test_challenges.py` (21) · `test_daily.py` (12) · `test_reports.py` (15) · `test_new_features.py` (29) · `test_telegram.py` (7)
 
 `conftest.py` uses `drop_all + create_all` before each test session to ensure schema is always up to date with current models.
 
@@ -420,9 +441,11 @@ docker exec challengetracker-backend-1 alembic upgrade head
 - **Port 5432**: not exposed to host. Backend connects via internal Docker network (`db:5432`)
 - **Frontend date**: Dashboard and DailyTasks always pass `?target_date=YYYY-MM-DD` from the browser to avoid server timezone mismatch
 - **VPS git pull**: the remote uses HTTPS (`github.com/AShesternina/ChallengeTracker`). If `git pull` fails with "could not read Username", copy changed files via scp or configure a GitHub deploy key with SSH remote.
-- **Desktop sidebar**: uses `position: fixed` (not sticky). Main content has `lg:ml-60` offset. `overflow-x: hidden` is on `html/body` only — do NOT add it to the Layout root div (breaks fixed positioning).
+- **Desktop sidebar**: uses `position: fixed` (not sticky). Main content has `lg:ml-60` offset. `overflow-x: hidden` is on `html/body` only — do NOT add it to the Layout root div (breaks fixed positioning). The `<main>` has `overflow-x-hidden` + its flex parent has `min-w-0` to prevent mobile width overflow.
 - **ConfirmModal focus trap**: uses `createPortal` to render in `<body>` + sets `inert` on `#root` while open. This is the only correct pattern — previous approaches using keydown interception failed.
 - **PWA install prompt**: `beforeinstallprompt` event is captured in `App.tsx` and stored in `installStore`. `InstallBanner` shows on Dashboard (max 2 times, 2-day cooldown). Settings shows install button when not installed. `requireInteraction: true` on all push notifications (stay until dismissed).
 - **Public templates**: `/challenge/:slug` route is outside `<RequireAuth>`. `PublicChallenge.tsx` calls `GET /challenges/templates/{slug}` (no auth). After register → onboarding with `?challenge=slug` pre-selects template via `SLUG_TO_TITLE` map in `templateTranslations.ts`.
 - **Theme selector**: 3-button segmented control in Settings header (◑ system / ☀️ light / 🌙 dark). Stored in `User.theme`, synced across devices. Removed from Layout sidebar. `themeStore` listens to `prefers-color-scheme` changes when theme=system.
-- **Settings structure**: Notification times section is always visible (not nested inside push toggle). Account section groups email + verification status + change password link + sign out + delete account. `/settings/change-password` is a separate page.
+- **Settings structure**: Profile section has name field (editable). Notification times section is always visible (not nested inside push toggle). Account section groups email + verification status + change password link + sign out + delete account. `/settings/change-password` is a separate page.
+- **Navigation structure**: Challenges page = template library (category grid → templates → start); My Challenges management lives inside Today page (second tab "Мои челленджи" = active/paused/completed list). Dashboard = overview only (hero card, active challenges, tasks preview — no stats row, no quick actions).
+- **"Create from scratch"**: always navigates to `/challenges/new?scratch=1`. CreateChallenge.tsx reads the `scratch` param and starts at "configure" step directly, skipping template selection.
