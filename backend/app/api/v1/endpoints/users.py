@@ -30,6 +30,8 @@ async def update_me(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    if data.name is not None:
+        user.name = data.name.strip() or None
     if data.timezone is not None:
         if data.timezone not in pytz.all_timezones:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid timezone")

@@ -21,6 +21,7 @@ import Settings from "./pages/Settings";
 import ChangePassword from "./pages/ChangePassword";
 import VerifyEmail from "./pages/VerifyEmail";
 import PublicChallenge from "./pages/PublicChallenge";
+import ChallengeTemplates from "./pages/ChallengeTemplates";
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated());
@@ -102,6 +103,7 @@ export default function App() {
           <Route path="/daily" element={<DailyTasks />} />
           <Route path="/challenges" element={<Challenges />} />
           <Route path="/challenges/new" element={<CreateChallenge />} />
+          <Route path="/challenges/templates" element={<ChallengeTemplates />} />
           <Route path="/challenges/:id" element={<ChallengeDetail />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/reports/challenge/:id" element={<ChallengeReport />} />

@@ -5,6 +5,7 @@ export interface User {
   id: number;
   email: string | null;
   phone: string | null;
+  name: string | null;
   timezone: string;
   language: string;
   onboarding_completed: boolean;

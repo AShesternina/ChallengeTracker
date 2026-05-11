@@ -58,6 +58,7 @@ export const authApi = {
 export const userApi = {
   me: () => api.get("/users/me"),
   update: (data: {
+    name?: string;
     timezone?: string;
     language?: string;
     onboarding_completed?: boolean;

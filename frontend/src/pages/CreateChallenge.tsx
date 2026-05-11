@@ -7,7 +7,7 @@ import { useThemeStore } from "../store/themeStore";
 import { useCategoryStyle } from "../utils/category";
 import { ArrowLeftIcon } from "../components/Icons";
 import ConfirmModal from "../components/ConfirmModal";
-import { translateTemplateName, translateTemplateDesc, getTemplateCategory } from "../utils/templateTranslations";
+import { translateTemplateName, translateTemplateDesc, CATEGORY_ORDER, TEMPLATE_CATEGORY_MAP, translateCategoryLabel } from "../utils/templateTranslations";
 
 interface Template {
   id: number;
@@ -309,13 +309,12 @@ function StepDot({ active, label }: { active: boolean; label: string }) {
 }
 
 function groupTemplatesByCategory(templates: Template[], lang: string): { category: string; items: Template[] }[] {
-  const groups: Record<string, Template[]> = {};
-  for (const tpl of templates) {
-    const cat = getTemplateCategory(tpl.title, lang) || "Other";
-    if (!groups[cat]) groups[cat] = [];
-    groups[cat].push(tpl);
-  }
-  return Object.entries(groups).map(([category, items]) => ({ category, items }));
+  return CATEGORY_ORDER
+    .map((catKey) => ({
+      category: translateCategoryLabel(catKey, lang),
+      items: templates.filter((t) => TEMPLATE_CATEGORY_MAP[t.title] === catKey),
+    }))
+    .filter(({ items }) => items.length > 0);
 }
 
 function TemplateCard({ tpl, dark, onClick }: { tpl: Template; dark: boolean; onClick: () => void }) {

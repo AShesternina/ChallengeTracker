@@ -6,6 +6,7 @@ class UserOut(BaseModel):
     id: int
     email: str | None
     phone: str | None
+    name: str | None
     timezone: str
     language: str
     onboarding_completed: bool
@@ -28,6 +29,7 @@ class ChangePasswordRequest(BaseModel):
 
 
 class UserUpdateRequest(BaseModel):
+    name: str | None = None
     timezone: str | None = None
     language: str | None = None
     onboarding_completed: bool | None = None
