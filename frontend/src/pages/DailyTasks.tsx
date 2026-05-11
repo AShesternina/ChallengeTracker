@@ -124,7 +124,13 @@ export default function DailyTasks() {
         </div>
       )}
 
-      {/* Progress bar — tasks tab only */}
+      {/* Main tabs */}
+      <div className="flex rounded-md p-1 gap-1" style={{ background: "var(--color-surface2)" }}>
+        <TabBtn active={tab === "tasks"} onClick={() => setTab("tasks")} label={t("daily.tasks_tab")} />
+        <TabBtn active={tab === "challenges"} onClick={() => setTab("challenges")} label={t("daily.challenges_tab")} />
+      </div>
+
+      {/* Progress bar — below tabs, tasks tab only */}
       {tab === "tasks" && summary && summary.total > 0 && (
         <div className="rounded-md px-4 py-3"
           style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
@@ -138,12 +144,6 @@ export default function DailyTasks() {
           </div>
         </div>
       )}
-
-      {/* Main tabs */}
-      <div className="flex rounded-md p-1 gap-1" style={{ background: "var(--color-surface2)" }}>
-        <TabBtn active={tab === "tasks"} onClick={() => setTab("tasks")} label={t("daily.tasks_tab")} />
-        <TabBtn active={tab === "challenges"} onClick={() => setTab("challenges")} label={t("daily.challenges_tab")} />
-      </div>
 
       {/* ── TASKS TAB ─────────────────────────────────────────────────────── */}
       {tab === "tasks" && (
