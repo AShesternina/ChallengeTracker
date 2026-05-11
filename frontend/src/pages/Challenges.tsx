@@ -84,7 +84,7 @@ export default function Challenges() {
 
         <div className="pt-2" style={{ borderTop: "1px solid var(--color-border)" }}>
           <button
-            onClick={() => navigate("/challenges/new")}
+            onClick={() => navigate("/challenges/new?scratch=1")}
             className="w-full py-3.5 rounded-xl text-[14px] font-bold transition-colors"
             style={{
               border: "1.5px dashed var(--color-border-strong)",
@@ -121,7 +121,7 @@ export default function Challenges() {
 
       <div className="pt-2" style={{ borderTop: "1px solid var(--color-border)" }}>
         <button
-          onClick={() => navigate("/challenges/new")}
+          onClick={() => navigate("/challenges/new?scratch=1")}
           className="w-full py-3.5 rounded-xl text-[14px] font-bold transition-colors"
           style={{
             border: "1.5px dashed var(--color-border-strong)",

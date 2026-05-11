@@ -37,7 +37,8 @@ export default function CreateChallenge() {
   const restartFrom = (location.state as any)?.restartFrom ?? null;
   const { dark } = useThemeStore();
   const [templates, setTemplates] = useState<Template[]>([]);
-  const [step, setStep] = useState<"select" | "configure">(restartFrom ? "configure" : "select");
+  const scratch = searchParams.get("scratch") === "1";
+  const [step, setStep] = useState<"select" | "configure">(restartFrom || scratch ? "configure" : "select");
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
 
   const today = format(new Date(), "yyyy-MM-dd");
