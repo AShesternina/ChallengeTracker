@@ -10,7 +10,6 @@ import {
   translateTemplateName,
   translateTemplateDesc,
   CATEGORY_ORDER,
-  CATEGORY_LABELS,
   TEMPLATE_CATEGORY_MAP,
   translateCategoryLabel,
   SLUG_TO_TITLE,
@@ -18,6 +17,13 @@ import {
 
 type Step = "welcome" | "category" | "templates" | "configure";
 type UIType = "timed" | "all_day";
+
+// 3 featured categories shown on welcome screen
+const FEATURED_CATEGORIES = [
+  "🥗 Health & Nutrition",
+  "🏃 Sport",
+  "🧘 Mental Health",
+];
 
 function toBackendType(uiType: UIType, tasksPerDay: number): "single" | "multi" | "all_day" {
   if (uiType === "all_day") return "all_day";
@@ -49,11 +55,9 @@ export default function OnboardingPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
 
-  // Welcome step
-  const [name, setName] = useState("");
-
   // Configure step
   const today = format(new Date(), "yyyy-MM-dd");
+  const [name, setName] = useState("");
   const [title, setTitle] = useState("");
   const [displayTitle, setDisplayTitle] = useState("");
   const [uiType, setUiType] = useState<UIType>("timed");
@@ -94,13 +98,9 @@ export default function OnboardingPage() {
     navigate("/");
   };
 
-  const saveName = async (nameValue: string) => {
-    if (nameValue.trim()) {
-      try {
-        const { data } = await userApi.update({ name: nameValue.trim() });
-        setUser(data);
-      } catch {}
-    }
+  const handlePickCategory = (catKey: string) => {
+    setSelectedCategory(catKey);
+    setStep("templates");
   };
 
   const handlePickTemplate = (tpl: Template) => {
@@ -129,6 +129,9 @@ export default function OnboardingPage() {
     setError("");
     setLoading(true);
     try {
+      if (name.trim()) {
+        await userApi.update({ name: name.trim() });
+      }
       const backendType = toBackendType(uiType, tasksPerDay);
       const times = uiType === "all_day" ? null : taskTimes.slice(0, tasksPerDay);
       const { data: challenge } = await challengesApi.create({
@@ -150,64 +153,58 @@ export default function OnboardingPage() {
   };
 
   const lang = i18n.language;
-  const TOTAL_STEPS = 4;
-  const stepIndex = { welcome: 0, category: 1, templates: 2, configure: 3 }[step];
 
   // ── Welcome ────────────────────────────────────────────────────────────────
   if (step === "welcome") {
+    const otherCount = CATEGORY_ORDER.length - FEATURED_CATEGORIES.length;
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12"
+      <div className="min-h-screen flex flex-col justify-center px-5 py-12"
         style={{ background: "var(--color-bg)" }}>
-        <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl mb-6"
-              style={{ background: "linear-gradient(135deg, var(--color-accent), #2563eb)" }}>
-              <span className="text-4xl">⚡</span>
-            </div>
-            <h1 className="text-[28px] font-black text-text-primary mb-3" style={{ letterSpacing: "-0.5px" }}>
-              {t("onboarding.welcome_title")}
-            </h1>
-            <p className="text-[15px] text-text-secondary leading-relaxed">
-              {t("onboarding.welcome_body")}
-            </p>
+        <div className="w-full max-w-md mx-auto">
+
+          <h1 className="text-[30px] font-black text-text-primary mb-2" style={{ letterSpacing: "-0.6px" }}>
+            {t("onboarding.welcome_question")}
+          </h1>
+          <p className="text-[14px] text-text-tertiary mb-8">
+            {t("onboarding.welcome_hint")}
+          </p>
+
+          <div className="grid grid-cols-3 gap-3 mb-4">
+            {FEATURED_CATEGORIES.map((catKey) => {
+              const label = translateCategoryLabel(catKey, lang);
+              const [emoji, ...rest] = label.split(" ");
+              const labelText = rest.join(" ");
+              const count = templates.filter((t) => TEMPLATE_CATEGORY_MAP[t.title] === catKey).length;
+              return (
+                <button key={catKey}
+                  onClick={() => handlePickCategory(catKey)}
+                  className="flex flex-col items-center text-center rounded-2xl p-4 transition-all hover:shadow-md active:scale-95"
+                  style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+                  <span className="text-3xl mb-2">{emoji}</span>
+                  <span className="text-[12px] font-bold text-text-primary leading-tight">{labelText}</span>
+                  <span className="text-[10px] text-text-tertiary mt-1">{count} {t("onboarding.challenges_count")}</span>
+                </button>
+              );
+            })}
           </div>
 
-          <div className="space-y-2 mb-8">
-            {(["welcome_f1", "welcome_f2", "welcome_f3"] as const).map((key) => (
-              <div key={key} className="flex items-start gap-3 px-4 py-3 rounded-xl"
-                style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
-                <span className="text-[15px] leading-snug text-text-primary">{t(`onboarding.${key}`)}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="mb-8">
-            <label className="block text-[12px] font-semibold text-text-secondary mb-1.5">
-              {t("onboarding.name_label")}
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={t("onboarding.name_placeholder")}
-              className={inputClass}
-              style={inputStyle}
-              onFocus={(e) => (e.target.style.borderColor = "var(--color-accent)")}
-              onBlur={(e) => (e.target.style.borderColor = "var(--color-border)")}
-            />
-            <p className="text-[11px] text-text-tertiary mt-1">{t("onboarding.name_hint")}</p>
-          </div>
-
-          <StepDots current={stepIndex} total={TOTAL_STEPS} />
           <button
-            onClick={async () => {
-              await saveName(name);
-              setStep("category");
-            }}
-            className="w-full mt-6 py-3.5 rounded-md text-[15px] font-bold text-white transition-opacity hover:opacity-90"
-            style={{ background: "var(--color-accent)" }}>
-            {t("onboarding.get_started")}
+            onClick={() => setStep("category")}
+            className="w-full py-3 rounded-xl text-[13px] font-semibold transition-colors"
+            style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", color: "var(--color-accent)" }}>
+            {t("onboarding.see_all_categories", { count: otherCount })}
           </button>
+
+          <div className="mt-6 pt-6" style={{ borderTop: "1px solid var(--color-border)" }}>
+            <button onClick={handleCreateOwn}
+              className="w-full py-3 rounded-xl text-[13px] font-semibold transition-colors"
+              style={{
+                border: "1.5px dashed var(--color-border-strong)",
+                color: "var(--color-text-tertiary)",
+              }}>
+              {t("onboarding.pick_custom")}
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -222,43 +219,27 @@ export default function OnboardingPage() {
             className="text-[13px] font-semibold text-text-tertiary hover:text-text-secondary transition-colors mb-4">
             ← {t("common.back")}
           </button>
-          <h2 className="text-[22px] font-black text-text-primary mb-1" style={{ letterSpacing: "-0.4px" }}>
+          <h2 className="text-[22px] font-black text-text-primary mb-5" style={{ letterSpacing: "-0.4px" }}>
             {t("onboarding.pick_category_title")}
           </h2>
-          <p className="text-[13px] text-text-tertiary mb-5">
-            {t("onboarding.pick_category_subtitle")}
-          </p>
-          <StepDots current={stepIndex} total={TOTAL_STEPS} />
 
-          <div className="mt-6 grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             {CATEGORY_ORDER.map((catKey) => {
-              const label = CATEGORY_LABELS[catKey]?.[lang.startsWith("ru") ? "ru" : lang.startsWith("es") ? "es" : lang.startsWith("pt") ? "pt" : "en"] ?? catKey;
+              const label = translateCategoryLabel(catKey, lang);
               const [emoji, ...rest] = label.split(" ");
               const labelText = rest.join(" ");
               const count = templates.filter((t) => TEMPLATE_CATEGORY_MAP[t.title] === catKey).length;
               return (
                 <button key={catKey}
-                  onClick={() => { setSelectedCategory(catKey); setStep("templates"); }}
+                  onClick={() => handlePickCategory(catKey)}
                   className="text-left rounded-xl p-4 transition-all hover:shadow-md active:scale-95"
                   style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
                   <div className="text-2xl mb-2">{emoji}</div>
                   <p className="font-bold text-text-primary text-[13px] leading-tight">{labelText}</p>
-                  <p className="text-[11px] text-text-tertiary mt-1">{count} {count === 1 ? "challenge" : "challenges"}</p>
+                  <p className="text-[11px] text-text-tertiary mt-1">{count} {t("onboarding.challenges_count")}</p>
                 </button>
               );
             })}
-          </div>
-
-          <div className="mt-6 pt-5" style={{ borderTop: "1px solid var(--color-border)" }}>
-            <button onClick={handleCreateOwn}
-              className="w-full py-3.5 rounded-md text-[14px] font-bold transition-colors"
-              style={{
-                background: "var(--color-surface)",
-                border: "1.5px dashed var(--color-border-strong)",
-                color: "var(--color-accent)",
-              }}>
-              {t("onboarding.pick_custom")}
-            </button>
           </div>
         </div>
       </div>
@@ -269,11 +250,12 @@ export default function OnboardingPage() {
   if (step === "templates") {
     const categoryTemplates = templates.filter((t) => TEMPLATE_CATEGORY_MAP[t.title] === selectedCategory);
     const categoryLabel = translateCategoryLabel(selectedCategory, lang);
+    const backStep = FEATURED_CATEGORIES.includes(selectedCategory) ? "welcome" : "category";
 
     return (
       <div className="min-h-screen px-4 py-8" style={{ background: "var(--color-bg)" }}>
         <div className="max-w-md mx-auto">
-          <button onClick={() => setStep("category")}
+          <button onClick={() => setStep(backStep)}
             className="text-[13px] font-semibold text-text-tertiary hover:text-text-secondary transition-colors mb-4">
             ← {t("common.back")}
           </button>
@@ -283,9 +265,8 @@ export default function OnboardingPage() {
           <p className="text-[13px] text-text-tertiary mb-5">
             {t("onboarding.pick_subtitle")}
           </p>
-          <StepDots current={stepIndex} total={TOTAL_STEPS} />
 
-          <div className="mt-6 space-y-2">
+          <div className="space-y-2">
             {categoryTemplates.map((tpl) => (
               <TemplateCard key={tpl.id} tpl={tpl} dark={dark} onClick={() => handlePickTemplate(tpl)} />
             ))}
@@ -311,16 +292,13 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen px-4 py-8" style={{ background: "var(--color-bg)" }}>
       <div className="max-w-sm mx-auto">
-        <button onClick={() => setStep(selectedTemplate ? "templates" : "category")}
+        <button onClick={() => setStep(selectedTemplate ? "templates" : "welcome")}
           className="text-[13px] font-semibold text-text-tertiary hover:text-text-secondary transition-colors mb-4">
           ← {t("common.back")}
         </button>
-        <h2 className="text-[22px] font-black text-text-primary mb-1" style={{ letterSpacing: "-0.4px" }}>
+        <h2 className="text-[22px] font-black text-text-primary mb-6" style={{ letterSpacing: "-0.4px" }}>
           {t("onboarding.configure_title")}
         </h2>
-        <div className="mb-6">
-          <StepDots current={stepIndex} total={TOTAL_STEPS} />
-        </div>
 
         {error && (
           <div className="mb-4 px-3 py-2.5 rounded-md text-[13px]"
@@ -330,6 +308,15 @@ export default function OnboardingPage() {
         )}
 
         <div className="space-y-4">
+          <Field label={t("onboarding.name_label")}>
+            <input type="text" value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={t("onboarding.name_placeholder")}
+              className={inputClass} style={inputStyle}
+              onFocus={(e) => (e.target.style.borderColor = "var(--color-accent)")}
+              onBlur={(e) => (e.target.style.borderColor = "var(--color-border)")} />
+          </Field>
+
           <Field label={t("create_challenge.title_label")}>
             <input type="text" value={displayTitle}
               onChange={(e) => { setDisplayTitle(e.target.value); setTitle(e.target.value); }}
@@ -420,21 +407,6 @@ export default function OnboardingPage() {
           </button>
         </div>
       </div>
-    </div>
-  );
-}
-
-function StepDots({ current, total }: { current: number; total: number }) {
-  return (
-    <div className="flex items-center justify-center gap-2">
-      {Array.from({ length: total }).map((_, i) => (
-        <div key={i} className="rounded-full transition-all duration-200"
-          style={{
-            width: i === current ? 24 : 8,
-            height: 8,
-            background: i === current ? "var(--color-accent)" : "var(--color-border-strong)",
-          }} />
-      ))}
     </div>
   );
 }
