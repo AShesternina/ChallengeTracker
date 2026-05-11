@@ -9,7 +9,6 @@ import { subscribeToPush } from "../services/push";
 import { setServiceWorkerLanguage } from "../services/sw-lang";
 import { SunIcon, MoonIcon } from "../components/Icons";
 import ConfirmModal from "../components/ConfirmModal";
-import PasswordInput from "../components/PasswordInput";
 
 const TIMEZONES = [
   "UTC", "Europe/Moscow", "Europe/London", "Europe/Berlin", "America/New_York",
@@ -46,12 +45,6 @@ export default function Settings() {
   const [deleting, setDeleting] = useState(false);
   const [telegramLinking, setTelegramLinking] = useState(false);
   const [telegramPolling, setTelegramPolling] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [passwordError, setPasswordError] = useState("");
-  const [passwordSaved, setPasswordSaved] = useState(false);
-  const [savingPassword, setSavingPassword] = useState(false);
 
   useEffect(() => {
     // Always load fresh user data so settings are in sync across devices
@@ -391,46 +384,33 @@ export default function Settings() {
         </div>
       </Section>
 
-      {/* Change password */}
-      <Section title={t("settings.change_password")}>
-        <div className="space-y-3">
-          <PasswordInput value={currentPassword} onChange={v => { setCurrentPassword(v); setPasswordError(""); setPasswordSaved(false); }} placeholder={t("settings.current_password")} />
-          <PasswordInput value={newPassword} onChange={v => { setNewPassword(v); setPasswordError(""); setPasswordSaved(false); }} placeholder={t("settings.new_password")} />
-          <PasswordInput value={confirmPassword} onChange={v => { setConfirmPassword(v); setPasswordError(""); setPasswordSaved(false); }} placeholder={t("settings.confirm_password")} />
-          {passwordError && <p className="text-[12px]" style={{ color: "var(--color-danger)" }}>{passwordError}</p>}
-          <button
-            disabled={savingPassword || !currentPassword || !newPassword || !confirmPassword}
-            onClick={async () => {
-              if (newPassword !== confirmPassword) { setPasswordError(t("settings.password_mismatch")); return; }
-              setSavingPassword(true); setPasswordError("");
-              try {
-                await userApi.changePassword(currentPassword, newPassword);
-                setPasswordSaved(true);
-                setCurrentPassword(""); setNewPassword(""); setConfirmPassword("");
-              } catch (e: any) {
-                const msg = e?.response?.data?.detail;
-                setPasswordError(msg === "Current password is incorrect" ? t("settings.password_wrong") : (msg || t("settings.password_wrong")));
-              } finally { setSavingPassword(false); }
-            }}
-            className="w-full py-2 rounded-md text-[13px] font-bold text-white disabled:opacity-40 transition-opacity"
-            style={{ background: passwordSaved ? "var(--color-success)" : "var(--color-accent)" }}>
-            {savingPassword ? t("common.saving") : passwordSaved ? t("settings.password_changed") : t("common.save")}
+      {/* Account */}
+      <Section title={t("settings.account")}>
+        <div className="space-y-1">
+          {user?.email && (
+            <p className="text-[13px] text-text-tertiary px-1 pb-2">{user.email}</p>
+          )}
+          <button onClick={() => navigate("/settings/change-password")}
+            className="w-full flex items-center justify-between py-2 px-1 rounded-md transition-colors"
+            style={{ color: "var(--color-text-primary)" }}>
+            <span className="text-[14px] font-semibold">{t("settings.change_password")}</span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-text-tertiary">
+              <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </button>
+          <div style={{ borderTop: "1px solid var(--color-border)" }} className="pt-2 mt-1 space-y-1">
+            <button onClick={logout}
+              className="w-full text-left py-2 px-1 text-[14px] font-bold rounded-md transition-colors"
+              style={{ color: "var(--color-danger)" }}>
+              {t("settings.sign_out")}
+            </button>
+            <button onClick={() => setShowDeleteModal(true)}
+              className="w-full text-left py-2 px-1 text-[13px] font-semibold rounded-md transition-colors text-text-tertiary">
+              {t("settings.delete_account")}
+            </button>
+          </div>
         </div>
       </Section>
-
-      {/* Logout */}
-      <button onClick={logout}
-        className="w-full py-3 rounded-md text-[14px] font-bold transition-colors"
-        style={{ border: "1.5px solid var(--color-danger)", color: "var(--color-danger)" }}>
-        {t("settings.sign_out")}
-      </button>
-
-      {/* Delete account */}
-      <button onClick={() => setShowDeleteModal(true)}
-        className="w-full py-3 rounded-md text-[13px] font-semibold transition-colors text-text-tertiary hover:text-text-secondary">
-        {t("settings.delete_account")}
-      </button>
 
       {showDeleteModal && (
         <ConfirmModal

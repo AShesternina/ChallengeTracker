@@ -219,6 +219,7 @@ const ru = {
     appearance: "Внешний вид",
     dark_mode: "Тёмная тема",
     light_mode: "Светлая тема",
+    account: "Аккаунт",
     change_password: "Сменить пароль",
     current_password: "Текущий пароль",
     new_password: "Новый пароль",

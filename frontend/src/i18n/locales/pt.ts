@@ -219,6 +219,7 @@ const pt = {
     appearance: "Aparência",
     dark_mode: "Modo escuro",
     light_mode: "Modo claro",
+    account: "Conta",
     change_password: "Alterar senha",
     current_password: "Senha atual",
     new_password: "Nova senha",

@@ -18,6 +18,7 @@ import Reports from "./pages/Reports";
 import ChallengeReport from "./pages/ChallengeReport";
 import ChallengeDetail from "./pages/ChallengeDetail";
 import Settings from "./pages/Settings";
+import ChangePassword from "./pages/ChangePassword";
 import PublicChallenge from "./pages/PublicChallenge";
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -103,6 +104,7 @@ export default function App() {
           <Route path="/reports" element={<Reports />} />
           <Route path="/reports/challenge/:id" element={<ChallengeReport />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/settings/change-password" element={<ChangePassword />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

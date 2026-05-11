@@ -219,6 +219,7 @@ const en = {
     appearance: "Appearance",
     dark_mode: "Dark mode",
     light_mode: "Light mode",
+    account: "Account",
     change_password: "Change Password",
     current_password: "Current password",
     new_password: "New password",

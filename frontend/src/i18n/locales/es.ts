@@ -219,6 +219,7 @@ const es = {
     appearance: "Apariencia",
     dark_mode: "Modo oscuro",
     light_mode: "Modo claro",
+    account: "Cuenta",
     change_password: "Cambiar contraseña",
     current_password: "Contraseña actual",
     new_password: "Nueva contraseña",
