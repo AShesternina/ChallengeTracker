@@ -98,9 +98,9 @@ async def dispatch(
         logger.warning("No channels available for user_id=%s", user.id)
 
 
-async def send_morning_summary(db: AsyncSession, user: User, total_tasks: int) -> None:
-    push_data = {"type": "morning_summary", "total": total_tasks, "url": "/daily"}
-    email_title, email_body = get_morning_summary(user.language, total_tasks)
+async def send_morning_summary(db: AsyncSession, user: User, total_tasks: int, streak: int = 0) -> None:
+    push_data = {"type": "morning_summary", "total": total_tasks, "streak": streak, "url": "/daily"}
+    email_title, email_body = get_morning_summary(user.language, total_tasks, streak)
     await dispatch(db, user, NotificationType.morning_summary, push_data, email_title, email_body)
 
 

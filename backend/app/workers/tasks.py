@@ -28,6 +28,7 @@ def send_morning_summaries(self):
         from app.models.notification_log import NotificationLog, NotificationType, NotificationStatus
         from app.services.daily_task_service import get_daily_tasks
         from app.services.notification_service import send_morning_summary
+        from app.services.report_service import streak_report
 
         now_utc = datetime.now(dt_timezone.utc)
 
@@ -66,7 +67,8 @@ def send_morning_summaries(self):
                 today_local = user_now.date()
                 summary = await get_daily_tasks(db, user.id, today_local)
                 if summary.total > 0:
-                    await send_morning_summary(db, user, summary.total)
+                    streak_data = await streak_report(db, user.id, user.streak_protection)
+                    await send_morning_summary(db, user, summary.total, streak=streak_data.current_streak)
                     await db.commit()
 
     _run(_inner())

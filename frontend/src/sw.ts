@@ -10,45 +10,86 @@ self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
 
 // ── Notification translations ────────────────────────────────────────────────
-// Adding a new language: add its code to each entry below. No other changes needed.
 
 type Lang = "en" | "ru" | "es" | "pt";
 
 interface NotificationStrings {
   title: string;
-  body: string; // supports {placeholders}
+  body: string;
 }
 
-const TRANSLATIONS: Record<string, Record<Lang, NotificationStrings>> = {
-  morning_summary: {
-    en: { title: "Good morning! ☀️",    body: "You have {total} tasks today. Let's go!" },
-    ru: { title: "Доброе утро! ☀️",      body: "Сегодня у вас {total} задач. Вперёд!" },
-    es: { title: "¡Buenos días! ☀️",     body: "Tienes {total} tareas hoy. ¡Vamos!" },
-    pt: { title: "Bom dia! ☀️",          body: "Você tem {total} tarefas hoje. Vamos lá!" },
-  },
-  daily_report: {
-    en: { title: "Daily Report 📊",      body: "You completed {completed}/{total} tasks today ({rate}%)." },
-    ru: { title: "Итоги дня 📊",         body: "Сегодня выполнено {completed}/{total} задач ({rate}%)." },
-    es: { title: "Informe diario 📊",    body: "Completaste {completed}/{total} tareas hoy ({rate}%)." },
-    pt: { title: "Relatório diário 📊",  body: "Você concluiu {completed}/{total} tarefas hoje ({rate}%)." },
-  },
+// Morning — default (no streak)
+const MORNING_DEFAULT: Record<Lang, NotificationStrings> = {
+  en: { title: "Good morning! ☀️",  body: "You have {total} tasks today. Let's go!" },
+  ru: { title: "Доброе утро! ☀️",   body: "Сегодня {total} задач. Давай начнём!" },
+  es: { title: "¡Buenos días! ☀️",  body: "Tienes {total} tareas hoy. ¡Vamos!" },
+  pt: { title: "Bom dia! ☀️",       body: "Você tem {total} tarefas hoje. Vamos lá!" },
+};
+
+// Morning — with streak (streak > 1)
+const MORNING_STREAK: Record<Lang, NotificationStrings> = {
+  en: { title: "🔥 {streak} days in a row!",      body: "{total} tasks today. Don't stop now!" },
+  ru: { title: "🔥 {streak} дней подряд!",         body: "{total} задач сегодня. Не останавливайся!" },
+  es: { title: "🔥 ¡{streak} días seguidos!",      body: "{total} tareas hoy. ¡No pares ahora!" },
+  pt: { title: "🔥 {streak} dias seguidos!",       body: "{total} tarefas hoje. Não pare agora!" },
+};
+
+// Daily report — 4 variants by completion rate
+const DAILY_PERFECT: Record<Lang, NotificationStrings> = {
+  en: { title: "🎉 Perfect day!",         body: "All {total} tasks done. You're unstoppable!" },
+  ru: { title: "🎉 Идеальный день!",      body: "Все {total} задач выполнены. Так держать!" },
+  es: { title: "🎉 ¡Día perfecto!",       body: "¡{total} tareas completadas. Eres imparable!" },
+  pt: { title: "🎉 Dia perfeito!",        body: "Todas as {total} tarefas feitas. Você é incrível!" },
+};
+
+const DAILY_GREAT: Record<Lang, NotificationStrings> = {
+  en: { title: "💪 Great result!",        body: "{completed}/{total} tasks — almost perfect. Keep it up!" },
+  ru: { title: "💪 Отличный результат!",  body: "{completed}/{total} задач — почти идеально. Так держать!" },
+  es: { title: "💪 ¡Gran resultado!",     body: "{completed}/{total} tareas — casi perfecto. ¡Sigue así!" },
+  pt: { title: "💪 Ótimo resultado!",     body: "{completed}/{total} tarefas — quase perfeito. Continue!" },
+};
+
+const DAILY_GOOD: Record<Lang, NotificationStrings> = {
+  en: { title: "👍 Good progress!",       body: "{completed}/{total} tasks done. Tomorrow we do more!" },
+  ru: { title: "👍 Хороший прогресс!",    body: "{completed}/{total} задач выполнено. Завтра сделаем больше!" },
+  es: { title: "👍 ¡Buen progreso!",      body: "{completed}/{total} tareas hechas. ¡Mañana más!" },
+  pt: { title: "👍 Bom progresso!",       body: "{completed}/{total} tarefas feitas. Amanhã fazemos mais!" },
+};
+
+const DAILY_LOW: Record<Lang, NotificationStrings> = {
+  en: { title: "💙 It's okay!",           body: "{completed}/{total} tasks today. Every step counts — tomorrow is a new chance." },
+  ru: { title: "💙 Всё хорошо!",          body: "{completed}/{total} задач сегодня. Каждый шаг важен — завтра новый день." },
+  es: { title: "💙 ¡Está bien!",          body: "{completed}/{total} tareas hoy. Cada paso cuenta — mañana es un nuevo comienzo." },
+  pt: { title: "💙 Tudo bem!",            body: "{completed}/{total} tarefas hoje. Cada passo conta — amanhã é um novo começo." },
+};
+
+// Weekly review — high vs normal
+const WEEKLY_HIGH: Record<Lang, NotificationStrings> = {
+  en: { title: "🏆 Strong week!",         body: "✅ {completed}/{total} tasks · {rate}% {trend_arrow}" },
+  ru: { title: "🏆 Сильная неделя!",      body: "✅ {completed}/{total} задач · {rate}% {trend_arrow}" },
+  es: { title: "🏆 ¡Semana fuerte!",      body: "✅ {completed}/{total} tareas · {rate}% {trend_arrow}" },
+  pt: { title: "🏆 Semana forte!",        body: "✅ {completed}/{total} tarefas · {rate}% {trend_arrow}" },
+};
+
+const WEEKLY_NORMAL: Record<Lang, NotificationStrings> = {
+  en: { title: "📊 Weekly recap",         body: "{completed}/{total} tasks · {rate}% {trend_arrow} · Next week — better!" },
+  ru: { title: "📊 Итоги недели",         body: "{completed}/{total} задач · {rate}% {trend_arrow} · Следующая неделя — лучше!" },
+  es: { title: "📊 Resumen semanal",      body: "{completed}/{total} tareas · {rate}% {trend_arrow} · ¡La próxima semana mejor!" },
+  pt: { title: "📊 Resumo semanal",       body: "{completed}/{total} tarefas · {rate}% {trend_arrow} · Próxima semana melhor!" },
+};
+
+const STATIC_TRANSLATIONS: Record<string, Record<Lang, NotificationStrings>> = {
   task_reminder: {
-    en: { title: "Time for your tasks! ⏰", body: "{tasks}" },
-    ru: { title: "Время задач! ⏰",         body: "{tasks}" },
-    es: { title: "¡Hora de las tareas! ⏰", body: "{tasks}" },
-    pt: { title: "Hora das tarefas! ⏰",    body: "{tasks}" },
+    en: { title: "⏰ Time for your task!",  body: "{tasks}" },
+    ru: { title: "⏰ Пора браться за дело!", body: "{tasks}" },
+    es: { title: "⏰ ¡Hora de tu tarea!",   body: "{tasks}" },
+    pt: { title: "⏰ Hora da sua tarefa!",  body: "{tasks}" },
   },
   burnout_alert: {
-    en: { title: "Feeling off track? That's okay 💪", body: "Even one small task counts. You've got this!" },
-    ru: { title: "Сложные дни бывают у всех 💪",      body: "Даже одна маленькая задача — это уже победа. Ты справишься!" },
-    es: { title: "¿Días difíciles? Es normal 💪",      body: "Incluso una pequeña tarea cuenta. ¡Tú puedes!" },
-    pt: { title: "Dias difíceis acontecem 💪",          body: "Até uma pequena tarefa conta. Você consegue!" },
-  },
-  weekly_review: {
-    en: { title: "Weekly recap 🔥",         body: "✅ {completed}/{total} tasks · {rate}% {trend_arrow}" },
-    ru: { title: "Итоги недели 🔥",         body: "✅ {completed}/{total} задач · {rate}% {trend_arrow}" },
-    es: { title: "Resumen semanal 🔥",      body: "✅ {completed}/{total} tareas · {rate}% {trend_arrow}" },
-    pt: { title: "Resumo semanal 🔥",       body: "✅ {completed}/{total} tarefas · {rate}% {trend_arrow}" },
+    en: { title: "Tough week? That's okay 🌱", body: "You can pause a challenge to regroup — that's not giving up, it's being smart." },
+    ru: { title: "Сложная неделя? Всё ок 🌱",  body: "Можешь поставить челлендж на паузу — это не сдаться, а перегруппироваться." },
+    es: { title: "¿Semana difícil? Está bien 🌱", body: "Puedes pausar un desafío para reagruparte — eso no es rendirse, es ser inteligente." },
+    pt: { title: "Semana difícil? Tudo bem 🌱",  body: "Você pode pausar um desafio para se reorganizar — isso não é desistir, é ser inteligente." },
   },
 };
 
@@ -107,6 +148,40 @@ function interpolate(template: string, vars: Record<string, string | number>): s
   return template.replace(/\{(\w+)\}/g, (_, key) => String(vars[key] ?? `{${key}}`));
 }
 
+// ── Dynamic notification resolution ─────────────────────────────────────────
+
+function resolve(type: string, lang: Lang, data: Record<string, unknown>): { title: string; body: string } {
+  const L = SUPPORTED_LANGS.has(lang) ? lang : FALLBACK_LANG;
+  const vars = data as Record<string, string | number>;
+
+  if (type === "morning_summary") {
+    const streak = Number(data.streak ?? 0);
+    const s = streak > 1
+      ? (MORNING_STREAK[L] ?? MORNING_STREAK[FALLBACK_LANG])
+      : (MORNING_DEFAULT[L] ?? MORNING_DEFAULT[FALLBACK_LANG]);
+    return { title: interpolate(s.title, vars), body: interpolate(s.body, vars) };
+  }
+
+  if (type === "daily_report") {
+    const rate = Number(data.rate ?? 0);
+    const table = rate === 100 ? DAILY_PERFECT : rate >= 80 ? DAILY_GREAT : rate >= 50 ? DAILY_GOOD : DAILY_LOW;
+    const s = table[L] ?? table[FALLBACK_LANG];
+    return { title: s.title, body: interpolate(s.body, vars) };
+  }
+
+  if (type === "weekly_review") {
+    const rate = Number(data.rate ?? 0);
+    const s = rate >= 80
+      ? (WEEKLY_HIGH[L] ?? WEEKLY_HIGH[FALLBACK_LANG])
+      : (WEEKLY_NORMAL[L] ?? WEEKLY_NORMAL[FALLBACK_LANG]);
+    return { title: s.title, body: interpolate(s.body, vars) };
+  }
+
+  const s = STATIC_TRANSLATIONS[type]?.[L] ?? STATIC_TRANSLATIONS[type]?.[FALLBACK_LANG];
+  if (!s) return { title: type, body: "" };
+  return { title: s.title, body: interpolate(s.body, vars) };
+}
+
 // ── Push event ───────────────────────────────────────────────────────────────
 
 self.addEventListener("push", (event) => {
@@ -120,14 +195,11 @@ self.addEventListener("push", (event) => {
   }
 
   const type = data.type as string | undefined;
-  if (!type || !(type in TRANSLATIONS)) return;
+  if (!type) return;
 
   event.waitUntil(
     getLang().then((lang) => {
-      const strings = TRANSLATIONS[type][lang] ?? TRANSLATIONS[type][FALLBACK_LANG];
-      const title = strings.title;
-      const body = interpolate(strings.body, data as Record<string, string | number>);
-
+      const { title, body } = resolve(type, lang, data);
       return self.registration.showNotification(title, {
         body,
         data: { url: (data.url as string) || "/" },
