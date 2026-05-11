@@ -20,6 +20,27 @@ class MockEmailAdapter(EmailAdapter):
         logger.debug("[MOCK EMAIL] body=%s", text)
 
 
+class ResendEmailAdapter(EmailAdapter):
+    async def send(self, to: str, subject: str, html: str, text: str) -> None:
+        import httpx
+
+        payload = {
+            "from": f"{settings.EMAIL_FROM_NAME} <{settings.EMAIL_FROM}>",
+            "to": [to],
+            "subject": subject,
+            "html": html,
+            "text": text,
+        }
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                "https://api.resend.com/emails",
+                json=payload,
+                headers={"Authorization": f"Bearer {settings.RESEND_API_KEY}"},
+                timeout=10,
+            )
+            resp.raise_for_status()
+
+
 class SendGridEmailAdapter(EmailAdapter):
     async def send(self, to: str, subject: str, html: str, text: str) -> None:
         import httpx
@@ -44,6 +65,8 @@ class SendGridEmailAdapter(EmailAdapter):
 
 
 def get_email_adapter() -> EmailAdapter:
+    if settings.RESEND_API_KEY:
+        return ResendEmailAdapter()
     if settings.SENDGRID_API_KEY:
         return SendGridEmailAdapter()
     return MockEmailAdapter()
