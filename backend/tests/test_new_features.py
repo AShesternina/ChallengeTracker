@@ -393,6 +393,11 @@ async def test_subscribe_push_upserts_same_endpoint(client: AsyncClient):
 
 async def test_resubscribe_endpoint_updates_subscription(client: AsyncClient):
     """POST /notifications/resubscribe updates subscription by old endpoint."""
+    import json
+    from sqlalchemy import select
+    from app.models.user_device import UserDevice
+    from app.core.database import AsyncSessionLocal
+
     tokens = await register_and_login(client)
     headers = auth_headers(tokens)
 
@@ -400,6 +405,7 @@ async def test_resubscribe_endpoint_updates_subscription(client: AsyncClient):
     old_sub = _fake_subscription("old")
     r = await client.post("/api/v1/notifications/subscribe",
                           json={**old_sub, "user_agent": "Agent/1.0"}, headers=headers)
+    assert r.status_code == 201
     device_id = r.json()["id"]
 
     # Resubscribe with new endpoint
@@ -412,10 +418,13 @@ async def test_resubscribe_endpoint_updates_subscription(client: AsyncClient):
     })
     assert r2.status_code == 204
 
-    # Device still exists and has new endpoint
+    # Device count unchanged
     r_list = await client.get("/api/v1/notifications/devices", headers=headers)
-    devices = r_list.json()
-    assert len(devices) == 1
-    import json
-    stored = json.loads(devices[0]["push_subscription"])
-    assert stored["endpoint"] == new_sub["endpoint"]
+    assert len(r_list.json()) == 1
+
+    # Verify new endpoint stored in DB
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(select(UserDevice).where(UserDevice.id == device_id))
+        device = result.scalar_one()
+        stored = json.loads(device.push_subscription)
+        assert stored["endpoint"] == new_sub["endpoint"]
