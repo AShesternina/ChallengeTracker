@@ -1,5 +1,34 @@
 """Notification text translations keyed by user.language."""
 
+# ── Challenge title translations (same mapping as frontend templateTranslations.ts) ──
+
+_CHALLENGE_TITLES: dict[str, dict[str, str]] = {
+    "Healthy Sleep":              {"ru": "Здоровый сон",             "es": "Dormir bien",              "pt": "Dormir bem"},
+    "8 Glasses of Water":         {"ru": "Правило 8 стаканов",       "es": "8 vasos de agua",          "pt": "8 copos de água"},
+    "Daily Vitamins":             {"ru": "Приём витаминов",           "es": "Vitaminas diarias",        "pt": "Vitaminas diárias"},
+    "No Sugar":                   {"ru": "Без сахара",               "es": "Sin azúcar",               "pt": "Sem açúcar"},
+    "Morning Pages":              {"ru": "Утренние страницы",         "es": "Páginas matutinas",        "pt": "Páginas matinais"},
+    "Pomodoro Method":            {"ru": "Метод Помидора",            "es": "Método Pomodoro",          "pt": "Método Pomodoro"},
+    "No Social Media Until Noon": {"ru": "Без соцсетей до полудня",  "es": "Sin redes hasta el mediodía", "pt": "Sem redes até o meio-dia"},
+    "Evening Review":             {"ru": "Вечерняя рефлексия",        "es": "Revisión nocturna",        "pt": "Revisão noturna"},
+    "Morning Workout":            {"ru": "Утренняя тренировка",       "es": "Entrenamiento matutino",   "pt": "Treino matinal"},
+    "Push-ups 3x Day":            {"ru": "Отжимания 3×день",         "es": "Flexiones 3×día",          "pt": "Flexões 3×dia"},
+    "10,000 Steps":               {"ru": "10 000 шагов",             "es": "10.000 pasos",             "pt": "10.000 passos"},
+    "Cold Shower":                {"ru": "Холодный душ",             "es": "Ducha fría",               "pt": "Banho frio"},
+    "Meditation":                 {"ru": "Медитация",                "es": "Meditación",               "pt": "Meditação"},
+    "Breathing Practice":         {"ru": "Дыхательная практика",     "es": "Práctica de respiración",  "pt": "Prática de respiração"},
+    "Gratitude Journal":          {"ru": "Дневник благодарности",    "es": "Diario de gratitud",       "pt": "Diário de gratidão"},
+    "Phone-Free Evening":         {"ru": "Вечер без телефона",       "es": "Tarde sin teléfono",       "pt": "Tarde sem celular"},
+}
+
+
+def translate_challenge_title(title: str, lang: str) -> str:
+    """Return translated challenge title, fall back to original English if not found."""
+    if lang == "en":
+        return title
+    return _CHALLENGE_TITLES.get(title, {}).get(lang, title)
+
+
 # ── Morning summary ──────────────────────────────────────────────────────────
 
 _MORNING_DEFAULT: dict[str, tuple[str, str]] = {

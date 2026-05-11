@@ -19,7 +19,7 @@ from app.services.push_service import send_push, SubscriptionExpiredError
 from app.services.notifications_i18n import (
     get_morning_summary, get_daily_report, get_weekly_review, get_burnout_alert, get_task_reminder,
     get_morning_telegram, get_daily_report_telegram, get_task_reminder_telegram,
-    get_burnout_telegram, get_weekly_review_telegram,
+    get_burnout_telegram, get_weekly_review_telegram, translate_challenge_title,
 )
 
 logger = logging.getLogger(__name__)
@@ -130,7 +130,8 @@ async def send_morning_summary(db: AsyncSession, user: User, total_tasks: int, s
 
 
 async def send_task_reminder(db: AsyncSession, user: User, task_names: list[str]) -> None:
-    tasks_str = ", ".join(task_names)
+    translated = [translate_challenge_title(n, user.language) for n in task_names]
+    tasks_str = ", ".join(translated)
     count = len(task_names)
     push_data = {"type": "task_reminder", "tasks": tasks_str, "count": count, "url": "/daily"}
     email_title, email_body = get_task_reminder(user.language, tasks_str)
