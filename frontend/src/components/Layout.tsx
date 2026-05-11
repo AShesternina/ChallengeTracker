@@ -21,7 +21,9 @@ const NAV = [
 
 export default function Layout() {
   const { t } = useTranslation();
-  const { dark, toggle } = useThemeStore();
+  const { theme, setTheme } = useThemeStore();
+  const THEME_CYCLE: Record<string, "light" | "dark" | "system"> = { system: "light", light: "dark", dark: "system" };
+  const handleThemeToggle = async () => { setTheme(THEME_CYCLE[theme] ?? "system"); };
   const { user } = useAuthStore();
   const location = useLocation();
 
@@ -63,8 +65,8 @@ export default function Layout() {
             <p className="text-[13px] font-semibold text-text-primary truncate">{firstName}</p>
             <p className="text-[11px] text-text-tertiary truncate">{user?.email}</p>
           </div>
-          <button onClick={toggle} aria-label={t("common.toggle_theme")} className="text-text-tertiary hover:text-text-secondary transition-colors p-1">
-            {dark ? <SunIcon size={16} /> : <MoonIcon size={16} />}
+          <button onClick={handleThemeToggle} aria-label={t("common.toggle_theme")} className="text-text-tertiary hover:text-text-secondary transition-colors p-1">
+            {theme === "dark" ? <SunIcon size={16} /> : theme === "light" ? <MoonIcon size={16} /> : <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M9 2a7 7 0 1 0 0 14A7 7 0 0 0 9 2z" stroke="currentColor" strokeWidth="1.5"/><path d="M9 2a7 7 0 0 1 0 14V2z" fill="currentColor"/></svg>}
           </button>
         </div>
       </aside>

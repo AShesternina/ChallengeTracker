@@ -27,7 +27,7 @@ export default function Settings() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { user, setUser, logout } = useAuthStore();
-  const { dark, setDark } = useThemeStore();
+  const { theme, setTheme } = useThemeStore();
   const { isInstalled, isIOS, deferredPrompt, triggerInstall } = useInstallStore();
   const [timezone, setTimezone] = useState(user?.timezone || "UTC");
   const [saving, setSaving] = useState(false);
@@ -178,10 +178,14 @@ export default function Settings() {
   const userName = user?.email?.split("@")[0] ?? "—";
   const initial = userName[0]?.toUpperCase() ?? "U";
 
+  const THEME_CYCLE: Record<string, "light" | "dark" | "system"> = {
+    system: "light", light: "dark", dark: "system",
+  };
+
   const handleThemeToggle = async () => {
-    const next = !dark;
-    setDark(next);
-    try { await userApi.update({ theme: next ? "dark" : "light" }); } catch {}
+    const next = THEME_CYCLE[theme] ?? "system";
+    setTheme(next);
+    try { await userApi.update({ theme: next }); } catch {}
   };
 
   return (
@@ -195,7 +199,15 @@ export default function Settings() {
           className="w-9 h-9 flex items-center justify-center rounded-full transition-colors"
           style={{ background: "var(--color-surface2)" }}
           aria-label={t("common.toggle_theme")}>
-          {dark ? <MoonIcon size={18} className="text-text-secondary" /> : <SunIcon size={18} className="text-text-secondary" />}
+          {theme === "dark"
+            ? <MoonIcon size={18} className="text-text-secondary" />
+            : theme === "light"
+            ? <SunIcon size={18} className="text-text-secondary" />
+            : <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="text-text-secondary">
+                <path d="M9 2a7 7 0 1 0 0 14A7 7 0 0 0 9 2z" stroke="currentColor" strokeWidth="1.5"/>
+                <path d="M9 2a7 7 0 0 1 0 14V2z" fill="currentColor"/>
+              </svg>
+          }
         </button>
       </div>
 

@@ -38,7 +38,7 @@ function RequireOnboarded({ children }: { children: React.ReactNode }) {
 export default function App() {
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
-  const setDark = useThemeStore((s) => s.setDark);
+  const setTheme = useThemeStore((s) => s.setTheme);
   const { setDeferredPrompt, setInstalled } = useInstallStore();
 
   // On startup: fetch fresh user data from server to sync all account settings
@@ -49,7 +49,7 @@ export default function App() {
       const lang = data.language || "en";
       i18n.changeLanguage(lang);
       setServiceWorkerLanguage(lang);
-      setDark(data.theme === "dark");
+      setTheme((data.theme as "system" | "light" | "dark") || "system");
     }).catch(() => {
       // Not authenticated yet or network error — fall back to cached values
       const lang = user?.language || i18n.language || "en";

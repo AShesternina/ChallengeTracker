@@ -19,7 +19,7 @@ class User(Base):
     notification_evening_time: Mapped[str | None] = mapped_column(String(5), nullable=True)
     notify_task_reminders: Mapped[bool] = mapped_column(Boolean, default=False)
     streak_protection: Mapped[bool] = mapped_column(Boolean, default=True)
-    theme: Mapped[str] = mapped_column(String(10), default="light")
+    theme: Mapped[str] = mapped_column(String(10), default="system")
     telegram_chat_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     telegram_linking_code: Mapped[str | None] = mapped_column(String(20), nullable=True)
     email_verification_token: Mapped[str | None] = mapped_column(String(64), nullable=True)
