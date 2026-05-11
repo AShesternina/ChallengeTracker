@@ -57,7 +57,6 @@ export default function OnboardingPage() {
 
   // Configure step
   const today = format(new Date(), "yyyy-MM-dd");
-  const [name, setName] = useState("");
   const [title, setTitle] = useState("");
   const [displayTitle, setDisplayTitle] = useState("");
   const [uiType, setUiType] = useState<UIType>("timed");
@@ -129,9 +128,6 @@ export default function OnboardingPage() {
     setError("");
     setLoading(true);
     try {
-      if (name.trim()) {
-        await userApi.update({ name: name.trim() });
-      }
       const backendType = toBackendType(uiType, tasksPerDay);
       const times = uiType === "all_day" ? null : taskTimes.slice(0, tasksPerDay);
       const { data: challenge } = await challengesApi.create({
@@ -308,15 +304,6 @@ export default function OnboardingPage() {
         )}
 
         <div className="space-y-4">
-          <Field label={t("onboarding.name_label")}>
-            <input type="text" value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={t("onboarding.name_placeholder")}
-              className={inputClass} style={inputStyle}
-              onFocus={(e) => (e.target.style.borderColor = "var(--color-accent)")}
-              onBlur={(e) => (e.target.style.borderColor = "var(--color-border)")} />
-          </Field>
-
           <Field label={t("create_challenge.title_label")}>
             <input type="text" value={displayTitle}
               onChange={(e) => { setDisplayTitle(e.target.value); setTitle(e.target.value); }}

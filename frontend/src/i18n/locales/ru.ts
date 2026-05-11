@@ -210,6 +210,7 @@ const ru = {
   settings: {
     title: "Настройки",
     profile: "Профиль",
+    name_placeholder: "Ваше имя",
     email: "Email",
     timezone: "Часовой пояс",
     push_notifications: "Push-уведомления",

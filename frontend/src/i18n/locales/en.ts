@@ -210,6 +210,7 @@ const en = {
   settings: {
     title: "Settings",
     profile: "Profile",
+    name_placeholder: "Your name",
     email: "Email",
     timezone: "Timezone",
     push_notifications: "Push Notifications",

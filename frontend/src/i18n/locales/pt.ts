@@ -210,6 +210,7 @@ const pt = {
   settings: {
     title: "Configurações",
     profile: "Perfil",
+    name_placeholder: "Seu nome",
     email: "E-mail",
     timezone: "Fuso horário",
     push_notifications: "Notificações push",

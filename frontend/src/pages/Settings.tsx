@@ -29,6 +29,9 @@ export default function Settings() {
   const { user, setUser, logout } = useAuthStore();
   const { theme, setTheme } = useThemeStore();
   const { isInstalled, isIOS, deferredPrompt, triggerInstall } = useInstallStore();
+  const [name, setName] = useState(user?.name || "");
+  const [savingName, setSavingName] = useState(false);
+  const [savedName, setSavedName] = useState(false);
   const [timezone, setTimezone] = useState(user?.timezone || "UTC");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -52,6 +55,7 @@ export default function Settings() {
     // Always load fresh user data so settings are in sync across devices
     userApi.me().then(({ data }) => {
       setUser(data);
+      setName(data.name || "");
       setTimezone(data.timezone || "UTC");
       setMorningTime(data.notification_morning_time || "08:00");
       setEveningTime(data.notification_evening_time || "21:00");
@@ -73,6 +77,18 @@ export default function Settings() {
       } catch {}
     });
   }, []);
+
+  const handleSaveName = async () => {
+    setSavingName(true);
+    try {
+      const { data } = await userApi.update({ name: name.trim() || undefined });
+      setUser(data);
+      setSavedName(true);
+      setTimeout(() => setSavedName(false), 2000);
+    } finally {
+      setSavingName(false);
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -213,15 +229,33 @@ export default function Settings() {
 
       {/* Profile */}
       <Section title={t("settings.profile")}>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 mb-4">
           <div className="w-12 h-12 rounded-full flex items-center justify-center text-white text-[18px] font-black shrink-0"
             style={{ background: "linear-gradient(135deg, var(--color-accent), #2563eb)" }}>
-            {initial}
+            {(name.trim()[0] || initial).toUpperCase()}
           </div>
           <div>
-            <p className="font-bold text-text-primary text-[15px]">{userName}</p>
+            <p className="font-bold text-text-primary text-[15px]">{name.trim() || userName}</p>
             <p className="text-[12px] text-text-tertiary">{user?.email || "—"}</p>
           </div>
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={t("settings.name_placeholder")}
+            className="flex-1 px-3 py-2.5 rounded-md text-[13px] text-text-primary placeholder-text-tertiary outline-none transition-colors"
+            style={{ background: "var(--color-surface2)", border: "1.5px solid var(--color-border)" }}
+            onFocus={(e) => (e.target.style.borderColor = "var(--color-accent)")}
+            onBlur={(e) => (e.target.style.borderColor = "var(--color-border)")}
+            onKeyDown={(e) => e.key === "Enter" && handleSaveName()}
+          />
+          <button onClick={handleSaveName} disabled={savingName}
+            className="px-4 py-2.5 rounded-md text-[13px] font-bold text-white disabled:opacity-50 transition-all shrink-0"
+            style={{ background: savedName ? "var(--color-success)" : "var(--color-accent)" }}>
+            {savingName ? "…" : savedName ? "✓" : t("common.save")}
+          </button>
         </div>
       </Section>
 
