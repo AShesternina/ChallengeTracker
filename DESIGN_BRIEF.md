@@ -362,15 +362,17 @@ Primary button shadow: `0 2px 8px accent+'40'`
 ### Settings
 - Section headers: 11px uppercase `textTertiary`
 - Rows in Card: label (14px) + right element
+- **Theme selector**: 3-button segmented control (◑ system / ☀️ light / 🌙 dark) в заголовке страницы Настроек (справа от заголовка). Хранится в аккаунте, синхронизируется между устройствами.
 - Sections:
   - **Profile**: email, timezone
-  - **Appearance**: dark mode toggle
   - **Language**: segmented control (EN / RU / ES / PT)
-  - **Push Notifications**: web push toggle; when enabled → morning time picker + evening time picker + task reminders toggle
-  - **Install App**: кнопка установки PWA (скрыта если уже установлено; iOS показывает инструкцию)
+  - **Push Notifications**: web push toggle с подписью "Работает только на этом устройстве" (per-device)
   - **Telegram**: connect/disconnect через one-time code; работает через Cloudflare Worker прокси
-  - **Danger zone**: Delete Account (ConfirmModal)
-- Sign Out: full-width Ghost button above danger zone
+  - **Notification times**: (отдельная секция, всегда видна) morning time picker + evening time picker + task reminders toggle
+  - **Streak protection**: toggle
+  - **Install App**: кнопка установки PWA (скрыта если уже установлено; iOS показывает инструкцию)
+  - **Account**: email + верификация (⚠️ + кнопка resend если не подтверждён) + "Сменить пароль →" (→ `/settings/change-password`) + Sign Out + Delete Account (ConfirmModal)
+- Change Password page (`/settings/change-password`): отдельная страница с хедером "Сменить пароль" + back button, 3 поля (текущий/новый/подтверждение), автоматический редирект в Настройки после успеха
 
 ---
 

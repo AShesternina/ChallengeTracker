@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Queue / Cache | Redis 7 |
 | Frontend | React 18, TypeScript, Vite, Tailwind CSS 3, PWA (vite-plugin-pwa) |
 | i18n | i18next + react-i18next (EN/RU/ES/PT, language stored in `User.language`) |
-| Notifications | Web Push (data-only, SW translates) + Telegram Bot; SendGrid email fallback |
+| Notifications | Web Push (data-only, SW translates) + Telegram Bot (rich HTML + inline buttons); Resend/SendGrid email |
 
 ## Running the project
 
@@ -80,17 +80,15 @@ All business logic lives in `services/`. Endpoints only validate input, call ser
 
 ```
 frontend/src/
-  components/    Layout, TaskCard, ProgressRing, Icons, PasswordInput, ConfirmModal
-  pages/         Dashboard, DailyTasks, Challenges, CreateChallenge, ChallengeDetail,
-                 ChallengeReport, Reports, Settings, Login, Register, Onboarding
   components/    Layout, TaskCard, ProgressRing, Icons, PasswordInput, ConfirmModal, InstallBanner
   pages/         Dashboard, DailyTasks, Challenges, CreateChallenge, ChallengeDetail,
-                 ChallengeReport, Reports, Settings, Login, Register, Onboarding, PublicChallenge
-  store/         authStore (user + tokens + language + onboarding_completed + notification prefs + streak_protection + telegram_chat_id), taskStore, themeStore, installStore
-  services/      api.ts (Axios + JWT auto-refresh), push.ts (Web Push, returns device ID), sw-lang.ts (SW language sync), telegramApi
+                 ChallengeReport, Reports, Settings, ChangePassword, Login, Register, Onboarding,
+                 PublicChallenge, VerifyEmail
+  store/         authStore (user + tokens + language + theme + onboarding_completed + notification prefs + streak_protection + telegram_chat_id), taskStore, themeStore (system/light/dark), installStore
+  services/      api.ts (Axios + JWT auto-refresh), push.ts (Web Push, force fresh token on subscribe), sw-lang.ts (SW language sync), telegramApi
   utils/         category.ts (category detection from title), templateTranslations.ts (16 templates × 4 langs + SLUG_TO_TITLE map)
   i18n/locales/  en.ts, ru.ts, es.ts, pt.ts
-  sw.ts          Service Worker: precache + push handler (data-only, translates via IndexedDB) + message handler
+  sw.ts          Service Worker: precache + push handler + pushsubscriptionchange (auto-resubscribe) + SET_LANGUAGE/SET_VAPID_KEY message handlers
 ```
 
 ## Confirmation dialogs
@@ -127,10 +125,13 @@ POST /api/v1/auth/register/email
 POST /api/v1/auth/login/email
 POST /api/v1/auth/refresh
 POST /api/v1/auth/logout                           # revokes refresh token in Redis
+GET  /api/v1/auth/verify-email?token=              # verifies email token, sets is_verified=True (public)
+POST /api/v1/auth/resend-verification              # resend verification email (auth required, 3/min)
 
 GET  /api/v1/users/me
-PATCH /api/v1/users/me                              # accepts timezone, language, onboarding_completed, notification_morning_time, notification_evening_time, notify_task_reminders, streak_protection
+PATCH /api/v1/users/me                              # accepts timezone, language, onboarding_completed, notification_morning_time, notification_evening_time, notify_task_reminders, streak_protection, theme
 DELETE /api/v1/users/me                             # hard delete user + all data (cascades)
+POST /api/v1/users/me/change-password              # {current_password, new_password}
 POST /api/v1/users/me/telegram/generate-code        # generates one-time linking code, returns {code, bot_url}
 DELETE /api/v1/users/me/telegram                    # unlink Telegram account
 POST /api/v1/telegram/webhook                       # Telegram Bot webhook (receives /start <code>)
@@ -159,7 +160,8 @@ GET  /api/v1/reports/monthly/{year}/{month}
 GET  /api/v1/reports/challenge/{instance_id}   # includes recovery analytics fields
 
 GET  /api/v1/notifications/vapid-public-key
-POST /api/v1/notifications/subscribe
+POST /api/v1/notifications/subscribe              # upsert by endpoint
+POST /api/v1/notifications/resubscribe            # no-auth; called by SW on pushsubscriptionchange
 GET  /api/v1/notifications/devices
 DELETE /api/v1/notifications/devices/{id}
 ```
@@ -190,6 +192,7 @@ Frontend: Settings page has a "Delete Account" button (below logout) with `Confi
 ## Auth flow
 
 - Email only: `POST /auth/register/email` or `/auth/login/email` → JWT pair
+- **Email verification**: on registration `is_verified=False` + verification email sent. `GET /auth/verify-email?token=` verifies. `POST /auth/resend-verification` resends. Unverified users can use the app; email reports require `is_verified=True`.
 - Tokens stored in localStorage; Axios interceptor auto-refreshes on 401 using the refresh token
 - Logout: `POST /auth/logout` blacklists the refresh token in Redis (TTL = remaining token lifetime)
 - Rate limits: register 5/min, login 10/min, refresh 20/min (per IP, via `slowapi`)
@@ -205,7 +208,7 @@ docker exec challengetracker-backend-1 alembic upgrade head
 docker exec challengetracker-backend-1 alembic revision --autogenerate -m "description"
 ```
 
-Migrations: `0001_initial` → ... → `0009_add_onboarding_completed` → `0010_add_notification_times` → `0011_add_notify_task_reminders` → `0012_add_telegram` → `0013_add_weekly_review_notification_type` → `0014_add_streak_protection` → `0015_add_burnout_alert_notification_type` → `0016_add_template_slugs`
+Migrations: `0001_initial` → ... → `0009_add_onboarding_completed` → `0010_add_notification_times` → `0011_add_notify_task_reminders` → `0012_add_telegram` → `0013_add_weekly_review_notification_type` → `0014_add_streak_protection` → `0015_add_burnout_alert_notification_type` → `0016_add_template_slugs` → `0017_add_user_theme` → `0018_add_email_verification_token`
 
 PostgreSQL enums require explicit `CAST(:value AS enumtype)` — do NOT use `op.bulk_insert()` with enum columns.
 
@@ -262,9 +265,15 @@ Template name/description translations live in `utils/templateTranslations.ts`.
 ## Notification dispatch
 
 `notification_service.dispatch()` — sends to all available channels:
-1. **Push** — all registered devices (`UserDevice`). Data-only payload `{type, …data, url}`. SW translates using `TRANSLATIONS` dict in `sw.ts`.
-2. **Telegram** — if `user.telegram_chat_id` is set, sends `<b>title</b>\nbody` via Bot API.
+1. **Push** — all registered devices (`UserDevice`). Data-only payload `{type, …data, url}`. SW translates using dynamic `resolve()` function in `sw.ts` (supports streak/rate-based variants). Auto-removes expired subscriptions (410 Gone).
+2. **Telegram** — if `user.telegram_chat_id` is set, sends rich HTML with inline keyboard button linking to the app. Uses per-type formatters from `notifications_i18n.py`.
 3. **Email fallback** — only if both push and Telegram unavailable/failed. `notifications_i18n.py` provides translated text.
+
+**Dynamic notification tone:**
+- Morning summary: shows `🔥 N дней подряд!` if `streak > 1`, otherwise generic greeting
+- Daily report: 4 variants by completion rate — 100% (🎉 perfect), ≥80% (💪 great), ≥50% (👍 good), <50% (💙 ok)
+- Weekly review: 🏆 if rate ≥80%, 📊 otherwise
+- Challenge titles in task reminders translated to user's language via `translate_challenge_title()`
 
 **Dedup:** morning/evening Celery tasks skip send if same type was successfully sent in last 30 min. Task reminders skip if sent in last 4 min.
 
@@ -280,7 +289,9 @@ Template name/description translations live in `utils/templateTranslations.ts`.
 - No other changes needed
 
 **Push subscription lifecycle:**
-- `subscribeToPush()` returns device ID — store it in state for clean unsubscribe
+- `subscribeToPush()` always unsubscribes existing first (force fresh FCM token), then subscribes and sends VAPID key to SW IndexedDB
+- SW `pushsubscriptionchange` event: auto-resubscribes using stored VAPID key, calls `POST /notifications/resubscribe` (no-auth) with old + new endpoint
+- `POST /notifications/subscribe` upserts by endpoint (no duplicates)
 - On disable: call `sub.unsubscribe()` + `DELETE /notifications/devices/{id}`
 
 ## Telegram bot
@@ -310,6 +321,9 @@ Set `TELEGRAM_PROXY_URL` + `TELEGRAM_PROXY_SECRET` in `.env` to enable. Without 
 - `notification_evening_time` (String "HH:MM", default "21:00") — evening report time in user's timezone
 - `notify_task_reminders` (bool, default false) — send push at each timed task's scheduled_time (±2 min)
 - `streak_protection` (bool, default true) — 1 missed day per streak run doesn't break the streak (grace day)
+- `theme` (String "system"|"light"|"dark", default "system") — UI theme, synced across devices via PATCH /users/me
+- `is_verified` (bool, default false) — set to true after email verification
+- `email_verification_token` (String 64, nullable) — cleared after use
 
 Celery morning/evening tasks run every 5 min and filter users whose local time matches their preference (±4 min window). Task reminders also run every 5 min. Weekly review replaces evening report on Sundays.
 
@@ -348,7 +362,9 @@ Use `const { t } = useTranslation()` and `t("section.key")`. Never use inline `i
 Copy `backend/.env.example` → `backend/.env`. Key variables:
 - `SECRET_KEY` — change in production
 - `VAPID_PRIVATE_KEY` / `VAPID_PUBLIC_KEY` — leave empty to use mock push (logs to console). Generate: see README.
-- `SENDGRID_API_KEY` — leave empty to use mock email (logs to console)
+- `RESEND_API_KEY` — Resend email service (recommended). Leave empty to fall back to SendGrid or mock.
+- `SENDGRID_API_KEY` — SendGrid fallback if RESEND_API_KEY not set. Leave empty to use mock email (logs to console).
+- `FRONTEND_URL` — used in email verification links (e.g. `https://tracker.shura.pro`)
 - `TELEGRAM_BOT_TOKEN` / `TELEGRAM_BOT_USERNAME` — leave empty to mock Telegram (logs to console)
 - `TELEGRAM_PROXY_URL` — Cloudflare Worker URL (e.g. `https://tg-proxy.a-shesternina.workers.dev`); leave empty for direct connection
 - `TELEGRAM_PROXY_SECRET` — must match `PROXY_SECRET` env var in the Cloudflare Worker
@@ -357,7 +373,7 @@ Copy `backend/.env.example` → `backend/.env`. Key variables:
 ## Running tests
 
 ```bash
-# Install test deps and run all 112 tests (local Docker only)
+# Install test deps and run all 124 tests (local Docker only)
 docker exec challengetracker-backend-1 pip install -r requirements-test.txt -q
 docker exec challengetracker-backend-1 pytest tests/ -v --tb=short
 
@@ -371,7 +387,7 @@ docker exec challengetracker-backend-1 pytest tests/test_auth.py::test_login_suc
 - Production server does NOT have `PYTEST_ALLOW=1` — pytest is blocked at import time with a clear error
 - `pytest` is also not installed in the production image (double protection)
 
-Test files: `test_auth.py` (34) · `test_challenges.py` (18) · `test_daily.py` (11) · `test_reports.py` (16) · `test_new_features.py` (26) · `test_telegram.py` (7)
+Test files: `test_auth.py` (43) · `test_challenges.py` (18) · `test_daily.py` (12) · `test_reports.py` (16) · `test_new_features.py` (29) · `test_telegram.py` (7)
 
 `conftest.py` uses `drop_all + create_all` before each test session to ensure schema is always up to date with current models.
 
@@ -408,3 +424,5 @@ docker exec challengetracker-backend-1 alembic upgrade head
 - **ConfirmModal focus trap**: uses `createPortal` to render in `<body>` + sets `inert` on `#root` while open. This is the only correct pattern — previous approaches using keydown interception failed.
 - **PWA install prompt**: `beforeinstallprompt` event is captured in `App.tsx` and stored in `installStore`. `InstallBanner` shows on Dashboard (max 2 times, 2-day cooldown). Settings shows install button when not installed. `requireInteraction: true` on all push notifications (stay until dismissed).
 - **Public templates**: `/challenge/:slug` route is outside `<RequireAuth>`. `PublicChallenge.tsx` calls `GET /challenges/templates/{slug}` (no auth). After register → onboarding with `?challenge=slug` pre-selects template via `SLUG_TO_TITLE` map in `templateTranslations.ts`.
+- **Theme selector**: 3-button segmented control in Settings header (◑ system / ☀️ light / 🌙 dark). Stored in `User.theme`, synced across devices. Removed from Layout sidebar. `themeStore` listens to `prefers-color-scheme` changes when theme=system.
+- **Settings structure**: Notification times section is always visible (not nested inside push toggle). Account section groups email + verification status + change password link + sign out + delete account. `/settings/change-password` is a separate page.

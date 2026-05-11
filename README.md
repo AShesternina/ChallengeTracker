@@ -18,7 +18,7 @@
 | Роутинг | React Router v6 |
 | API клиент | Axios + JWT auto-refresh |
 | i18n | i18next (EN / ES / PT / RU, язык в аккаунте пользователя) |
-| Уведомления | Web Push data-only + SW-перевод; SendGrid email fallback |
+| Уведомления | Web Push data-only + SW-перевод; Telegram (rich HTML + кнопки); Resend/SendGrid email |
 | Auth | JWT (access + refresh), email/password |
 
 ---
@@ -177,7 +177,7 @@ alembic/              — миграции (0001 → ... → 0016)
 frontend/src/
   components/         — Layout, TaskCard, ProgressRing, Icons, PasswordInput, ConfirmModal, InstallBanner
   pages/              — все экраны (+ Onboarding, PublicChallenge)
-  store/              — authStore (+ language + onboarding_completed + streak_protection + telegram_chat_id), taskStore, themeStore, installStore
+  store/              — authStore (+ language + theme + onboarding_completed + streak_protection + telegram_chat_id), taskStore, themeStore (system/light/dark), installStore
   services/           — api.ts, push.ts, sw-lang.ts
   utils/              — category.ts, templateTranslations.ts (16 шаблонов × 4 языка + SLUG_TO_TITLE)
 cloudflare/           — Telegram proxy Worker (telegram-proxy/worker.js)
@@ -256,7 +256,9 @@ DELETE /api/v1/notifications/devices/{id}
 | `REDIS_URL` | Redis URL |
 | `SECRET_KEY` | JWT signing key (менять в production!) |
 | `VAPID_PRIVATE_KEY` / `VAPID_PUBLIC_KEY` | Web Push (пусто → mock) |
-| `SENDGRID_API_KEY` | Email (пусто → console mock) |
+| `RESEND_API_KEY` | Email через Resend (рекомендуется; пусто → SendGrid или mock) |
+| `SENDGRID_API_KEY` | Email через SendGrid (fallback если нет RESEND_API_KEY; пусто → mock) |
+| `FRONTEND_URL` | URL фронтенда для ссылок в письмах (напр. `https://tracker.shura.pro`) |
 | `TELEGRAM_BOT_TOKEN` | Telegram Bot API токен (пусто → mock) |
 | `TELEGRAM_BOT_USERNAME` | Username бота без @ (для генерации ссылок) |
 | `TELEGRAM_PROXY_URL` | Cloudflare Worker URL для проксирования Telegram (пусто → прямое подключение) |
@@ -302,4 +304,4 @@ docker exec challengetracker-backend-1 bash -c \
   "pip install -r requirements-test.txt -q && pytest tests/ -v --tb=short --cov=app --cov-report=term-missing"
 ```
 
-112 тестов: test_auth (34) · test_challenges (18) · test_daily (11) · test_reports (16) · test_new_features (26) · test_telegram (7)
+124 теста: test_auth (43) · test_challenges (18) · test_daily (12) · test_reports (16) · test_new_features (29) · test_telegram (7)
