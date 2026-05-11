@@ -15,7 +15,7 @@ from app.models.user import User
 from app.models.user_device import UserDevice
 from app.services.email_service import email_adapter
 from app.services.push_service import send_push, SubscriptionExpiredError
-from app.services.notifications_i18n import get_morning_summary, get_daily_report, get_weekly_review, get_burnout_alert
+from app.services.notifications_i18n import get_morning_summary, get_daily_report, get_weekly_review, get_burnout_alert, get_task_reminder
 
 logger = logging.getLogger(__name__)
 
@@ -108,8 +108,7 @@ async def send_task_reminder(db: AsyncSession, user: User, task_names: list[str]
     tasks_str = ", ".join(task_names)
     count = len(task_names)
     push_data = {"type": "task_reminder", "tasks": tasks_str, "count": count, "url": "/daily"}
-    email_title = f"⏰ {count} task(s) now"
-    email_body = tasks_str
+    email_title, email_body = get_task_reminder(user.language, tasks_str)
     await dispatch(db, user, NotificationType.task_reminder, push_data, email_title, email_body)
 
 

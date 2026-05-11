@@ -14,6 +14,19 @@ _DAILY_REPORT: dict[str, tuple[str, str]] = {
     "pt": ("Relatório diário 📊",      "Você concluiu {completed}/{total} tarefas hoje ({rate}%)."),
 }
 
+_TASK_REMINDER: dict[str, tuple[str, str]] = {
+    "en": ("⏰ Time for your tasks!",       "{tasks}"),
+    "ru": ("⏰ Время для задач!",            "{tasks}"),
+    "es": ("⏰ ¡Hora de tus tareas!",       "{tasks}"),
+    "pt": ("⏰ Hora das suas tarefas!",     "{tasks}"),
+}
+
+
+def get_task_reminder(lang: str, tasks: str) -> tuple[str, str]:
+    title, body_tpl = _TASK_REMINDER.get(lang, _TASK_REMINDER["en"])
+    return title, body_tpl.format(tasks=tasks)
+
+
 _BURNOUT_ALERT: dict[str, tuple[str, str]] = {
     "en": ("Feeling off track? That's okay 💪", "Even one small task counts. You've got this — keep going!"),
     "ru": ("Сложные дни бывают у всех 💪",      "Даже одна маленькая задача — это уже победа. Ты справишься!"),
