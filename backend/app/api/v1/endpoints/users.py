@@ -6,13 +6,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
+from app.core.security import verify_password, hash_password
 from app.models.challenge import Challenge
 from app.models.challenge_instance import ChallengeInstance
 from app.models.daily_task_instance import DailyTaskInstance
 from app.models.notification_log import NotificationLog
 from app.models.user import User
 from app.models.user_device import UserDevice
-from app.schemas.user import UserOut, UserUpdateRequest
+from app.schemas.user import UserOut, UserUpdateRequest, ChangePasswordRequest
 from app.services.language_service import SUPPORTED_LANGUAGES
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -58,6 +59,18 @@ async def update_me(
         user.theme = data.theme
     await db.flush()
     return user
+
+
+@router.post("/me/change-password", status_code=status.HTTP_204_NO_CONTENT)
+async def change_password(
+    data: ChangePasswordRequest,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    if not user.hashed_password or not verify_password(data.current_password, user.hashed_password):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect")
+    user.hashed_password = hash_password(data.new_password)
+    await db.flush()
 
 
 @router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)

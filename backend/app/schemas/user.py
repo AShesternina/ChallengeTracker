@@ -22,6 +22,11 @@ class UserOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
 class UserUpdateRequest(BaseModel):
     timezone: str | None = None
     language: str | None = None

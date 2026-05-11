@@ -63,6 +63,8 @@ export const userApi = {
     streak_protection?: boolean;
     theme?: string;
   }) => api.patch("/users/me", data),
+  changePassword: (current_password: string, new_password: string) =>
+    api.post("/users/me/change-password", { current_password, new_password }),
   deleteMe: () => api.delete("/users/me"),
 };
 

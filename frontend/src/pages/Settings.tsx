@@ -9,6 +9,7 @@ import { subscribeToPush } from "../services/push";
 import { setServiceWorkerLanguage } from "../services/sw-lang";
 import { SunIcon, MoonIcon } from "../components/Icons";
 import ConfirmModal from "../components/ConfirmModal";
+import PasswordInput from "../components/PasswordInput";
 
 const TIMEZONES = [
   "UTC", "Europe/Moscow", "Europe/London", "Europe/Berlin", "America/New_York",
@@ -45,6 +46,12 @@ export default function Settings() {
   const [deleting, setDeleting] = useState(false);
   const [telegramLinking, setTelegramLinking] = useState(false);
   const [telegramPolling, setTelegramPolling] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSaved, setPasswordSaved] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
 
   useEffect(() => {
     // Always load fresh user data so settings are in sync across devices
@@ -381,6 +388,34 @@ export default function Settings() {
               setUser(data);
             }} />
           </div>
+        </div>
+      </Section>
+
+      {/* Change password */}
+      <Section title={t("settings.change_password")}>
+        <div className="space-y-3">
+          <PasswordInput value={currentPassword} onChange={v => { setCurrentPassword(v); setPasswordError(""); setPasswordSaved(false); }} placeholder={t("settings.current_password")} />
+          <PasswordInput value={newPassword} onChange={v => { setNewPassword(v); setPasswordError(""); setPasswordSaved(false); }} placeholder={t("settings.new_password")} />
+          <PasswordInput value={confirmPassword} onChange={v => { setConfirmPassword(v); setPasswordError(""); setPasswordSaved(false); }} placeholder={t("settings.confirm_password")} />
+          {passwordError && <p className="text-[12px]" style={{ color: "var(--color-danger)" }}>{passwordError}</p>}
+          <button
+            disabled={savingPassword || !currentPassword || !newPassword || !confirmPassword}
+            onClick={async () => {
+              if (newPassword !== confirmPassword) { setPasswordError(t("settings.password_mismatch")); return; }
+              setSavingPassword(true); setPasswordError("");
+              try {
+                await userApi.changePassword(currentPassword, newPassword);
+                setPasswordSaved(true);
+                setCurrentPassword(""); setNewPassword(""); setConfirmPassword("");
+              } catch (e: any) {
+                const msg = e?.response?.data?.detail;
+                setPasswordError(msg === "Current password is incorrect" ? t("settings.password_wrong") : (msg || t("settings.password_wrong")));
+              } finally { setSavingPassword(false); }
+            }}
+            className="w-full py-2 rounded-md text-[13px] font-bold text-white disabled:opacity-40 transition-opacity"
+            style={{ background: passwordSaved ? "var(--color-success)" : "var(--color-accent)" }}>
+            {savingPassword ? t("common.saving") : passwordSaved ? t("settings.password_changed") : t("common.save")}
+          </button>
         </div>
       </Section>
 
