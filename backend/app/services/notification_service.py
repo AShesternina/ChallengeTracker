@@ -14,7 +14,7 @@ from app.models.notification_log import NotificationChannel, NotificationLog, No
 from app.models.user import User
 from app.models.user_device import UserDevice
 from app.services.email_service import email_adapter
-from app.services.push_service import send_push
+from app.services.push_service import send_push, SubscriptionExpiredError
 from app.services.notifications_i18n import get_morning_summary, get_daily_report, get_weekly_review, get_burnout_alert
 
 logger = logging.getLogger(__name__)
@@ -64,6 +64,11 @@ async def dispatch(
             await send_push(device.push_subscription, push_data)
             await _log(db, user.id, ntype, NotificationChannel.push, NotificationStatus.sent, push_data)
             any_sent = True
+        except SubscriptionExpiredError as e:
+            # Subscription is permanently invalid — remove device from DB
+            logger.info("Removing expired push subscription device_id=%s: %s", device.id, e)
+            await db.delete(device)
+            await _log(db, user.id, ntype, NotificationChannel.push, NotificationStatus.failed, push_data, str(e))
         except Exception as e:
             await _log(db, user.id, ntype, NotificationChannel.push, NotificationStatus.failed, push_data, str(e))
 

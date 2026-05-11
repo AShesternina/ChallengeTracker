@@ -11,6 +11,10 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 
+class SubscriptionExpiredError(Exception):
+    """Push endpoint returned 410 Gone or 404 — subscription is invalid."""
+
+
 def _send_push_sync(subscription_json: str, data: dict) -> None:
     """Synchronous push — called from Celery worker thread."""
     if not settings.VAPID_PRIVATE_KEY or not settings.VAPID_PUBLIC_KEY:
@@ -28,6 +32,16 @@ def _send_push_sync(subscription_json: str, data: dict) -> None:
             vapid_claims={"sub": settings.VAPID_MAILTO},
         )
     except Exception as e:
+        # 410 Gone / 404 Not Found — subscription is permanently invalid
+        status_code = getattr(e, "response", None)
+        if status_code is not None:
+            code = getattr(status_code, "status_code", None)
+            if code in (404, 410):
+                raise SubscriptionExpiredError(str(e)) from e
+        # Check error message for status code as fallback (pywebpush varies)
+        msg = str(e).lower()
+        if "410" in msg or "404" in msg or "gone" in msg:
+            raise SubscriptionExpiredError(str(e)) from e
         logger.warning("Push failed: %s", e)
         raise
 

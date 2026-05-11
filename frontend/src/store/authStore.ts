@@ -12,6 +12,7 @@ export interface User {
   notification_evening_time: string | null;
   notify_task_reminders: boolean;
   streak_protection: boolean;
+  theme: string;
   telegram_chat_id: number | null;
   is_active: boolean;
   is_verified: boolean;

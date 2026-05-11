@@ -27,7 +27,7 @@ export default function Settings() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { user, setUser, logout } = useAuthStore();
-  const { dark, toggle } = useThemeStore();
+  const { dark, setDark } = useThemeStore();
   const { isInstalled, isIOS, deferredPrompt, triggerInstall } = useInstallStore();
   const [timezone, setTimezone] = useState(user?.timezone || "UTC");
   const [saving, setSaving] = useState(false);
@@ -205,7 +205,11 @@ export default function Settings() {
               {dark ? t("settings.dark_mode") : t("settings.light_mode")}
             </span>
           </div>
-          <Toggle enabled={dark} onToggle={toggle} loading={false} label={t("common.toggle_theme")} />
+          <Toggle enabled={dark} onToggle={async () => {
+            const next = !dark;
+            setDark(next);
+            try { await userApi.update({ theme: next ? "dark" : "light" }); } catch {}
+          }} loading={false} label={t("common.toggle_theme")} />
         </div>
       </Section>
 

@@ -28,6 +28,19 @@ async def subscribe(
     subscription_json = json.dumps(
         {"endpoint": data.endpoint, "keys": data.keys.model_dump()}
     )
+    # Upsert: if this endpoint is already registered, return existing device
+    result = await db.execute(select(UserDevice).where(UserDevice.user_id == user.id))
+    existing = next(
+        (d for d in result.scalars().all()
+         if json.loads(d.push_subscription).get("endpoint") == data.endpoint),
+        None,
+    )
+    if existing:
+        existing.user_agent = data.user_agent
+        existing.push_subscription = subscription_json
+        await db.flush()
+        return existing
+
     device = UserDevice(
         user_id=user.id,
         push_subscription=subscription_json,

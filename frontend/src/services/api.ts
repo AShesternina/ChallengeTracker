@@ -61,6 +61,7 @@ export const userApi = {
     notification_evening_time?: string;
     notify_task_reminders?: boolean;
     streak_protection?: boolean;
+    theme?: string;
   }) => api.patch("/users/me", data),
   deleteMe: () => api.delete("/users/me"),
 };

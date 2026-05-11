@@ -52,6 +52,10 @@ async def update_me(
         user.notify_task_reminders = data.notify_task_reminders
     if data.streak_protection is not None:
         user.streak_protection = data.streak_protection
+    if data.theme is not None:
+        if data.theme not in ("light", "dark"):
+            raise HTTPException(status_code=400, detail="Invalid theme, use 'light' or 'dark'")
+        user.theme = data.theme
     await db.flush()
     return user
 

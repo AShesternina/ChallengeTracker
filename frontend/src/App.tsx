@@ -2,7 +2,9 @@ import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuthStore } from "./store/authStore";
 import { useInstallStore } from "./store/installStore";
+import { useThemeStore } from "./store/themeStore";
 import { setServiceWorkerLanguage } from "./services/sw-lang";
+import { userApi } from "./services/api";
 import i18n from "./i18n";
 import Layout from "./components/Layout";
 import Login from "./pages/Login";
@@ -33,12 +35,24 @@ function RequireOnboarded({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   const user = useAuthStore((s) => s.user);
+  const setUser = useAuthStore((s) => s.setUser);
+  const setDark = useThemeStore((s) => s.setDark);
   const { setDeferredPrompt, setInstalled } = useInstallStore();
 
-  // On startup: sync language to SW from persisted user state
+  // On startup: fetch fresh user data from server to sync all account settings
   useEffect(() => {
-    const lang = user?.language || i18n.language || "en";
-    setServiceWorkerLanguage(lang);
+    if (!user) return;
+    userApi.me().then(({ data }) => {
+      setUser(data);
+      const lang = data.language || "en";
+      i18n.changeLanguage(lang);
+      setServiceWorkerLanguage(lang);
+      setDark(data.theme === "dark");
+    }).catch(() => {
+      // Not authenticated yet or network error — fall back to cached values
+      const lang = user?.language || i18n.language || "en";
+      setServiceWorkerLanguage(lang);
+    });
   }, []);
 
   // PWA install prompt
