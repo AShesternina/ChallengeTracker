@@ -102,6 +102,7 @@ const pt = {
     no_challenges_hint: "Inicie seu primeiro desafio →",
     my_title: "Meus desafios",
     browse_library: "Ver biblioteca →",
+    new_challenge: "Novo desafio",
     report: "Relatório",
     delete_permanently: "Excluir permanentemente",
     restart: "Repetir desafio",

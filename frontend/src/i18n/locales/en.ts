@@ -102,6 +102,7 @@ const en = {
     no_challenges_hint: "Start your first challenge →",
     my_title: "My Challenges",
     browse_library: "Browse challenge library →",
+    new_challenge: "New challenge",
     report: "Report",
     delete_permanently: "Delete permanently",
     restart: "Repeat Challenge",

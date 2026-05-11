@@ -55,7 +55,7 @@ export default function Challenges() {
       <div className="space-y-5">
         <div>
           <h2 className="text-[22px] font-black text-text-primary" style={{ letterSpacing: "-0.4px" }}>
-            {t("challenges.title")}
+            {t("nav.challenges")}
           </h2>
           <p className="text-[13px] text-text-tertiary mt-1">{t("templates_page.subtitle")}</p>
         </div>
@@ -113,7 +113,7 @@ export default function Challenges() {
         </h2>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2">
         {categoryTemplates.map((tpl) => (
           <TemplateCard key={tpl.id} tpl={tpl} dark={dark} onStart={() => navigate(`/challenges/new?template=${tpl.id}`)} />
         ))}
@@ -141,33 +141,30 @@ function TemplateCard({ tpl, dark, onStart }: { tpl: Template; dark: boolean; on
   const icon = tpl.icon || "🎯";
 
   return (
-    <div className="rounded-xl p-4"
+    <button onClick={onStart}
+      className="w-full text-left rounded-xl p-4 transition-all hover:shadow-md active:scale-[0.99]"
       style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
-      <div className="flex items-start gap-3">
-        <div className="w-12 h-12 rounded-[12px] flex items-center justify-center text-xl shrink-0"
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-[10px] flex items-center justify-center text-lg shrink-0"
           style={{ background: bg }}>
           {icon}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-bold text-text-primary text-[15px]">
+          <p className="font-bold text-text-primary text-[14px] leading-snug">
             {translateTemplateName(tpl.title, lang)}
           </p>
           {tpl.description && (
-            <p className="text-[12px] text-text-secondary mt-0.5 leading-relaxed">
+            <p className="text-[12px] text-text-tertiary line-clamp-1 mt-0.5">
               {translateTemplateDesc(tpl.description, lang)}
             </p>
           )}
-          <p className="text-[11px] font-semibold mt-1.5" style={{ color: accent }}>
+          <p className="text-[11px] font-semibold mt-1" style={{ color: accent }}>
             {tpl.default_duration_days} {t("challenges.days_abbr")}
             {tpl.tasks_per_day > 1 && ` · ${tpl.tasks_per_day}${t("challenges.per_day_abbr")}`}
           </p>
         </div>
+        <span className="text-text-tertiary text-[16px] shrink-0">›</span>
       </div>
-      <button onClick={onStart}
-        className="mt-3 w-full py-2.5 rounded-md text-[13px] font-bold text-white transition-opacity hover:opacity-90"
-        style={{ background: "var(--color-accent)" }}>
-        {t("templates_page.start_challenge")}
-      </button>
-    </div>
+    </button>
   );
 }

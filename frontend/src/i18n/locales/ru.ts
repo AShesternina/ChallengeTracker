@@ -102,6 +102,7 @@ const ru = {
     no_challenges_hint: "Запустите первый челлендж →",
     my_title: "Мои челленджи",
     browse_library: "Перейти в библиотеку →",
+    new_challenge: "Новый челлендж",
     report: "Отчёт",
     delete_permanently: "Удалить навсегда",
     restart: "Повторить челлендж",

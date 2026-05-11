@@ -112,9 +112,23 @@ export default function DailyTasks() {
         <p className="text-[12px] font-medium text-text-tertiary capitalize">
           {format(new Date(), "EEEE, d MMMM", { locale: dateLocale })}
         </p>
-        <h2 className="text-[22px] font-black text-text-primary mt-0.5" style={{ letterSpacing: "-0.4px" }}>
-          {tab === "tasks" ? t("daily.title") : t("challenges.my_title")}
-        </h2>
+        <div className="flex items-baseline justify-between mt-0.5">
+          <h2 className="text-[22px] font-black text-text-primary" style={{ letterSpacing: "-0.4px" }}>
+            {tab === "tasks" ? t("daily.title") : t("challenges.my_title")}
+          </h2>
+          {tab === "tasks" && summary && summary.total > 0 && (
+            <span className="text-[13px] font-bold" style={{ color: "var(--color-accent)" }}>
+              {summary.completed}/{summary.total}
+            </span>
+          )}
+        </div>
+        {/* Thin progress line — only on tasks tab */}
+        {tab === "tasks" && summary && summary.total > 0 && (
+          <div className="h-1 rounded-full overflow-hidden mt-2" style={{ background: "var(--color-surface2)" }}>
+            <div className="h-full rounded-full transition-all duration-500"
+              style={{ width: `${(summary.completed / summary.total) * 100}%`, background: "var(--color-accent)" }} />
+          </div>
+        )}
       </div>
 
       {error && (
@@ -129,21 +143,6 @@ export default function DailyTasks() {
         <TabBtn active={tab === "tasks"} onClick={() => setTab("tasks")} label={t("daily.tasks_tab")} />
         <TabBtn active={tab === "challenges"} onClick={() => setTab("challenges")} label={t("daily.challenges_tab")} />
       </div>
-
-      {/* Progress bar — below tabs, tasks tab only */}
-      {tab === "tasks" && summary && summary.total > 0 && (
-        <div className="rounded-md px-4 py-3"
-          style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
-          <div className="flex justify-between text-[12px] font-semibold mb-2">
-            <span className="text-text-secondary">{t("daily.progress")}</span>
-            <span className="text-text-primary">{summary.completed}/{summary.total}</span>
-          </div>
-          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--color-surface2)" }}>
-            <div className="h-full rounded-full transition-all duration-500"
-              style={{ width: `${(summary.completed / summary.total) * 100}%`, background: "var(--color-accent)" }} />
-          </div>
-        </div>
-      )}
 
       {/* ── TASKS TAB ─────────────────────────────────────────────────────── */}
       {tab === "tasks" && (
@@ -251,6 +250,13 @@ export default function DailyTasks() {
                   <ChallengeCard key={instance.id} instance={instance} dark={dark} dateLocale={dateLocale} />
                 ))}
               </div>
+
+              {/* New challenge button */}
+              <Link to="/challenges"
+                className="block w-full py-3 rounded-xl text-[13px] font-bold text-center transition-colors mt-2"
+                style={{ border: "1.5px dashed var(--color-border-strong)", color: "var(--color-accent)" }}>
+                + {t("challenges.new_challenge")}
+              </Link>
             </>
           )}
         </>
