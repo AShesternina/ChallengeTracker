@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { userApi, notificationsApi, telegramApi } from "../services/api";
+import { userApi, notificationsApi, telegramApi, authApi } from "../services/api";
 import { useAuthStore } from "../store/authStore";
 import { useThemeStore } from "../store/themeStore";
 import { useInstallStore } from "../store/installStore";
@@ -45,6 +45,8 @@ export default function Settings() {
   const [deleting, setDeleting] = useState(false);
   const [telegramLinking, setTelegramLinking] = useState(false);
   const [telegramPolling, setTelegramPolling] = useState(false);
+  const [resendDone, setResendDone] = useState(false);
+  const [resending, setResending] = useState(false);
 
   useEffect(() => {
     // Always load fresh user data so settings are in sync across devices
@@ -388,7 +390,27 @@ export default function Settings() {
       <Section title={t("settings.account")}>
         <div className="space-y-1">
           {user?.email && (
-            <p className="text-[13px] text-text-tertiary px-1 pb-2">{user.email}</p>
+            <div className="px-1 pb-2">
+              <p className="text-[13px] text-text-tertiary">{user.email}</p>
+              {!user.is_verified && (
+                <div className="flex items-center justify-between mt-1">
+                  <p className="text-[11px]" style={{ color: "var(--color-warning, #f59e0b)" }}>
+                    ⚠️ {t("auth.not_verified_hint")}
+                  </p>
+                  <button
+                    disabled={resending || resendDone}
+                    onClick={async () => {
+                      setResending(true);
+                      try { await authApi.resendVerification(); setResendDone(true); } catch {}
+                      finally { setResending(false); }
+                    }}
+                    className="text-[11px] font-semibold disabled:opacity-50"
+                    style={{ color: "var(--color-accent)" }}>
+                    {resendDone ? t("auth.resend_done") : t("auth.resend_verification")}
+                  </button>
+                </div>
+              )}
+            </div>
           )}
           <button onClick={() => navigate("/settings/change-password")}
             className="w-full flex items-center justify-between py-2 px-1 rounded-md transition-colors"
