@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { challengesApi } from "../services/api";
@@ -33,6 +33,7 @@ export default function CreateChallenge() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const restartFrom = (location.state as any)?.restartFrom ?? null;
   const { dark } = useThemeStore();
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -56,7 +57,15 @@ export default function CreateChallenge() {
   const [showPastEndModal, setShowPastEndModal] = useState(false);
 
   useEffect(() => {
-    challengesApi.templates().then((r) => setTemplates(r.data));
+    challengesApi.templates().then((r) => {
+      const data: Template[] = r.data;
+      setTemplates(data);
+      const templateId = searchParams.get("template");
+      if (templateId && !restartFrom) {
+        const match = data.find((t) => t.id === Number(templateId));
+        if (match) applyTemplate(match);
+      }
+    });
   }, []);
 
   const applyTemplate = (tpl: Template) => {

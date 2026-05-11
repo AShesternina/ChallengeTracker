@@ -87,7 +87,7 @@ const ru = {
     status_completed: "Готово",
     status_skipped: "Пропущено",
     tasks_tab: "Задачи",
-    challenges_tab: "Челленджи",
+    challenges_tab: "Мои челленджи",
     back_to_challenges: "Челленджи",
   },
   task: {
@@ -100,6 +100,8 @@ const ru = {
     title: "Мои челленджи",
     no_challenges: "Пока нет челленджей",
     no_challenges_hint: "Запустите первый челлендж →",
+    my_title: "Мои челленджи",
+    browse_library: "Перейти в библиотеку →",
     report: "Отчёт",
     delete_permanently: "Удалить навсегда",
     restart: "Повторить челлендж",

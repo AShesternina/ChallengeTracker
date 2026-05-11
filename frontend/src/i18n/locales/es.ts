@@ -87,7 +87,7 @@ const es = {
     status_completed: "Hecho",
     status_skipped: "Omitido",
     tasks_tab: "Tareas",
-    challenges_tab: "Desafíos",
+    challenges_tab: "Mis desafíos",
     back_to_challenges: "Desafíos",
   },
   task: {
@@ -100,6 +100,8 @@ const es = {
     title: "Mis desafíos",
     no_challenges: "Aún no hay desafíos",
     no_challenges_hint: "Inicia tu primer desafío →",
+    my_title: "Mis desafíos",
+    browse_library: "Ver biblioteca →",
     report: "Informe",
     delete_permanently: "Eliminar definitivamente",
     restart: "Repetir desafío",

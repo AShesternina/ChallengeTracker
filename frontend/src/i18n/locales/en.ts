@@ -87,7 +87,7 @@ const en = {
     status_completed: "Done",
     status_skipped: "Skipped",
     tasks_tab: "Tasks",
-    challenges_tab: "Challenges",
+    challenges_tab: "My Challenges",
     back_to_challenges: "Challenges",
   },
   task: {
@@ -100,6 +100,8 @@ const en = {
     title: "My Challenges",
     no_challenges: "No challenges yet",
     no_challenges_hint: "Start your first challenge →",
+    my_title: "My Challenges",
+    browse_library: "Browse challenge library →",
     report: "Report",
     delete_permanently: "Delete permanently",
     restart: "Repeat Challenge",

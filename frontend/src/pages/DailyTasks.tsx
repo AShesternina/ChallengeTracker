@@ -1,22 +1,32 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { ru as ruLocale, es as esLocale, ptBR as ptLocale, enUS } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
-import { dailyApi } from "../services/api";
-import { useTaskStore, DailyTask } from "../store/taskStore";
+import { dailyApi, challengesApi } from "../services/api";
+import { useTaskStore } from "../store/taskStore";
 import { useThemeStore } from "../store/themeStore";
 import { useCategoryStyle } from "../utils/category";
-import { ArrowLeftIcon, CheckIcon } from "../components/Icons";
+import { ChevronRightIcon } from "../components/Icons";
 import TaskCard from "../components/TaskCard";
 import { translateTemplateName } from "../utils/templateTranslations";
 
 type Tab = "tasks" | "challenges";
+type ChallengeFilter = "active" | "paused" | "completed";
 
-interface ChallengeGroup {
-  instanceId: number;
-  title: string;
-  tasks: DailyTask[];
+interface ChallengeInstance {
+  id: number;
+  challenge: { id: number; title: string; description: string | null; type: string };
+  start_date: string;
+  end_date: string;
+  status: string;
 }
+
+const STATUS_STYLE: Record<string, { bg: string; text: string }> = {
+  active:    { bg: "var(--color-success-bg)",  text: "var(--color-success)" },
+  paused:    { bg: "var(--color-warning-bg)",  text: "var(--color-warning)" },
+  completed: { bg: "var(--color-info-bg)",     text: "var(--color-info)" },
+};
 
 export default function DailyTasks() {
   const { t, i18n } = useTranslation();
@@ -25,7 +35,11 @@ export default function DailyTasks() {
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [tab, setTab] = useState<Tab>("tasks");
-  const [selectedChallenge, setSelectedChallenge] = useState<ChallengeGroup | null>(null);
+
+  // My Challenges tab state
+  const [instances, setInstances] = useState<ChallengeInstance[]>([]);
+  const [instancesLoading, setInstancesLoading] = useState(false);
+  const [challengeFilter, setChallengeFilter] = useState<ChallengeFilter>("active");
 
   const dateLocale = i18n.language.startsWith("ru") ? ruLocale
     : i18n.language.startsWith("es") ? esLocale
@@ -35,70 +49,39 @@ export default function DailyTasks() {
   useEffect(() => {
     setLoading(true);
     const todayDate = format(new Date(), "yyyy-MM-dd");
-    dailyApi
-      .today(todayDate)
+    dailyApi.today(todayDate)
       .then((r) => setSummary(r.data))
       .catch(() => setError(t("common.error")))
       .finally(() => setLoading(false));
   }, []);
 
+  // Load my challenges when tab is opened
+  useEffect(() => {
+    if (tab !== "challenges") return;
+    setInstancesLoading(true);
+    challengesApi.my().then((r) => setInstances(r.data)).finally(() => setInstancesLoading(false));
+  }, [tab]);
+
   const handleComplete = async (id: number) => {
     setActionLoading(id);
-    try {
-      const { data } = await dailyApi.complete(id);
-      updateTask(data);
-    } catch {
-      setError(t("daily.action_failed"));
-    } finally {
-      setActionLoading(null);
-    }
+    try { const { data } = await dailyApi.complete(id); updateTask(data); }
+    catch { setError(t("daily.action_failed")); }
+    finally { setActionLoading(null); }
   };
 
   const handleSkip = async (id: number) => {
     setActionLoading(id);
-    try {
-      const { data } = await dailyApi.skip(id);
-      updateTask(data);
-    } catch {
-      setError(t("daily.action_failed"));
-    } finally {
-      setActionLoading(null);
-    }
+    try { const { data } = await dailyApi.skip(id); updateTask(data); }
+    catch { setError(t("daily.action_failed")); }
+    finally { setActionLoading(null); }
   };
 
   const handleUndo = async (id: number) => {
     setActionLoading(id);
-    try {
-      const { data } = await dailyApi.reset(id);
-      updateTask(data);
-    } catch {
-      setError(t("daily.action_failed"));
-    } finally {
-      setActionLoading(null);
-    }
+    try { const { data } = await dailyApi.reset(id); updateTask(data); }
+    catch { setError(t("daily.action_failed")); }
+    finally { setActionLoading(null); }
   };
-
-  // Group tasks by challenge
-  const challengeGroups: ChallengeGroup[] = [];
-  if (summary) {
-    const map = new Map<number, ChallengeGroup>();
-    for (const task of summary.tasks) {
-      if (!map.has(task.challenge_instance_id)) {
-        map.set(task.challenge_instance_id, {
-          instanceId: task.challenge_instance_id,
-          title: translateTemplateName(task.challenge_title, i18n.language),
-          tasks: [],
-        });
-      }
-      map.get(task.challenge_instance_id)!.tasks.push(task);
-    }
-    challengeGroups.push(...map.values());
-  }
-
-  // Keep selectedChallenge in sync with updated tasks
-  const syncedChallenge = selectedChallenge
-    ? challengeGroups.find((g) => g.instanceId === selectedChallenge.instanceId) ?? null
-    : null;
 
   if (loading) {
     return (
@@ -111,68 +94,16 @@ export default function DailyTasks() {
 
   const pending = summary?.tasks.filter((t) => t.status === "pending") ?? [];
   const done = summary?.tasks.filter((t) => t.status !== "pending") ?? [];
-  // Exclude paused tasks — they can't be completed so shouldn't block the celebration
   const pendingActive = pending.filter((t) => t.challenge_status !== "paused");
 
-  // Challenge detail view
-  if (syncedChallenge) {
-    const pendingC = syncedChallenge.tasks.filter((t) => t.status === "pending");
-    const doneC = syncedChallenge.tasks.filter((t) => t.status !== "pending");
-    const completedC = syncedChallenge.tasks.filter((t) => t.status === "completed").length;
-    const totalC = syncedChallenge.tasks.length;
-
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setSelectedChallenge(null)}
-            className="flex items-center gap-1 text-[13px] font-semibold text-text-tertiary hover:text-text-secondary transition-colors">
-            <ArrowLeftIcon size={15} />
-            {t("daily.back_to_challenges")}
-          </button>
-        </div>
-
-        <ChallengeHero group={syncedChallenge} dark={dark} completed={completedC} total={totalC} />
-
-        {error && (
-          <div className="px-3 py-2.5 rounded-md text-[13px]"
-            style={{ background: "var(--color-danger-bg)", color: "var(--color-danger)" }}>
-            {error}
-          </div>
-        )}
-
-        {pendingC.length === 0 && totalC > 0 && (
-          <CelebrationBanner message={t("daily.all_done")} />
-        )}
-
-        {pendingC.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider px-0.5">
-              {t("daily.pending_label", { count: pendingC.length })}
-            </p>
-            {pendingC.map((task) => (
-              <TaskCard key={task.id} task={task}
-                onComplete={handleComplete} onSkip={handleSkip} onUndo={handleUndo}
-                loading={actionLoading === task.id} />
-            ))}
-          </div>
-        )}
-
-        {doneC.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider px-0.5">
-              {t("daily.done_label", { count: doneC.length })}
-            </p>
-            {doneC.map((task) => (
-              <TaskCard key={task.id} task={task}
-                onComplete={handleComplete} onSkip={handleSkip} onUndo={handleUndo}
-                loading={actionLoading === task.id} />
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
+  const CHALLENGE_FILTERS: { key: ChallengeFilter; label: string }[] = [
+    { key: "active",    label: t("challenges.tab_active") },
+    { key: "paused",    label: t("challenges.tab_paused") },
+    { key: "completed", label: t("challenges.tab_completed") },
+  ];
+  const countFor = (key: ChallengeFilter) =>
+    instances.filter((i) => i.status === key).length;
+  const filteredInstances = instances.filter((i) => i.status === challengeFilter);
 
   return (
     <div className="space-y-4">
@@ -182,7 +113,7 @@ export default function DailyTasks() {
           {format(new Date(), "EEEE, d MMMM", { locale: dateLocale })}
         </p>
         <h2 className="text-[22px] font-black text-text-primary mt-0.5" style={{ letterSpacing: "-0.4px" }}>
-          {t("daily.title")}
+          {tab === "tasks" ? t("daily.title") : t("challenges.my_title")}
         </h2>
       </div>
 
@@ -193,8 +124,8 @@ export default function DailyTasks() {
         </div>
       )}
 
-      {/* Progress bar */}
-      {summary && summary.total > 0 && (
+      {/* Progress bar — tasks tab only */}
+      {tab === "tasks" && summary && summary.total > 0 && (
         <div className="rounded-md px-4 py-3"
           style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
           <div className="flex justify-between text-[12px] font-semibold mb-2">
@@ -208,29 +139,22 @@ export default function DailyTasks() {
         </div>
       )}
 
-      {/* Tabs */}
-      {(summary?.total ?? 0) > 0 && (
-        <div className="flex rounded-md p-1 gap-1"
-          style={{ background: "var(--color-surface2)" }}>
-          <TabBtn active={tab === "tasks"} onClick={() => setTab("tasks")}
-            label={t("daily.tasks_tab")} />
-          <TabBtn active={tab === "challenges"} onClick={() => setTab("challenges")}
-            label={t("daily.challenges_tab")} />
-        </div>
-      )}
+      {/* Main tabs */}
+      <div className="flex rounded-md p-1 gap-1" style={{ background: "var(--color-surface2)" }}>
+        <TabBtn active={tab === "tasks"} onClick={() => setTab("tasks")} label={t("daily.tasks_tab")} />
+        <TabBtn active={tab === "challenges"} onClick={() => setTab("challenges")} label={t("daily.challenges_tab")} />
+      </div>
 
-      {/* Empty state */}
-      {summary?.total === 0 && (
-        <div className="text-center py-14">
-          <p className="text-4xl mb-3">🎉</p>
-          <p className="font-bold text-text-primary">{t("daily.no_tasks")}</p>
-          <p className="text-[13px] text-text-tertiary mt-1">{t("daily.no_tasks_hint")}</p>
-        </div>
-      )}
-
-      {/* TASKS TAB */}
+      {/* ── TASKS TAB ─────────────────────────────────────────────────────── */}
       {tab === "tasks" && (
         <>
+          {summary?.total === 0 && (
+            <div className="text-center py-14">
+              <p className="text-4xl mb-3">🎉</p>
+              <p className="font-bold text-text-primary">{t("daily.no_tasks")}</p>
+              <p className="text-[13px] text-text-tertiary mt-1">{t("daily.no_tasks_hint")}</p>
+            </div>
+          )}
           {pendingActive.length === 0 && (summary?.total ?? 0) > 0 && (
             <CelebrationBanner message={t("daily.all_done")} />
           )}
@@ -261,33 +185,89 @@ export default function DailyTasks() {
         </>
       )}
 
-      {/* CHALLENGES TAB */}
+      {/* ── MY CHALLENGES TAB ─────────────────────────────────────────────── */}
       {tab === "challenges" && (
-        <div className="space-y-2.5">
-          {challengeGroups.map((group) => (
-            <ChallengeGroupCard
-              key={group.instanceId}
-              group={group}
-              dark={dark}
-              onClick={() => setSelectedChallenge(group)}
-            />
-          ))}
-        </div>
+        <>
+          {instancesLoading ? (
+            <div className="flex items-center justify-center h-32">
+              <div className="w-6 h-6 rounded-full border-2 animate-spin"
+                style={{ borderColor: "var(--color-accent)", borderTopColor: "transparent" }} />
+            </div>
+          ) : (
+            <>
+              {/* Filter tabs */}
+              {instances.length > 0 && (
+                <div className="flex rounded-md p-1 gap-1" style={{ background: "var(--color-surface2)" }}>
+                  {CHALLENGE_FILTERS.map(({ key, label }) => {
+                    const count = countFor(key);
+                    return (
+                      <button key={key} onClick={() => setChallengeFilter(key)}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[12px] font-bold rounded-sm transition-all"
+                        style={{
+                          background: challengeFilter === key ? "var(--color-surface)" : "transparent",
+                          color: challengeFilter === key ? "var(--color-text-primary)" : "var(--color-text-tertiary)",
+                          boxShadow: challengeFilter === key ? "0 1px 4px rgba(0,0,0,0.06)" : "none",
+                        }}>
+                        {label}
+                        {count > 0 && (
+                          <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full"
+                            style={{
+                              background: challengeFilter === key ? "var(--color-accent-soft)" : "var(--color-surface)",
+                              color: challengeFilter === key ? "var(--color-accent)" : "var(--color-text-tertiary)",
+                            }}>
+                            {count}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Empty state */}
+              {filteredInstances.length === 0 && (
+                <div className="text-center py-14">
+                  <p className="text-4xl mb-3">
+                    {challengeFilter === "active" ? "🎯" : challengeFilter === "paused" ? "⏸️" : "📦"}
+                  </p>
+                  <p className="font-bold text-text-primary">
+                    {challengeFilter === "active" ? t("challenges.no_challenges")
+                      : challengeFilter === "paused" ? t("challenges.no_paused")
+                      : t("challenges.no_completed")}
+                  </p>
+                  {challengeFilter === "active" && (
+                    <Link to="/challenges"
+                      className="text-[13px] font-semibold mt-2 block"
+                      style={{ color: "var(--color-accent)" }}>
+                      {t("challenges.browse_library")}
+                    </Link>
+                  )}
+                </div>
+              )}
+
+              {/* Challenge cards */}
+              <div className="space-y-2.5">
+                {filteredInstances.map((instance) => (
+                  <ChallengeCard key={instance.id} instance={instance} dark={dark} dateLocale={dateLocale} />
+                ))}
+              </div>
+            </>
+          )}
+        </>
       )}
     </div>
   );
 }
 
-const CELEBRATE_PARTICLES = [
-  { emoji: "🎉", left: "20%", anim: "floatUpLeft",   delay: "0s" },
-  { emoji: "✨", left: "46%", anim: "floatUpCenter",  delay: "0.12s" },
-  { emoji: "🔥", left: "72%", anim: "floatUpRight",   delay: "0.06s" },
-];
-
 function CelebrationBanner({ message }: { message: string }) {
+  const PARTICLES = [
+    { emoji: "🎉", left: "20%", anim: "floatUpLeft",   delay: "0s" },
+    { emoji: "✨", left: "46%", anim: "floatUpCenter",  delay: "0.12s" },
+    { emoji: "🔥", left: "72%", anim: "floatUpRight",   delay: "0.06s" },
+  ];
   return (
     <div className="relative">
-      {CELEBRATE_PARTICLES.map(({ emoji, left, anim, delay }) => (
+      {PARTICLES.map(({ emoji, left, anim, delay }) => (
         <span key={emoji} className="celebrate-particle"
           style={{ left, top: "0px", animationName: anim, animationDelay: delay }}>
           {emoji}
@@ -316,67 +296,60 @@ function TabBtn({ active, onClick, label }: { active: boolean; onClick: () => vo
   );
 }
 
-function ChallengeGroupCard({ group, dark, onClick }: {
-  group: ChallengeGroup; dark: boolean; onClick: () => void;
+function ChallengeCard({ instance, dark, dateLocale }: {
+  instance: ChallengeInstance;
+  dark: boolean;
+  dateLocale: any;
 }) {
-  const { icon, accent, bg } = useCategoryStyle(group.title, dark);
-  const completed = group.tasks.filter((t) => t.status === "completed").length;
-  const total = group.tasks.length;
-  const allDone = completed === total;
+  const { i18n, t } = useTranslation();
+  const { icon, accent, bg } = useCategoryStyle(instance.challenge.title, dark);
+  const style = STATUS_STYLE[instance.status] ?? STATUS_STYLE.completed;
+  const isArchived = instance.status === "completed";
+
+  const totalDays = Math.ceil(
+    (new Date(instance.end_date).getTime() - new Date(instance.start_date).getTime()) / 86400000
+  ) + 1;
+  const daysLeft = Math.max(0, Math.ceil(
+    (new Date(instance.end_date).getTime() - Date.now()) / 86400000
+  ));
+  const progress = Math.min(100, Math.round(((totalDays - daysLeft) / totalDays) * 100));
 
   return (
-    <button onClick={onClick}
-      className="w-full text-left rounded-md p-4 transition-all hover:shadow-md"
-      style={{ background: "var(--color-surface)", border: `1px solid ${allDone ? "var(--color-success)" : "var(--color-border)"}` }}>
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-[10px] flex items-center justify-center text-lg shrink-0"
-          style={{ background: allDone ? "var(--color-success-bg)" : bg }}>
-          {allDone ? <CheckIcon size={18} strokeWidth={2.5} className="text-success" /> : icon}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-bold text-text-primary text-[14px] truncate">{group.title}</p>
-          <div className="flex items-center gap-2 mt-1">
-            <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--color-surface2)" }}>
-              <div className="h-full rounded-full transition-all"
-                style={{ width: `${(completed / total) * 100}%`, background: allDone ? "var(--color-success)" : accent }} />
-            </div>
-            <span className="text-[11px] font-bold shrink-0"
-              style={{ color: allDone ? "var(--color-success)" : accent }}>
-              {completed}/{total}
-            </span>
-          </div>
-        </div>
-        <span className="text-text-tertiary text-[16px]">›</span>
-      </div>
-    </button>
-  );
-}
-
-function ChallengeHero({ group, dark, completed, total }: {
-  group: ChallengeGroup; dark: boolean; completed: number; total: number;
-}) {
-  const { icon, accent, bg } = useCategoryStyle(group.title, dark);
-  const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
-
-  return (
-    <div className="rounded-xl p-4"
-      style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
-      <div className="flex items-center gap-3 mb-3">
-        <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0"
+    <Link to={`/challenges/${instance.id}`}
+      className="block rounded-md p-4 transition-all hover:shadow-md"
+      style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", opacity: isArchived ? 0.8 : 1 }}>
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-[10px] flex items-center justify-center shrink-0 text-lg"
           style={{ background: bg }}>
           {icon}
         </div>
-        <div>
-          <p className="font-black text-[16px] text-text-primary">{group.title}</p>
-          <p className="text-[12px] font-semibold" style={{ color: accent }}>
-            {completed}/{total} {completed === total ? "✅" : ""}
-          </p>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <h3 className="font-bold text-text-primary truncate text-[14px]">
+              {translateTemplateName(instance.challenge.title, i18n.language)}
+            </h3>
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold shrink-0"
+              style={{ background: style.bg, color: style.text }}>
+              {t(`challenges.status_${instance.status}` as any, { defaultValue: instance.status })}
+            </span>
+          </div>
+          <div className="h-1 rounded-full overflow-hidden mb-1" style={{ background: "var(--color-surface2)" }}>
+            <div className="h-full rounded-full transition-all"
+              style={{ width: `${progress}%`, background: isArchived ? "var(--color-border-strong)" : accent }} />
+          </div>
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] text-text-tertiary">
+              {format(new Date(instance.start_date), "d MMM", { locale: dateLocale })} →{" "}
+              {format(new Date(instance.end_date), "d MMM yyyy", { locale: dateLocale })}
+            </p>
+            <p className="text-[11px] font-semibold"
+              style={{ color: isArchived ? "var(--color-text-tertiary)" : accent }}>
+              {progress}%
+            </p>
+          </div>
         </div>
+        <ChevronRightIcon size={14} className="text-text-tertiary shrink-0 mt-1" />
       </div>
-      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--color-surface2)" }}>
-        <div className="h-full rounded-full transition-all duration-500"
-          style={{ width: `${rate}%`, background: rate === 100 ? "var(--color-success)" : accent }} />
-      </div>
-    </div>
+    </Link>
   );
 }
