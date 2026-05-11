@@ -178,11 +178,26 @@ export default function Settings() {
   const userName = user?.email?.split("@")[0] ?? "—";
   const initial = userName[0]?.toUpperCase() ?? "U";
 
+  const handleThemeToggle = async () => {
+    const next = !dark;
+    setDark(next);
+    try { await userApi.update({ theme: next ? "dark" : "light" }); } catch {}
+  };
+
   return (
     <div className="space-y-5">
-      <h2 className="text-[22px] font-black text-text-primary" style={{ letterSpacing: "-0.4px" }}>
-        {t("settings.title")}
-      </h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-[22px] font-black text-text-primary" style={{ letterSpacing: "-0.4px" }}>
+          {t("settings.title")}
+        </h2>
+        <button
+          onClick={handleThemeToggle}
+          className="w-9 h-9 flex items-center justify-center rounded-full transition-colors"
+          style={{ background: "var(--color-surface2)" }}
+          aria-label={t("common.toggle_theme")}>
+          {dark ? <MoonIcon size={18} className="text-text-secondary" /> : <SunIcon size={18} className="text-text-secondary" />}
+        </button>
+      </div>
 
       {/* Profile */}
       <Section title={t("settings.profile")}>
@@ -195,23 +210,6 @@ export default function Settings() {
             <p className="font-bold text-text-primary text-[15px]">{userName}</p>
             <p className="text-[12px] text-text-tertiary">{user?.email || "—"}</p>
           </div>
-        </div>
-      </Section>
-
-      {/* Appearance */}
-      <Section title={t("settings.appearance")}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            {dark ? <MoonIcon size={16} className="text-text-secondary" /> : <SunIcon size={16} className="text-text-secondary" />}
-            <span className="text-[14px] font-semibold text-text-primary">
-              {dark ? t("settings.dark_mode") : t("settings.light_mode")}
-            </span>
-          </div>
-          <Toggle enabled={dark} onToggle={async () => {
-            const next = !dark;
-            setDark(next);
-            try { await userApi.update({ theme: next ? "dark" : "light" }); } catch {}
-          }} loading={false} label={t("common.toggle_theme")} />
         </div>
       </Section>
 
