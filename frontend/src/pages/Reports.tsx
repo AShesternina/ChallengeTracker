@@ -272,7 +272,7 @@ export default function Reports() {
   const isCurrentMonth = year === now.getFullYear() && month === now.getMonth() + 1;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full overflow-x-hidden">
       <h2 className="text-[22px] font-black text-text-primary" style={{ letterSpacing: "-0.4px" }}>
         {t("reports.title")}
       </h2>

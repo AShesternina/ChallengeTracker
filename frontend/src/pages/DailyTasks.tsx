@@ -106,7 +106,7 @@ export default function DailyTasks() {
   const filteredInstances = instances.filter((i) => i.status === challengeFilter);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full overflow-x-hidden">
       {/* Header */}
       <div>
         <p className="text-[12px] font-medium text-text-tertiary capitalize">

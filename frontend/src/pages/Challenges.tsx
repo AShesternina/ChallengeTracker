@@ -52,7 +52,7 @@ export default function Challenges() {
   // ── Category list ──────────────────────────────────────────────────────────
   if (!selectedCategory) {
     return (
-      <div className="space-y-5">
+      <div className="space-y-5 w-full overflow-x-hidden">
         <div>
           <h2 className="text-[22px] font-black text-text-primary" style={{ letterSpacing: "-0.4px" }}>
             {t("nav.challenges")}

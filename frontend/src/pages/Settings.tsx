@@ -200,7 +200,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 w-full overflow-x-hidden">
       <div className="flex items-center justify-between">
         <h2 className="text-[22px] font-black text-text-primary" style={{ letterSpacing: "-0.4px" }}>
           {t("settings.title")}

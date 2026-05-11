@@ -73,7 +73,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full overflow-x-hidden">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
