@@ -281,60 +281,12 @@ export default function Settings() {
       {/* Push notifications */}
       <Section title={t("settings.push_notifications")}>
         {"PushManager" in window ? (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[14px] font-semibold text-text-primary">{t("settings.web_push")}</p>
-                <p className="text-[12px] text-text-tertiary mt-0.5">{t("settings.push_device_hint")}</p>
-              </div>
-              <Toggle enabled={pushEnabled} onToggle={handlePushToggle} loading={pushLoading} label={t("settings.web_push")} />
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[14px] font-semibold text-text-primary">{t("settings.web_push")}</p>
+              <p className="text-[12px] text-text-tertiary mt-0.5">{t("settings.push_device_hint")}</p>
             </div>
-
-            {pushEnabled && (
-              <div className="pt-3 space-y-3" style={{ borderTop: "1px solid var(--color-border)" }}>
-                <p className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider">
-                  {t("settings.notif_times")}
-                </p>
-                <div className="flex items-center justify-between gap-3">
-                  <label className="text-[13px] font-semibold text-text-primary truncate flex-1">
-                    {t("settings.morning_notification")}
-                  </label>
-                  <input type="time" value={morningTime}
-                    onChange={(e) => setMorningTime(e.target.value)}
-                    className="px-2 py-1.5 rounded-md text-[13px] text-text-primary outline-none shrink-0"
-                    style={{ background: "var(--color-surface2)", border: "1.5px solid var(--color-border)", width: "110px" }} />
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <label className="text-[13px] font-semibold text-text-primary truncate flex-1">
-                    {t("settings.evening_notification")}
-                  </label>
-                  <input type="time" value={eveningTime}
-                    onChange={(e) => setEveningTime(e.target.value)}
-                    className="px-2 py-1.5 rounded-md text-[13px] text-text-primary outline-none shrink-0"
-                    style={{ background: "var(--color-surface2)", border: "1.5px solid var(--color-border)", width: "110px" }} />
-                </div>
-                <button onClick={handleSaveNotifTimes} disabled={savingTimes}
-                  className="w-full py-2 rounded-md text-[13px] font-bold text-white disabled:opacity-50 transition-opacity"
-                  style={{ background: savedTimes ? "var(--color-success)" : "var(--color-accent)" }}>
-                  {savingTimes ? t("common.saving") : savedTimes ? t("common.saved") : t("common.save")}
-                </button>
-
-                <div className="flex items-start justify-between gap-3 pt-1">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[13px] font-semibold text-text-primary">{t("settings.task_reminders")}</p>
-                    <p className="text-[11px] text-text-tertiary mt-0.5">{t("settings.task_reminders_hint")}</p>
-                  </div>
-                  <div className="shrink-0 mt-0.5">
-                  <Toggle enabled={taskReminders} loading={false} label={t("settings.task_reminders")} onToggle={async () => {
-                    const next = !taskReminders;
-                    setTaskReminders(next);
-                    const { data } = await userApi.update({ notify_task_reminders: next });
-                    setUser(data);
-                  }} />
-                  </div>
-                </div>
-              </div>
-            )}
+            <Toggle enabled={pushEnabled} onToggle={handlePushToggle} loading={pushLoading} label={t("settings.web_push")} />
           </div>
         ) : (
           <p className="text-[13px] text-text-tertiary">{t("settings.push_not_supported")}</p>
@@ -369,6 +321,49 @@ export default function Settings() {
             )}
           </div>
         )}
+      </Section>
+
+      {/* Notification times */}
+      <Section title={t("settings.notif_times")}>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <label className="text-[13px] font-semibold text-text-primary truncate flex-1">
+              {t("settings.morning_notification")}
+            </label>
+            <input type="time" value={morningTime}
+              onChange={(e) => setMorningTime(e.target.value)}
+              className="px-2 py-1.5 rounded-md text-[13px] text-text-primary outline-none shrink-0"
+              style={{ background: "var(--color-surface2)", border: "1.5px solid var(--color-border)", width: "110px" }} />
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <label className="text-[13px] font-semibold text-text-primary truncate flex-1">
+              {t("settings.evening_notification")}
+            </label>
+            <input type="time" value={eveningTime}
+              onChange={(e) => setEveningTime(e.target.value)}
+              className="px-2 py-1.5 rounded-md text-[13px] text-text-primary outline-none shrink-0"
+              style={{ background: "var(--color-surface2)", border: "1.5px solid var(--color-border)", width: "110px" }} />
+          </div>
+          <button onClick={handleSaveNotifTimes} disabled={savingTimes}
+            className="w-full py-2 rounded-md text-[13px] font-bold text-white disabled:opacity-50 transition-opacity"
+            style={{ background: savedTimes ? "var(--color-success)" : "var(--color-accent)" }}>
+            {savingTimes ? t("common.saving") : savedTimes ? t("common.saved") : t("common.save")}
+          </button>
+          <div className="flex items-start justify-between gap-3 pt-1">
+            <div className="min-w-0 flex-1">
+              <p className="text-[13px] font-semibold text-text-primary">{t("settings.task_reminders")}</p>
+              <p className="text-[11px] text-text-tertiary mt-0.5">{t("settings.task_reminders_hint")}</p>
+            </div>
+            <div className="shrink-0 mt-0.5">
+              <Toggle enabled={taskReminders} loading={false} label={t("settings.task_reminders")} onToggle={async () => {
+                const next = !taskReminders;
+                setTaskReminders(next);
+                const { data } = await userApi.update({ notify_task_reminders: next });
+                setUser(data);
+              }} />
+            </div>
+          </div>
+        </div>
       </Section>
 
       {/* Streak protection */}
