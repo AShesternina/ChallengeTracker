@@ -178,12 +178,7 @@ export default function Settings() {
   const userName = user?.email?.split("@")[0] ?? "—";
   const initial = userName[0]?.toUpperCase() ?? "U";
 
-  const THEME_CYCLE: Record<string, "light" | "dark" | "system"> = {
-    system: "light", light: "dark", dark: "system",
-  };
-
-  const handleThemeToggle = async () => {
-    const next = THEME_CYCLE[theme] ?? "system";
+  const handleThemeSelect = async (next: "system" | "light" | "dark") => {
     setTheme(next);
     try { await userApi.update({ theme: next }); } catch {}
   };
@@ -194,21 +189,26 @@ export default function Settings() {
         <h2 className="text-[22px] font-black text-text-primary" style={{ letterSpacing: "-0.4px" }}>
           {t("settings.title")}
         </h2>
-        <button
-          onClick={handleThemeToggle}
-          className="w-9 h-9 flex items-center justify-center rounded-full transition-colors"
-          style={{ background: "var(--color-surface2)" }}
-          aria-label={t("common.toggle_theme")}>
-          {theme === "dark"
-            ? <MoonIcon size={18} className="text-text-secondary" />
-            : theme === "light"
-            ? <SunIcon size={18} className="text-text-secondary" />
-            : <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="text-text-secondary">
-                <path d="M9 2a7 7 0 1 0 0 14A7 7 0 0 0 9 2z" stroke="currentColor" strokeWidth="1.5"/>
-                <path d="M9 2a7 7 0 0 1 0 14V2z" fill="currentColor"/>
-              </svg>
-          }
-        </button>
+        <div className="flex items-center gap-0.5 p-1 rounded-lg" style={{ background: "var(--color-surface2)" }}>
+          {(["system", "light", "dark"] as const).map((t_) => (
+            <button
+              key={t_}
+              onClick={() => handleThemeSelect(t_)}
+              aria-label={t_}
+              className="w-8 h-7 flex items-center justify-center rounded-md transition-colors"
+              style={theme === t_ ? { background: "var(--color-surface)", boxShadow: "0 1px 3px rgba(0,0,0,0.12)" } : {}}>
+              {t_ === "light"
+                ? <SunIcon size={15} className={theme === t_ ? "text-text-primary" : "text-text-tertiary"} />
+                : t_ === "dark"
+                ? <MoonIcon size={15} className={theme === t_ ? "text-text-primary" : "text-text-tertiary"} />
+                : <svg width="15" height="15" viewBox="0 0 18 18" fill="none" className={theme === t_ ? "text-text-primary" : "text-text-tertiary"}>
+                    <path d="M9 2a7 7 0 1 0 0 14A7 7 0 0 0 9 2z" stroke="currentColor" strokeWidth="1.5"/>
+                    <path d="M9 2a7 7 0 0 1 0 14V2z" fill="currentColor"/>
+                  </svg>
+              }
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Profile */}
