@@ -326,3 +326,117 @@ async def test_delete_account_cascades_challenges_and_tasks(client: AsyncClient)
         "email": "test@example.com", "password": "newpass123", "timezone": "UTC",
     })
     assert r.status_code == 201
+
+
+# ── theme ─────────────────────────────────────────────────────────────────────
+
+async def test_user_has_theme_field_default_system(client: AsyncClient):
+    """New user has theme='system' by default."""
+    tokens = await register_and_login(client)
+    r = await client.get("/api/v1/users/me", headers=auth_headers(tokens))
+    assert r.status_code == 200
+    data = r.json()
+    assert "theme" in data
+    assert data["theme"] == "system"
+
+
+async def test_update_theme_valid_values(client: AsyncClient):
+    """PATCH /users/me with theme='dark'/'light'/'system' persists; invalid value rejected."""
+    tokens = await register_and_login(client)
+    headers = auth_headers(tokens)
+
+    for value in ("dark", "light", "system"):
+        r = await client.patch("/api/v1/users/me", json={"theme": value}, headers=headers)
+        assert r.status_code == 200
+        assert r.json()["theme"] == value
+
+    r = await client.patch("/api/v1/users/me", json={"theme": "neon"}, headers=headers)
+    assert r.status_code == 400
+
+
+# ── change password ───────────────────────────────────────────────────────────
+
+async def test_change_password_success(client: AsyncClient):
+    """POST /users/me/change-password with correct current password changes it."""
+    tokens = await register_and_login(client)
+    headers = auth_headers(tokens)
+
+    r = await client.post("/api/v1/users/me/change-password",
+                          json={"current_password": "secret123", "new_password": "newpass456"},
+                          headers=headers)
+    assert r.status_code == 204
+
+    # Old password should no longer work
+    r2 = await client.post("/api/v1/auth/login/email",
+                           json={"email": "test@example.com", "password": "secret123"})
+    assert r2.status_code == 401
+
+    # New password should work
+    r3 = await client.post("/api/v1/auth/login/email",
+                           json={"email": "test@example.com", "password": "newpass456"})
+    assert r3.status_code == 200
+
+
+async def test_change_password_wrong_current(client: AsyncClient):
+    """Wrong current password returns 400."""
+    tokens = await register_and_login(client)
+    r = await client.post("/api/v1/users/me/change-password",
+                          json={"current_password": "wrongpass", "new_password": "newpass456"},
+                          headers=auth_headers(tokens))
+    assert r.status_code == 400
+
+
+async def test_change_password_unauthenticated(client: AsyncClient):
+    """POST /users/me/change-password without auth returns 403."""
+    r = await client.post("/api/v1/users/me/change-password",
+                          json={"current_password": "secret123", "new_password": "newpass456"})
+    assert r.status_code == 403
+
+
+# ── email verification ────────────────────────────────────────────────────────
+
+async def test_register_sets_is_verified_false(client: AsyncClient):
+    """After registration, is_verified=False until email is confirmed."""
+    tokens = await register_and_login(client)
+    r = await client.get("/api/v1/users/me", headers=auth_headers(tokens))
+    assert r.status_code == 200
+    assert r.json()["is_verified"] is False
+
+
+async def test_verify_email_with_valid_token(client: AsyncClient):
+    """GET /auth/verify-email with valid token sets is_verified=True."""
+    import secrets
+    from sqlalchemy import select
+    from app.core.database import AsyncSession
+    from app.models.user import User
+
+    tokens = await register_and_login(client)
+    headers = auth_headers(tokens)
+
+    # Inject a known token directly via the app's DB session
+    known_token = secrets.token_urlsafe(16)
+    from app.core.database import AsyncSessionLocal
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(select(User).where(User.email == "test@example.com"))
+        user = result.scalar_one()
+        user.email_verification_token = known_token
+        await db.commit()
+
+    r = await client.get(f"/api/v1/auth/verify-email?token={known_token}")
+    assert r.status_code == 200
+
+    r2 = await client.get("/api/v1/users/me", headers=headers)
+    assert r2.json()["is_verified"] is True
+
+
+async def test_verify_email_invalid_token(client: AsyncClient):
+    """GET /auth/verify-email with invalid token returns 400."""
+    r = await client.get("/api/v1/auth/verify-email?token=totally-invalid-token-xyz")
+    assert r.status_code == 400
+
+
+async def test_resend_verification_authenticated(client: AsyncClient):
+    """POST /auth/resend-verification for unverified user returns 204."""
+    tokens = await register_and_login(client)
+    r = await client.post("/api/v1/auth/resend-verification", headers=auth_headers(tokens))
+    assert r.status_code == 204

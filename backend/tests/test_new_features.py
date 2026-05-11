@@ -345,3 +345,77 @@ async def test_hard_delete_paused_instance(client: AsyncClient):
     assert r.status_code == 204
     r = await client.get(f"/api/v1/challenges/instances/{instance['id']}", headers=headers)
     assert r.status_code == 404
+
+
+# ── push notification subscribe / resubscribe ─────────────────────────────────
+
+def _fake_subscription(suffix: str = "abc") -> dict:
+    return {
+        "endpoint": f"https://fcm.googleapis.com/fcm/send/fake-{suffix}",
+        "keys": {"p256dh": "BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlTiGTB", "auth": "tBHItJI5svm"},
+    }
+
+
+async def test_subscribe_push_creates_device(client: AsyncClient):
+    """POST /notifications/subscribe creates a UserDevice and returns its id."""
+    tokens = await register_and_login(client)
+    headers = auth_headers(tokens)
+
+    sub = _fake_subscription("test1")
+    r = await client.post("/api/v1/notifications/subscribe",
+                          json={**sub, "user_agent": "TestAgent/1.0"},
+                          headers=headers)
+    assert r.status_code == 201
+    data = r.json()
+    assert "id" in data
+    assert data["id"] > 0
+
+
+async def test_subscribe_push_upserts_same_endpoint(client: AsyncClient):
+    """Subscribing with the same endpoint twice returns the same device (no duplicates)."""
+    tokens = await register_and_login(client)
+    headers = auth_headers(tokens)
+
+    sub = _fake_subscription("test2")
+    r1 = await client.post("/api/v1/notifications/subscribe",
+                           json={**sub, "user_agent": "Agent/1.0"}, headers=headers)
+    r2 = await client.post("/api/v1/notifications/subscribe",
+                           json={**sub, "user_agent": "Agent/2.0"}, headers=headers)
+
+    assert r1.status_code == 201
+    assert r2.status_code == 201
+    assert r1.json()["id"] == r2.json()["id"]
+
+    # Only one device in the list
+    r_list = await client.get("/api/v1/notifications/devices", headers=headers)
+    assert len(r_list.json()) == 1
+
+
+async def test_resubscribe_endpoint_updates_subscription(client: AsyncClient):
+    """POST /notifications/resubscribe updates subscription by old endpoint."""
+    tokens = await register_and_login(client)
+    headers = auth_headers(tokens)
+
+    # Create device with old subscription
+    old_sub = _fake_subscription("old")
+    r = await client.post("/api/v1/notifications/subscribe",
+                          json={**old_sub, "user_agent": "Agent/1.0"}, headers=headers)
+    device_id = r.json()["id"]
+
+    # Resubscribe with new endpoint
+    new_sub = _fake_subscription("new")
+    r2 = await client.post("/api/v1/notifications/resubscribe", json={
+        "old_endpoint": old_sub["endpoint"],
+        "endpoint": new_sub["endpoint"],
+        "keys": new_sub["keys"],
+        "user_agent": "Agent/1.0",
+    })
+    assert r2.status_code == 204
+
+    # Device still exists and has new endpoint
+    r_list = await client.get("/api/v1/notifications/devices", headers=headers)
+    devices = r_list.json()
+    assert len(devices) == 1
+    import json
+    stored = json.loads(devices[0]["push_subscription"])
+    assert stored["endpoint"] == new_sub["endpoint"]
