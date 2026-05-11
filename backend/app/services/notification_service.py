@@ -1,6 +1,7 @@
 """Notification dispatcher.
 
 Push (Variant B): sends data-only payload — Service Worker translates it.
+Telegram: rich HTML with inline keyboard button.
 Email (fallback): uses notifications_i18n.py for translated text.
 """
 
@@ -15,9 +16,27 @@ from app.models.user import User
 from app.models.user_device import UserDevice
 from app.services.email_service import email_adapter
 from app.services.push_service import send_push, SubscriptionExpiredError
-from app.services.notifications_i18n import get_morning_summary, get_daily_report, get_weekly_review, get_burnout_alert, get_task_reminder
+from app.services.notifications_i18n import (
+    get_morning_summary, get_daily_report, get_weekly_review, get_burnout_alert, get_task_reminder,
+    get_morning_telegram, get_daily_report_telegram, get_task_reminder_telegram,
+    get_burnout_telegram, get_weekly_review_telegram,
+)
 
 logger = logging.getLogger(__name__)
+
+
+def _inline_button(label: str, url: str) -> dict:
+    return {"inline_keyboard": [[{"text": label, "url": url}]]}
+
+
+_OPEN_LABEL = {
+    "en": "Open app →", "ru": "Открыть приложение →",
+    "es": "Abrir app →", "pt": "Abrir app →",
+}
+_REPORT_LABEL = {
+    "en": "View report →", "ru": "Посмотреть отчёт →",
+    "es": "Ver informe →", "pt": "Ver relatório →",
+}
 
 
 async def _get_user_devices(db: AsyncSession, user_id: int) -> list[UserDevice]:
@@ -53,6 +72,9 @@ async def dispatch(
     push_data: dict,
     email_title: str,
     email_body: str,
+    telegram_text: str | None = None,
+    telegram_url: str | None = None,
+    telegram_button_label: str | None = None,
 ) -> None:
     """Send notification: push (all devices) + telegram if connected, email as fallback."""
     any_sent = False
@@ -65,19 +87,19 @@ async def dispatch(
             await _log(db, user.id, ntype, NotificationChannel.push, NotificationStatus.sent, push_data)
             any_sent = True
         except SubscriptionExpiredError as e:
-            # Subscription is permanently invalid — remove device from DB
             logger.info("Removing expired push subscription device_id=%s: %s", device.id, e)
             await db.delete(device)
             await _log(db, user.id, ntype, NotificationChannel.push, NotificationStatus.failed, push_data, str(e))
         except Exception as e:
             await _log(db, user.id, ntype, NotificationChannel.push, NotificationStatus.failed, push_data, str(e))
 
-    # Telegram — if account is linked
+    # Telegram — rich text with optional inline button
     if user.telegram_chat_id:
         try:
             from app.services.telegram_service import send_telegram
-            text = f"<b>{email_title}</b>\n{email_body}"
-            await send_telegram(user.telegram_chat_id, text)
+            text = telegram_text or f"<b>{email_title}</b>\n{email_body}"
+            markup = _inline_button(telegram_button_label or _OPEN_LABEL.get(user.language, "Open →"), telegram_url) if telegram_url else None
+            await send_telegram(user.telegram_chat_id, text, reply_markup=markup)
             await _log(db, user.id, ntype, NotificationChannel.telegram, NotificationStatus.sent, push_data)
             any_sent = True
         except Exception as e:
@@ -101,7 +123,10 @@ async def dispatch(
 async def send_morning_summary(db: AsyncSession, user: User, total_tasks: int, streak: int = 0) -> None:
     push_data = {"type": "morning_summary", "total": total_tasks, "streak": streak, "url": "/daily"}
     email_title, email_body = get_morning_summary(user.language, total_tasks, streak)
-    await dispatch(db, user, NotificationType.morning_summary, push_data, email_title, email_body)
+    tg_text, tg_url = get_morning_telegram(user.language, total_tasks, streak)
+    await dispatch(db, user, NotificationType.morning_summary, push_data, email_title, email_body,
+                   telegram_text=tg_text, telegram_url=tg_url,
+                   telegram_button_label=_OPEN_LABEL.get(user.language, "Open →"))
 
 
 async def send_task_reminder(db: AsyncSession, user: User, task_names: list[str]) -> None:
@@ -109,20 +134,29 @@ async def send_task_reminder(db: AsyncSession, user: User, task_names: list[str]
     count = len(task_names)
     push_data = {"type": "task_reminder", "tasks": tasks_str, "count": count, "url": "/daily"}
     email_title, email_body = get_task_reminder(user.language, tasks_str)
-    await dispatch(db, user, NotificationType.task_reminder, push_data, email_title, email_body)
+    tg_text, tg_url = get_task_reminder_telegram(user.language, tasks_str)
+    await dispatch(db, user, NotificationType.task_reminder, push_data, email_title, email_body,
+                   telegram_text=tg_text, telegram_url=tg_url,
+                   telegram_button_label=_OPEN_LABEL.get(user.language, "Open →"))
 
 
 async def send_daily_report(db: AsyncSession, user: User, completed: int, total: int) -> None:
     rate = round(completed / total * 100) if total else 0
     push_data = {"type": "daily_report", "completed": completed, "total": total, "rate": rate, "url": "/reports"}
     email_title, email_body = get_daily_report(user.language, completed, total, rate)
-    await dispatch(db, user, NotificationType.daily_report, push_data, email_title, email_body)
+    tg_text, tg_url = get_daily_report_telegram(user.language, completed, total, rate)
+    await dispatch(db, user, NotificationType.daily_report, push_data, email_title, email_body,
+                   telegram_text=tg_text, telegram_url=tg_url,
+                   telegram_button_label=_REPORT_LABEL.get(user.language, "View →"))
 
 
 async def send_burnout_alert(db: AsyncSession, user: User) -> None:
     push_data = {"type": "burnout_alert", "url": "/daily"}
     email_title, email_body = get_burnout_alert(user.language)
-    await dispatch(db, user, NotificationType.burnout_alert, push_data, email_title, email_body)
+    tg_text, tg_url = get_burnout_telegram(user.language)
+    await dispatch(db, user, NotificationType.burnout_alert, push_data, email_title, email_body,
+                   telegram_text=tg_text, telegram_url=tg_url,
+                   telegram_button_label=_OPEN_LABEL.get(user.language, "Open →"))
 
 
 async def send_weekly_review(
@@ -142,4 +176,9 @@ async def send_weekly_review(
     email_title, email_body = get_weekly_review(
         user.language, completed, total, rate, trend_arrow, trend, trend_delta, best
     )
-    await dispatch(db, user, NotificationType.weekly_review, push_data, email_title, email_body)
+    tg_text, tg_url = get_weekly_review_telegram(
+        user.language, completed, total, rate, trend_arrow, trend, trend_delta, best
+    )
+    await dispatch(db, user, NotificationType.weekly_review, push_data, email_title, email_body,
+                   telegram_text=tg_text, telegram_url=tg_url,
+                   telegram_button_label=_REPORT_LABEL.get(user.language, "View →"))

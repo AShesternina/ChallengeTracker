@@ -10,7 +10,7 @@ _DIRECT_API = "https://api.telegram.org/bot{token}/{method}"
 _PROXY_API = "{proxy}/bot{token}/{method}"
 
 
-async def send_telegram(chat_id: int, text: str) -> None:
+async def send_telegram(chat_id: int, text: str, reply_markup: dict | None = None) -> None:
     if not settings.TELEGRAM_BOT_TOKEN:
         logger.info("[MOCK TELEGRAM] chat_id=%s text=%s", chat_id, text)
         return
@@ -28,12 +28,12 @@ async def send_telegram(chat_id: int, text: str) -> None:
         url = _DIRECT_API.format(token=settings.TELEGRAM_BOT_TOKEN, method="sendMessage")
         headers = {}
 
+    payload: dict = {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
+    if reply_markup:
+        payload["reply_markup"] = reply_markup
+
     async with httpx.AsyncClient(timeout=10) as client:
-        resp = await client.post(url, json={
-            "chat_id": chat_id,
-            "text": text,
-            "parse_mode": "HTML",
-        }, headers=headers)
+        resp = await client.post(url, json=payload, headers=headers)
         resp.raise_for_status()
 
 
