@@ -24,6 +24,14 @@ export async function subscribeToPush(): Promise<number> {
   const vapidKey = data.vapid_public_key;
 
   const reg = await navigator.serviceWorker.ready;
+
+  // Always unsubscribe existing subscription first to force a fresh FCM token.
+  // Reusing stale tokens causes 410 Gone errors on Android PWA.
+  const existing = await reg.pushManager.getSubscription();
+  if (existing) {
+    await existing.unsubscribe();
+  }
+
   const subscription = await reg.pushManager.subscribe({
     userVisibleOnly: true,
     applicationServerKey: urlBase64ToUint8Array(vapidKey),
@@ -38,6 +46,14 @@ export async function subscribeToPush(): Promise<number> {
     { endpoint: sub.endpoint, keys: sub.keys },
     navigator.userAgent
   );
+
+  // Store VAPID key in SW IndexedDB for pushsubscriptionchange auto-resubscribe
+  if (navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage({
+      type: "SET_VAPID_KEY",
+      vapidKey,
+    });
+  }
 
   return device.id as number;
 }

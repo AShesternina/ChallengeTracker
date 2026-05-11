@@ -101,6 +101,7 @@ const SUPPORTED_LANGS = new Set<string>(["en", "ru", "es", "pt"]);
 const DB_NAME = "ct_sw";
 const DB_STORE = "settings";
 const LANG_KEY = "language";
+const VAPID_KEY = "vapid_key";
 
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -126,6 +127,32 @@ async function getLang(): Promise<Lang> {
   } catch {
     return FALLBACK_LANG;
   }
+}
+
+async function getVapidKey(): Promise<string | null> {
+  try {
+    const db = await openDb();
+    return await new Promise((resolve) => {
+      const tx = db.transaction(DB_STORE, "readonly");
+      const req = tx.objectStore(DB_STORE).get(VAPID_KEY);
+      req.onsuccess = () => resolve((req.result as string) ?? null);
+      req.onerror = () => resolve(null);
+    });
+  } catch {
+    return null;
+  }
+}
+
+async function saveVapidKey(key: string): Promise<void> {
+  try {
+    const db = await openDb();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(DB_STORE, "readwrite");
+      tx.objectStore(DB_STORE).put(key, VAPID_KEY);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch {}
 }
 
 async function saveLang(lang: string): Promise<void> {
@@ -209,7 +236,7 @@ self.addEventListener("push", (event) => {
   );
 });
 
-// ── Message event (language sync from frontend) ──────────────────────────────
+// ── Message event (language + VAPID key sync from frontend) ─────────────────
 
 self.addEventListener("message", (event) => {
   if (event.data?.type === "SET_LANGUAGE") {
@@ -218,6 +245,46 @@ self.addEventListener("message", (event) => {
       saveLang(lang).catch(() => {});
     }
   }
+  if (event.data?.type === "SET_VAPID_KEY") {
+    const key = event.data.vapidKey as string;
+    if (key) saveVapidKey(key).catch(() => {});
+  }
+});
+
+// ── Auto re-subscribe when push subscription changes/expires ─────────────────
+
+self.addEventListener("pushsubscriptionchange", (event: Event) => {
+  const psce = event as PushSubscriptionChangeEvent;
+  psce.waitUntil((async () => {
+    const vapidKey = await getVapidKey();
+    if (!vapidKey) return;
+
+    // Convert base64url to Uint8Array
+    const padding = "=".repeat((4 - (vapidKey.length % 4)) % 4);
+    const base64 = (vapidKey + padding).replace(/-/g, "+").replace(/_/g, "/");
+    const raw = atob(base64);
+    const key = new Uint8Array(raw.length);
+    for (let i = 0; i < raw.length; i++) key[i] = raw.charCodeAt(i);
+
+    const newSub = await self.registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: key.buffer,
+    });
+
+    const sub = newSub.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } };
+
+    // Post to backend — public endpoint, no auth needed
+    await fetch("/api/v1/notifications/resubscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        old_endpoint: psce.oldSubscription?.endpoint ?? null,
+        endpoint: sub.endpoint,
+        keys: sub.keys,
+        user_agent: navigator.userAgent,
+      }),
+    });
+  })());
 });
 
 // ── Notification click ───────────────────────────────────────────────────────
