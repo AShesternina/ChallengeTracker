@@ -129,7 +129,7 @@ GET  /api/v1/auth/verify-email?token=              # verifies email token, sets 
 POST /api/v1/auth/resend-verification              # resend verification email (auth required, 3/min)
 
 GET  /api/v1/users/me
-PATCH /api/v1/users/me                              # accepts name, timezone, language, onboarding_completed, notification_morning_time, notification_evening_time, notify_task_reminders, streak_protection, theme
+PATCH /api/v1/users/me                              # accepts name, timezone, language, onboarding_completed, notification_morning_time, notification_evening_time, notify_task_reminders, notify_email_daily, notify_email_weekly, streak_protection, theme
 DELETE /api/v1/users/me                             # hard delete user + all data (cascades)
 POST /api/v1/users/me/change-password              # {current_password, new_password}
 POST /api/v1/users/me/telegram/generate-code        # generates one-time linking code, returns {code, bot_url}
@@ -213,7 +213,7 @@ docker exec challengetracker-backend-1 alembic upgrade head
 docker exec challengetracker-backend-1 alembic revision --autogenerate -m "description"
 ```
 
-Migrations: `0001_initial` → ... → `0009_add_onboarding_completed` → `0010_add_notification_times` → `0011_add_notify_task_reminders` → `0012_add_telegram` → `0013_add_weekly_review_notification_type` → `0014_add_streak_protection` → `0015_add_burnout_alert_notification_type` → `0016_add_template_slugs` → `0017_add_user_theme` → `0018_add_email_verification_token` → `0019_add_user_name` → `0020_add_new_templates`
+Migrations: `0001_initial` → ... → `0009_add_onboarding_completed` → `0010_add_notification_times` → `0011_add_notify_task_reminders` → `0012_add_telegram` → `0013_add_weekly_review_notification_type` → `0014_add_streak_protection` → `0015_add_burnout_alert_notification_type` → `0016_add_template_slugs` → `0017_add_user_theme` → `0018_add_email_verification_token` → `0019_add_user_name` → `0020_add_new_templates` → `0021_add_email_report_settings`
 
 PostgreSQL enums require explicit `CAST(:value AS enumtype)` — do NOT use `op.bulk_insert()` with enum columns.
 
@@ -335,18 +335,33 @@ Set `TELEGRAM_PROXY_URL` + `TELEGRAM_PROXY_SECRET` in `.env` to enable. Without 
 - `notifications_i18n.py`: add same language to `_MORNING_SUMMARY`, `_DAILY_REPORT`, `_WEEKLY_REVIEW*`, `_BURNOUT_ALERT`
 - `language_service.py`: add country codes and add to `SUPPORTED_LANGUAGES`
 
-## Push notification settings (User model)
+## Notification & email settings (User model)
 
-- `name` (String 100, nullable) — display name, editable in Settings → Profile; used in notifications
+- `name` (String 100, nullable) — display name, editable via inline edit in Settings header; used in push/email greetings. Falls back to email prefix (`email.split("@")[0]`) in email templates when null.
 - `notification_morning_time` (String "HH:MM", default "08:00") — morning summary time in user's timezone
-- `notification_evening_time` (String "HH:MM", default "21:00") — evening report time in user's timezone
+- `notification_evening_time` (String "HH:MM", default "21:00") — evening report time; also used as send time for email daily/weekly reports
 - `notify_task_reminders` (bool, default false) — send push at each timed task's scheduled_time (±2 min)
+- `notify_email_daily` (bool, default false) — send HTML daily report email at `notification_evening_time` (Mon–Sat). Requires `is_verified=True`. Dedup via Redis key `email_daily:{user_id}:{date}` TTL 23h.
+- `notify_email_weekly` (bool, default false) — send HTML weekly report email at `notification_evening_time` on Sundays. Requires `is_verified=True`. Dedup via Redis key `email_weekly:{user_id}:{monday}` TTL 6 days.
 - `streak_protection` (bool, default true) — 1 missed day per streak run doesn't break the streak (grace day)
 - `theme` (String "system"|"light"|"dark", default "system") — UI theme, synced across devices via PATCH /users/me
 - `is_verified` (bool, default false) — set to true after email verification
 - `email_verification_token` (String 64, nullable) — cleared after use
 
 Celery morning/evening tasks run every 5 min and filter users whose local time matches their preference (±4 min window). Task reminders also run every 5 min. Weekly review replaces evening report on Sundays.
+
+## Email reports
+
+`email_service.py` handles three email adapters: **ResendEmailAdapter** (preferred, `RESEND_API_KEY`), **SendGridEmailAdapter** (fallback), **MockEmailAdapter** (logs to console when no key set).
+
+**HTML report templates** (`get_daily_report_email`, `get_weekly_report_email`) — multilingual (EN/RU/ES/PT), inline CSS, responsive. Both include:
+- Header with ChallengeTracker branding
+- Big completion number + progress bar (color-coded: green 100% / blue ≥80% / amber ≥50% / red <50%)
+- Streak badge (🔥) if streak > 0
+- Per-challenge breakdown table (`daily_challenges_breakdown` / `weekly_challenges_breakdown` from `report_service.py`) — each row: icon (✅⏳❌) + translated title + X/Y
+- Footer with settings hint
+
+**Two new Celery tasks** (`send_email_daily_reports`, `send_email_weekly_reports`) — both run every 5 min at `notification_evening_time`, Redis dedup, filter `is_verified=True AND notify_email_*=True`.
 
 ## Multilanguage system
 
@@ -376,6 +391,8 @@ Use `const { t } = useTranslation()` and `t("section.key")`. Never use inline `i
 | Evening report notification | every 5 min | skips Sundays (weekly review takes over); filters by `notification_evening_time` ±4 min |
 | Weekly review notification | every 5 min | Sundays only (user's local timezone); fires at `notification_evening_time`; 30-min dedup |
 | Task reminders | every 5 min | sends to users with `notify_task_reminders=true` when timed task is due ±2 min |
+| Email daily report | every 5 min | Mon–Sat; `notify_email_daily=true` AND `is_verified=true`; Redis dedup 23h |
+| Email weekly report | every 5 min | Sundays only; `notify_email_weekly=true` AND `is_verified=true`; Redis dedup 6 days |
 | Burnout detection | daily 12:00 UTC | 3+ consecutive days with tasks and <30% completion → supportive push; 5-day dedup |
 
 ## Environment
@@ -394,7 +411,7 @@ Copy `backend/.env.example` → `backend/.env`. Key variables:
 ## Running tests
 
 ```bash
-# Install test deps and run all 130 tests (local Docker only)
+# Install test deps and run all 133 tests (local Docker only)
 docker exec challengetracker-backend-1 pip install -r requirements-test.txt -q
 docker exec challengetracker-backend-1 pytest tests/ -v --tb=short
 
@@ -408,7 +425,7 @@ docker exec challengetracker-backend-1 pytest tests/test_auth.py::test_login_suc
 - Production server does NOT have `PYTEST_ALLOW=1` — pytest is blocked at import time with a clear error
 - `pytest` is also not installed in the production image (double protection)
 
-Test files: `test_auth.py` (46) · `test_challenges.py` (21) · `test_daily.py` (12) · `test_reports.py` (15) · `test_new_features.py` (29) · `test_telegram.py` (7)
+Test files: `test_auth.py` (48) · `test_challenges.py` (21) · `test_daily.py` (11) · `test_reports.py` (16) · `test_new_features.py` (29) · `test_telegram.py` (8)
 
 `conftest.py` uses `drop_all + create_all` before each test session to ensure schema is always up to date with current models.
 
@@ -445,7 +462,7 @@ docker exec challengetracker-backend-1 alembic upgrade head
 - **ConfirmModal focus trap**: uses `createPortal` to render in `<body>` + sets `inert` on `#root` while open. This is the only correct pattern — previous approaches using keydown interception failed.
 - **PWA install prompt**: `beforeinstallprompt` event is captured in `App.tsx` and stored in `installStore`. `InstallBanner` shows on Dashboard (max 2 times, 2-day cooldown). Settings shows install button when not installed. `requireInteraction: true` on all push notifications (stay until dismissed).
 - **Public templates**: `/challenge/:slug` route is outside `<RequireAuth>`. `PublicChallenge.tsx` calls `GET /challenges/templates/{slug}` (no auth). After register → onboarding with `?challenge=slug` pre-selects template via `SLUG_TO_TITLE` map in `templateTranslations.ts`.
-- **Theme selector**: 3-button segmented control in Settings header (◑ system / ☀️ light / 🌙 dark). Stored in `User.theme`, synced across devices. Removed from Layout sidebar. `themeStore` listens to `prefers-color-scheme` changes when theme=system.
-- **Settings structure**: Profile section has name field (editable). Notification times section is always visible (not nested inside push toggle). Account section groups email + verification status + change password link + sign out + delete account. `/settings/change-password` is a separate page.
+- **Theme selector**: 3-button segmented control in Settings header (◑ system / ☀️ light / 🌙 dark). Stored in `User.theme`, synced across devices. `themeStore` listens to `prefers-color-scheme` changes when theme=system.
+- **Settings structure**: No separate Profile section — avatar + name (inline edit, tap pencil to open input, ✓/✕ buttons) + email displayed in the page header row alongside the theme switcher. Sending empty name clears it to null in DB. Section **РЕГИОН** combines Language (accordion) + Timezone (accordion, auto-saves on select, no Save button). Email Reports section visible only when `is_verified=True`. Notification times section always visible. Account section: email + verification status + change password + sign out + delete account. `/settings/change-password` is a separate page.
 - **Navigation structure**: Challenges page = template library (category grid → templates → start); My Challenges management lives inside Today page (second tab "Мои челленджи" = active/paused/completed list). Dashboard = overview only (hero card, active challenges, tasks preview — no stats row, no quick actions).
 - **"Create from scratch"**: always navigates to `/challenges/new?scratch=1`. CreateChallenge.tsx reads the `scratch` param and starts at "configure" step directly, skipping template selection.

@@ -88,19 +88,21 @@ docker compose up --build
 
 ### ⚙️ Настройки (Settings)
 
-**Профиль** — имя (необязательно, показывается в уведомлениях), email, часовой пояс. Переключатель темы (◑/☀️/🌙) в заголовке страницы.
+**Заголовок страницы:** аватар + имя (нажать карандаш ✏️ — появляется input с кнопками ✓/✕; пустое значение очищает имя до null) + email. Справа — переключатель темы (◑/☀️/🌙).
 
-**Язык** — English / Español / Português / Русский.
+**РЕГИОН** — аккордеон-секция: строка «Язык» (тап → раскрывается сетка языков, после выбора закрывается автоматически) + строка «Часовой пояс» (тап → select, авто-сохранение без кнопки). Текущие значения видны в строке.
 
-**Push-уведомления:** toggle вкл/выкл; при включении — тайм-пикеры утреннего напоминания и вечернего отчёта, toggle «Напоминать во время задачи» (сохраняется сразу, без кнопки Сохранить).
+**Push-уведомления:** toggle вкл/выкл + тайм-пикеры утреннего/вечернего уведомлений + toggle «Напоминать во время задачи».
+
+**Email-отчёты** (видна только верифицированным пользователям): toggle «📊 Итоги дня» — HTML-письмо каждый вечер (пн–сб) с разбивкой по челленджам; toggle «🏆 Итоги недели» — письмо каждое воскресенье. Имя в письмах: `user.name` или `email.split("@")[0]` если имя не задано.
 
 **⚡ Защита серии:** toggle — один пропущенный день не ломает серию (grace day). Включена по умолчанию.
 
-**Telegram:** подключение аккаунта через one-time code. После связки уведомления дублируются в Telegram. Отправка через Cloudflare Worker прокси (обходит блокировку api.telegram.org на российских серверах).
+**Telegram:** подключение аккаунта через one-time code. После связки уведомления дублируются в Telegram. Отправка через Cloudflare Worker прокси.
 
-**Установить приложение:** InstallBanner на Dashboard (показывается макс. 2 раза) + кнопка в Настройках. iOS: инструкция Share → Add to Home Screen. Уведомления остаются до закрытия пользователем (`requireInteraction: true`).
+**Установить приложение:** InstallBanner на Dashboard + кнопка в Настройках. iOS: Share → Add to Home Screen.
 
-**Удаление аккаунта** — кнопка внизу. После подтверждения удаляет пользователя и все его данные без возможности восстановления.
+**Удаление аккаунта** — кнопка внизу с подтверждением через ConfirmModal.
 
 ---
 
@@ -169,7 +171,7 @@ backend/app/
   schemas/            — Pydantic schemas
   services/           — вся бизнес-логика (в т.ч. language_service, notifications_i18n)
   workers/            — Celery app + scheduled tasks
-alembic/              — миграции (0001 → ... → 0020)
+alembic/              — миграции (0001 → ... → 0021)
 
 frontend/src/
   components/         — Layout, TaskCard, ProgressRing, Icons, PasswordInput, ConfirmModal, InstallBanner
@@ -193,7 +195,7 @@ POST /api/v1/auth/refresh
 POST /api/v1/auth/logout
 
 GET  /api/v1/users/me
-PATCH /api/v1/users/me                             # name, timezone, language, onboarding_completed, notification times, notify_task_reminders, streak_protection, theme
+PATCH /api/v1/users/me                             # name, timezone, language, onboarding_completed, notification_morning_time, notification_evening_time, notify_task_reminders, notify_email_daily, notify_email_weekly, streak_protection, theme
 DELETE /api/v1/users/me                            # удалить аккаунт и все данные
 POST /api/v1/users/me/change-password              # {current_password, new_password}
 POST /api/v1/users/me/telegram/generate-code       # one-time linking code
@@ -244,6 +246,8 @@ DELETE /api/v1/notifications/devices/{id}
 | Вечерний отчёт | каждые 5 мин | пн–сб; фильтр по `notification_evening_time` ±4 мин |
 | Weekly review | каждые 5 мин | только воскресенье (локальный timezone); dedup 30 мин |
 | Напоминания по задачам | каждые 5 мин | только если `notify_task_reminders=true`, ±2 мин от scheduled_time |
+| Email дневной отчёт | каждые 5 мин | пн–сб; `notify_email_daily=true` + `is_verified=true`; Redis dedup 23ч |
+| Email недельный отчёт | каждые 5 мин | только воскресенье; `notify_email_weekly=true` + `is_verified=true`; Redis dedup 6 дней |
 | Burnout detection | 12:00 UTC | 3+ дня подряд <30% → поддерживающий push; dedup 5 дней |
 
 ---
@@ -306,4 +310,4 @@ docker exec challengetracker-backend-1 bash -c \
   "pip install -r requirements-test.txt -q && pytest tests/ -v --tb=short --cov=app --cov-report=term-missing"
 ```
 
-130 тестов: test_auth (46) · test_challenges (21) · test_daily (12) · test_reports (15) · test_new_features (29) · test_telegram (7)
+133 тестов: test_auth (48) · test_challenges (21) · test_daily (11) · test_reports (16) · test_new_features (29) · test_telegram (8)
