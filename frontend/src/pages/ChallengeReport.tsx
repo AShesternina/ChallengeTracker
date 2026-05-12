@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { reportsApi } from "../services/api";
 import { ArrowLeftIcon, FlameIcon, TrophyIcon } from "../components/Icons";
@@ -27,6 +27,7 @@ interface Report {
 export default function ChallengeReport() {
   const { t, i18n } = useTranslation();
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { dark } = useThemeStore();
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,11 +57,11 @@ export default function ChallengeReport() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <Link to="/challenges"
+        <button onClick={() => navigate(`/challenges/${id}`)}
           className="flex items-center gap-1 text-[13px] font-semibold text-text-tertiary hover:text-text-secondary transition-colors">
           <ArrowLeftIcon size={15} />
           {t("common.back")}
-        </Link>
+        </button>
       </div>
 
       {/* Hero */}

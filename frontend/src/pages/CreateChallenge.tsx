@@ -162,7 +162,11 @@ export default function CreateChallenge() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <button onClick={() => restartFrom ? navigate(`/challenges/${restartFrom.id}`) : setStep("select")}
+        <button onClick={() => {
+            if (restartFrom) navigate(`/challenges/${restartFrom.id}`);
+            else if (scratch) navigate(-1);
+            else setStep("select");
+          }}
           className="flex items-center gap-1 text-[13px] font-semibold text-text-tertiary hover:text-text-secondary transition-colors">
           <ArrowLeftIcon size={15} />
           {t("common.back")}

@@ -191,11 +191,11 @@ export default function ChallengeDetail() {
     <div className="space-y-4">
       {/* Back header */}
       <div className="flex items-center gap-2">
-        <Link to="/challenges"
+        <button onClick={() => navigate(-1)}
           className="flex items-center gap-1 text-[13px] font-semibold text-text-tertiary hover:text-text-secondary transition-colors">
           <ArrowLeftIcon size={15} />
           {t("common.back")}
-        </Link>
+        </button>
       </div>
 
       {error && (
