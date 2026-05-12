@@ -30,8 +30,8 @@ export default function Settings() {
   const { theme, setTheme } = useThemeStore();
   const { isInstalled, isIOS, deferredPrompt, triggerInstall } = useInstallStore();
   const [name, setName] = useState(user?.name || "");
+  const [editingName, setEditingName] = useState(false);
   const [savingName, setSavingName] = useState(false);
-  const [savedName, setSavedName] = useState(false);
   const [timezone, setTimezone] = useState(user?.timezone || "UTC");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -58,6 +58,7 @@ export default function Settings() {
     userApi.me().then(({ data }) => {
       setUser(data);
       setName(data.name || "");
+      setEditingName(false);
       setTimezone(data.timezone || "UTC");
       setMorningTime(data.notification_morning_time || "08:00");
       setEveningTime(data.notification_evening_time || "21:00");
@@ -85,10 +86,10 @@ export default function Settings() {
   const handleSaveName = async () => {
     setSavingName(true);
     try {
-      const { data } = await userApi.update({ name: name.trim() || undefined });
+      const { data } = await userApi.update({ name: name.trim() });
       setUser(data);
-      setSavedName(true);
-      setTimeout(() => setSavedName(false), 2000);
+      setName(data.name || "");
+      setEditingName(false);
     } finally {
       setSavingName(false);
     }
@@ -195,8 +196,8 @@ export default function Settings() {
     }
   };
 
-  const userName = user?.email?.split("@")[0] ?? "—";
-  const initial = userName[0]?.toUpperCase() ?? "U";
+  const emailPrefix = user?.email?.split("@")[0] ?? "—";
+  const initial = emailPrefix[0]?.toUpperCase() ?? "U";
 
   const handleThemeSelect = async (next: "system" | "light" | "dark") => {
     setTheme(next);
@@ -233,33 +234,61 @@ export default function Settings() {
 
       {/* Profile */}
       <Section title={t("settings.profile")}>
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 rounded-full flex items-center justify-center text-white text-[18px] font-black shrink-0"
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[15px] font-black shrink-0"
             style={{ background: "linear-gradient(135deg, var(--color-accent), #2563eb)" }}>
             {(name.trim()[0] || initial).toUpperCase()}
           </div>
-          <div>
-            <p className="font-bold text-text-primary text-[15px]">{name.trim() || userName}</p>
-            <p className="text-[12px] text-text-tertiary">{user?.email || "—"}</p>
+          <div className="min-w-0">
+            <p className="text-[13px] text-text-tertiary truncate">{user?.email || "—"}</p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder={t("settings.name_placeholder")}
-            className="flex-1 px-3 py-2.5 rounded-md text-[13px] text-text-primary placeholder-text-tertiary outline-none transition-colors"
-            style={{ background: "var(--color-surface2)", border: "1.5px solid var(--color-border)" }}
-            onFocus={(e) => (e.target.style.borderColor = "var(--color-accent)")}
-            onBlur={(e) => (e.target.style.borderColor = "var(--color-border)")}
-            onKeyDown={(e) => e.key === "Enter" && handleSaveName()}
-          />
-          <button onClick={handleSaveName} disabled={savingName}
-            className="px-4 py-2.5 rounded-md text-[13px] font-bold text-white disabled:opacity-50 transition-all shrink-0"
-            style={{ background: savedName ? "var(--color-success)" : "var(--color-accent)" }}>
-            {savingName ? "…" : savedName ? "✓" : t("common.save")}
-          </button>
+
+        <div className="mt-3">
+          {!editingName ? (
+            <div className="flex items-center justify-between py-1.5 px-1 rounded-md cursor-pointer"
+              onClick={() => setEditingName(true)}
+              style={{ border: "1.5px solid var(--color-border)", background: "var(--color-surface2)" }}>
+              <div className="px-2 min-w-0">
+                <p className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider mb-0.5">{t("settings.name_label")}</p>
+                {name.trim()
+                  ? <p className="text-[14px] font-semibold text-text-primary truncate">{name.trim()}</p>
+                  : <p className="text-[13px] text-text-tertiary">{t("settings.name_not_set")}</p>
+                }
+              </div>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary shrink-0 mr-2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <input
+                autoFocus
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder={t("settings.name_placeholder")}
+                className="flex-1 px-3 py-2.5 rounded-md text-[13px] text-text-primary placeholder-text-tertiary outline-none"
+                style={{ background: "var(--color-surface2)", border: "1.5px solid var(--color-accent)" }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSaveName();
+                  if (e.key === "Escape") { setName(user?.name || ""); setEditingName(false); }
+                }}
+              />
+              <button onClick={handleSaveName} disabled={savingName}
+                className="w-9 h-9 flex items-center justify-center rounded-md text-white text-[15px] font-bold shrink-0 disabled:opacity-50"
+                style={{ background: "var(--color-accent)" }}>
+                {savingName ? "…" : "✓"}
+              </button>
+              <button onClick={() => { setName(user?.name || ""); setEditingName(false); }}
+                className="w-9 h-9 flex items-center justify-center rounded-md text-[15px] shrink-0"
+                style={{ background: "var(--color-surface2)", border: "1.5px solid var(--color-border)", color: "var(--color-text-secondary)" }}>
+                ✕
+              </button>
+            </div>
+          )}
         </div>
       </Section>
 

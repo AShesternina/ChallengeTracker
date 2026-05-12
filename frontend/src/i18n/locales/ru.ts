@@ -213,7 +213,9 @@ const ru = {
   settings: {
     title: "Настройки",
     profile: "Профиль",
+    name_label: "Имя",
     name_placeholder: "Ваше имя",
+    name_not_set: "Не указано — нажмите чтобы добавить",
     email: "Email",
     timezone: "Часовой пояс",
     push_notifications: "Push-уведомления",

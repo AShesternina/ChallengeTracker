@@ -213,7 +213,9 @@ const es = {
   settings: {
     title: "Ajustes",
     profile: "Perfil",
+    name_label: "Nombre",
     name_placeholder: "Tu nombre",
+    name_not_set: "No especificado — toca para añadir",
     email: "Correo",
     timezone: "Zona horaria",
     push_notifications: "Notificaciones push",

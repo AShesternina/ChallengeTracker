@@ -213,7 +213,9 @@ const en = {
   settings: {
     title: "Settings",
     profile: "Profile",
+    name_label: "Name",
     name_placeholder: "Your name",
+    name_not_set: "Not set — tap to add",
     email: "Email",
     timezone: "Timezone",
     push_notifications: "Push Notifications",

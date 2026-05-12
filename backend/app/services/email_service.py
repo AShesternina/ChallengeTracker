@@ -398,8 +398,9 @@ async def send_daily_report_email(
 ) -> None:
     if not getattr(user, "email", None):
         return
+    display_name = user.name or user.email.split("@")[0]
     subject, html, text = get_daily_report_email(
-        user.language, user.name, completed, total, rate, streak, challenges
+        user.language, display_name, completed, total, rate, streak, challenges
     )
     await email_adapter.send(user.email, subject, html, text)
 
@@ -417,7 +418,8 @@ async def send_weekly_report_email(
 ) -> None:
     if not getattr(user, "email", None):
         return
+    display_name = user.name or user.email.split("@")[0]
     subject, html, text = get_weekly_report_email(
-        user.language, user.name, completed, total, rate, trend_arrow, trend_delta, best, streak, challenges
+        user.language, display_name, completed, total, rate, trend_arrow, trend_delta, best, streak, challenges
     )
     await email_adapter.send(user.email, subject, html, text)
