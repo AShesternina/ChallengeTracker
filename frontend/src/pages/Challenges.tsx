@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { challengesApi } from "../services/api";
 import { useThemeStore } from "../store/themeStore";
@@ -53,11 +53,18 @@ export default function Challenges() {
   if (!selectedCategory) {
     return (
       <div className="space-y-5 w-full overflow-x-hidden">
-        <div>
-          <h2 className="text-[22px] font-black text-text-primary" style={{ letterSpacing: "-0.4px" }}>
-            {t("nav.challenges")}
-          </h2>
-          <p className="text-[13px] text-text-tertiary mt-1">{t("templates_page.subtitle")}</p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="text-[22px] font-black text-text-primary" style={{ letterSpacing: "-0.4px" }}>
+              {t("nav.challenges")}
+            </h2>
+            <p className="text-[13px] text-text-tertiary mt-1">{t("templates_page.subtitle")}</p>
+          </div>
+          <Link to="/daily?tab=challenges"
+            className="text-[13px] font-bold shrink-0 mt-1"
+            style={{ color: "var(--color-accent)" }}>
+            {t("challenges.my_title")} →
+          </Link>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import { ru as ruLocale, es as esLocale, ptBR as ptLocale, enUS } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
@@ -32,9 +32,12 @@ export default function DailyTasks() {
   const { t, i18n } = useTranslation();
   const { summary, setSummary, setLoading, loading, updateTask } = useTaskStore();
   const { dark } = useThemeStore();
+  const [searchParams] = useSearchParams();
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [error, setError] = useState("");
-  const [tab, setTab] = useState<Tab>("tasks");
+  const [tab, setTab] = useState<Tab>(
+    searchParams.get("tab") === "challenges" ? "challenges" : "tasks"
+  );
 
   // My Challenges tab state
   const [instances, setInstances] = useState<ChallengeInstance[]>([]);
