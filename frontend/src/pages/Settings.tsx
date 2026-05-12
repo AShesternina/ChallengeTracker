@@ -206,71 +206,36 @@ export default function Settings() {
 
   return (
     <div className="space-y-5 w-full overflow-x-hidden">
-      <div className="flex items-center justify-between">
-        <h2 className="text-[22px] font-black text-text-primary" style={{ letterSpacing: "-0.4px" }}>
-          {t("settings.title")}
-        </h2>
-        <div className="flex items-center gap-0.5 p-1 rounded-lg" style={{ background: "var(--color-surface2)" }}>
-          {(["system", "light", "dark"] as const).map((t_) => (
-            <button
-              key={t_}
-              onClick={() => handleThemeSelect(t_)}
-              aria-label={t_}
-              className="w-8 h-7 flex items-center justify-center rounded-md transition-colors"
-              style={theme === t_ ? { background: "var(--color-surface)", boxShadow: "0 1px 3px rgba(0,0,0,0.12)" } : {}}>
-              {t_ === "light"
-                ? <SunIcon size={15} className={theme === t_ ? "text-text-primary" : "text-text-tertiary"} />
-                : t_ === "dark"
-                ? <MoonIcon size={15} className={theme === t_ ? "text-text-primary" : "text-text-tertiary"} />
-                : <svg width="15" height="15" viewBox="0 0 18 18" fill="none" className={theme === t_ ? "text-text-primary" : "text-text-tertiary"}>
-                    <path d="M9 2a7 7 0 1 0 0 14A7 7 0 0 0 9 2z" stroke="currentColor" strokeWidth="1.5"/>
-                    <path d="M9 2a7 7 0 0 1 0 14V2z" fill="currentColor"/>
-                  </svg>
-              }
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Profile */}
-      <Section title={t("settings.profile")}>
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[15px] font-black shrink-0"
-            style={{ background: "linear-gradient(135deg, var(--color-accent), #2563eb)" }}>
-            {(name.trim()[0] || initial).toUpperCase()}
-          </div>
-          <div className="min-w-0">
-            <p className="text-[13px] text-text-tertiary truncate">{user?.email || "—"}</p>
-          </div>
+      {/* Header: profile + theme switcher */}
+      <div className="flex items-center gap-3">
+        {/* Avatar */}
+        <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-[16px] font-black shrink-0"
+          style={{ background: "linear-gradient(135deg, var(--color-accent), #2563eb)" }}>
+          {(name.trim()[0] || initial).toUpperCase()}
         </div>
 
-        <div className="mt-3">
+        {/* Name / edit */}
+        <div className="flex-1 min-w-0">
           {!editingName ? (
-            <div className="flex items-center justify-between py-1.5 px-1 rounded-md cursor-pointer"
-              onClick={() => setEditingName(true)}
-              style={{ border: "1.5px solid var(--color-border)", background: "var(--color-surface2)" }}>
-              <div className="px-2 min-w-0">
-                <p className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider mb-0.5">{t("settings.name_label")}</p>
-                {name.trim()
-                  ? <p className="text-[14px] font-semibold text-text-primary truncate">{name.trim()}</p>
-                  : <p className="text-[13px] text-text-tertiary">{t("settings.name_not_set")}</p>
-                }
-              </div>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary shrink-0 mr-2">
+            <button className="flex items-center gap-1.5 max-w-full text-left" onClick={() => setEditingName(true)}>
+              <span className="text-[15px] font-bold text-text-primary truncate">
+                {name.trim() || emailPrefix}
+              </span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"
+                strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary shrink-0">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
               </svg>
-            </div>
+            </button>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <input
                 autoFocus
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder={t("settings.name_placeholder")}
-                className="flex-1 px-3 py-2.5 rounded-md text-[13px] text-text-primary placeholder-text-tertiary outline-none"
+                className="flex-1 min-w-0 px-2.5 py-1 rounded-md text-[13px] text-text-primary placeholder-text-tertiary outline-none"
                 style={{ background: "var(--color-surface2)", border: "1.5px solid var(--color-accent)" }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleSaveName();
@@ -278,19 +243,46 @@ export default function Settings() {
                 }}
               />
               <button onClick={handleSaveName} disabled={savingName}
-                className="w-9 h-9 flex items-center justify-center rounded-md text-white text-[15px] font-bold shrink-0 disabled:opacity-50"
+                className="w-7 h-7 flex items-center justify-center rounded-md text-white text-[13px] font-bold shrink-0 disabled:opacity-50"
                 style={{ background: "var(--color-accent)" }}>
                 {savingName ? "…" : "✓"}
               </button>
               <button onClick={() => { setName(user?.name || ""); setEditingName(false); }}
-                className="w-9 h-9 flex items-center justify-center rounded-md text-[15px] shrink-0"
+                className="w-7 h-7 flex items-center justify-center rounded-md text-[13px] shrink-0"
                 style={{ background: "var(--color-surface2)", border: "1.5px solid var(--color-border)", color: "var(--color-text-secondary)" }}>
                 ✕
               </button>
             </div>
           )}
+          {!editingName && (
+            <p className="text-[11px] text-text-tertiary truncate mt-0.5">{user?.email}</p>
+          )}
         </div>
-      </Section>
+
+        {/* Theme switcher */}
+        {!editingName && (
+          <div className="flex items-center gap-0.5 p-1 rounded-lg shrink-0" style={{ background: "var(--color-surface2)" }}>
+            {(["system", "light", "dark"] as const).map((t_) => (
+              <button
+                key={t_}
+                onClick={() => handleThemeSelect(t_)}
+                aria-label={t_}
+                className="w-8 h-7 flex items-center justify-center rounded-md transition-colors"
+                style={theme === t_ ? { background: "var(--color-surface)", boxShadow: "0 1px 3px rgba(0,0,0,0.12)" } : {}}>
+                {t_ === "light"
+                  ? <SunIcon size={15} className={theme === t_ ? "text-text-primary" : "text-text-tertiary"} />
+                  : t_ === "dark"
+                  ? <MoonIcon size={15} className={theme === t_ ? "text-text-primary" : "text-text-tertiary"} />
+                  : <svg width="15" height="15" viewBox="0 0 18 18" fill="none" className={theme === t_ ? "text-text-primary" : "text-text-tertiary"}>
+                      <path d="M9 2a7 7 0 1 0 0 14A7 7 0 0 0 9 2z" stroke="currentColor" strokeWidth="1.5"/>
+                      <path d="M9 2a7 7 0 0 1 0 14V2z" fill="currentColor"/>
+                    </svg>
+                }
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Install app */}
       {!isInstalled && (deferredPrompt || isIOS) && (
