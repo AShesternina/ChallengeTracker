@@ -171,6 +171,92 @@ async def daily_report(db: AsyncSession, user_id: int, target_date: date) -> Day
     )
 
 
+async def daily_challenges_breakdown(
+    db: AsyncSession, user_id: int, target_date: date
+) -> list[dict]:
+    """Per-challenge completion stats for a single day, sorted by rate desc."""
+    from app.models.challenge import Challenge
+    from app.models.challenge_instance import ChallengeInstance
+
+    result = await db.execute(
+        select(
+            Challenge.title,
+            DailyTaskInstance.status,
+            ChallengeInstance.pause_periods,
+        )
+        .join(ChallengeInstance, DailyTaskInstance.challenge_instance_id == ChallengeInstance.id)
+        .join(Challenge, ChallengeInstance.challenge_id == Challenge.id)
+        .where(
+            and_(
+                DailyTaskInstance.user_id == user_id,
+                DailyTaskInstance.date == target_date,
+            )
+        )
+    )
+    rows = list(result.all())
+
+    by_challenge: dict[str, dict] = {}
+    for title, status, pause_periods in rows:
+        if is_paused_on(pause_periods, target_date):
+            continue
+        if title not in by_challenge:
+            by_challenge[title] = {"title": title, "completed": 0, "total": 0}
+        by_challenge[title]["total"] += 1
+        if status == TaskStatus.completed:
+            by_challenge[title]["completed"] += 1
+
+    out = []
+    for v in by_challenge.values():
+        rate = round(v["completed"] / v["total"] * 100) if v["total"] else 0
+        out.append({"title": v["title"], "completed": v["completed"], "total": v["total"], "rate": rate})
+    return sorted(out, key=lambda x: x["rate"], reverse=True)
+
+
+async def weekly_challenges_breakdown(
+    db: AsyncSession, user_id: int, week_end: date
+) -> list[dict]:
+    """Per-challenge completion stats for the 7-day window ending on week_end, sorted by rate desc."""
+    from app.models.challenge import Challenge
+    from app.models.challenge_instance import ChallengeInstance
+
+    week_start = week_end - timedelta(days=6)
+
+    result = await db.execute(
+        select(
+            Challenge.title,
+            DailyTaskInstance.status,
+            DailyTaskInstance.date,
+            ChallengeInstance.pause_periods,
+        )
+        .join(ChallengeInstance, DailyTaskInstance.challenge_instance_id == ChallengeInstance.id)
+        .join(Challenge, ChallengeInstance.challenge_id == Challenge.id)
+        .where(
+            and_(
+                DailyTaskInstance.user_id == user_id,
+                DailyTaskInstance.date >= week_start,
+                DailyTaskInstance.date <= week_end,
+            )
+        )
+    )
+    rows = list(result.all())
+
+    by_challenge: dict[str, dict] = {}
+    for title, status, task_date, pause_periods in rows:
+        if is_paused_on(pause_periods, task_date):
+            continue
+        if title not in by_challenge:
+            by_challenge[title] = {"title": title, "completed": 0, "total": 0}
+        by_challenge[title]["total"] += 1
+        if status == TaskStatus.completed:
+            by_challenge[title]["completed"] += 1
+
+    out = []
+    for v in by_challenge.values():
+        rate = round(v["completed"] / v["total"] * 100) if v["total"] else 0
+        out.append({"title": v["title"], "completed": v["completed"], "total": v["total"], "rate": rate})
+    return sorted(out, key=lambda x: x["rate"], reverse=True)
+
+
 async def monthly_report(db: AsyncSession, user_id: int, year: int, month: int) -> MonthlyReport:
     _, days_in_month = monthrange(year, month)
     start = date(year, month, 1)

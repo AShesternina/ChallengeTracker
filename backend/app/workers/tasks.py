@@ -334,7 +334,7 @@ def send_email_daily_reports(self):
         from app.core.database import AsyncSessionLocal
         from app.core.redis import get_redis
         from app.models.user import User
-        from app.services.report_service import daily_report, streak_report
+        from app.services.report_service import daily_report, streak_report, daily_challenges_breakdown
         from app.services.email_service import send_daily_report_email
 
         now_utc = datetime.now(dt_timezone.utc)
@@ -373,9 +373,10 @@ def send_email_daily_reports(self):
                 stats = await daily_report(db, user.id, today_local)
                 if stats.total > 0:
                     streak_data = await streak_report(db, user.id, user.streak_protection)
+                    challenges = await daily_challenges_breakdown(db, user.id, today_local)
                     rate = round(stats.completed / stats.total * 100) if stats.total else 0
                     await send_daily_report_email(
-                        user, stats.completed, stats.total, rate, streak_data.current_streak
+                        user, stats.completed, stats.total, rate, streak_data.current_streak, challenges
                     )
 
     _run(_inner())
@@ -389,7 +390,7 @@ def send_email_weekly_reports(self):
         from app.core.database import AsyncSessionLocal
         from app.core.redis import get_redis
         from app.models.user import User
-        from app.services.report_service import weekly_review_data, streak_report
+        from app.services.report_service import weekly_review_data, streak_report, weekly_challenges_breakdown
         from app.services.email_service import send_weekly_report_email
 
         now_utc = datetime.now(dt_timezone.utc)
@@ -429,6 +430,7 @@ def send_email_weekly_reports(self):
                 data = await weekly_review_data(db, user.id, today_local)
                 if data:
                     streak_data = await streak_report(db, user.id, user.streak_protection)
+                    challenges = await weekly_challenges_breakdown(db, user.id, today_local)
                     await send_weekly_report_email(
                         user,
                         completed=data["week_completed"],
@@ -438,6 +440,7 @@ def send_email_weekly_reports(self):
                         trend_delta=data["trend_delta"],
                         best=data["best_challenge"],
                         streak=streak_data.current_streak,
+                        challenges=challenges,
                     )
 
     _run(_inner())

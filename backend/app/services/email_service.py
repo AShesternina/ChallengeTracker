@@ -171,6 +171,52 @@ _WEEKLY_STRINGS: dict[str, dict] = {
     },
 }
 
+_BREAKDOWN_LABELS: dict[str, str] = {
+    "en": "Challenges",
+    "ru": "Челленджи",
+    "es": "Desafíos",
+    "pt": "Desafios",
+}
+
+
+def _challenges_html(challenges: list[dict], lang: str) -> str:
+    """Renders a per-challenge breakdown table for email HTML."""
+    if not challenges:
+        return ""
+    from app.services.notifications_i18n import translate_challenge_title
+
+    label = _BREAKDOWN_LABELS.get(lang, "Challenges")
+    rows = ""
+    for c in challenges:
+        translated = translate_challenge_title(c["title"], lang)
+        rate = c["rate"]
+        color = "#22c55e" if rate == 100 else ("#f59e0b" if rate >= 50 else "#ef4444")
+        icon = "✅" if rate == 100 else ("⏳" if rate >= 50 else "❌")
+        rows += f"""<tr>
+  <td style="padding:7px 0;border-bottom:1px solid #f4f4f5;">
+    <span style="font-size:13px;color:#18181b;">{icon} {translated}</span>
+  </td>
+  <td style="padding:7px 0;border-bottom:1px solid #f4f4f5;text-align:right;white-space:nowrap;">
+    <span style="font-size:13px;font-weight:700;color:{color};">{c['completed']}/{c['total']}</span>
+  </td>
+</tr>"""
+
+    return f"""<p style="margin:20px 0 8px;font-size:11px;font-weight:700;color:#a1a1aa;text-transform:uppercase;letter-spacing:0.5px;">{label}</p>
+<table width="100%" cellpadding="0" cellspacing="0">{rows}</table>"""
+
+
+def _challenges_text(challenges: list[dict], lang: str) -> str:
+    if not challenges:
+        return ""
+    from app.services.notifications_i18n import translate_challenge_title
+    label = _BREAKDOWN_LABELS.get(lang, "Challenges")
+    lines = [f"\n{label}:"]
+    for c in challenges:
+        translated = translate_challenge_title(c["title"], lang)
+        icon = "✅" if c["rate"] == 100 else ("⏳" if c["rate"] >= 50 else "❌")
+        lines.append(f"  {icon} {translated}: {c['completed']}/{c['total']}")
+    return "\n".join(lines)
+
 
 def _ru_days(n: int) -> str:
     """Russian declension for «день/дня/дней»."""
@@ -228,13 +274,13 @@ def get_daily_report_email(
     total: int,
     rate: int,
     streak: int,
+    challenges: list[dict] | None = None,
 ) -> tuple[str, str, str]:
     """Returns (subject, html, text) for the daily email report."""
     s = _DAILY_STRINGS.get(lang, _DAILY_STRINGS["en"])
     display_name = name or ""
     greeting = f"{s['greeting']}{', ' + display_name if display_name else ''}!"
     bar_color = _bar_color(rate)
-    app_url = settings.FRONTEND_URL
 
     streak_label = s["streak"].format(n=streak, days=_ru_days(streak) if lang == "ru" else "")
     streak_html = ""
@@ -242,6 +288,9 @@ def get_daily_report_email(
         streak_html = f"""<div style="background:#fef3c7;border-radius:10px;padding:10px 16px;margin-bottom:20px;text-align:center;">
   <span style="font-size:15px;font-weight:700;color:#92400e;">{streak_label}</span>
 </div>"""
+
+    table_html = _challenges_html(challenges or [], lang)
+    table_text = _challenges_text(challenges or [], lang)
 
     body_html = f"""<p style="margin:0 0 4px;font-size:14px;color:#71717a;">{greeting}</p>
 <h2 style="margin:0 0 24px;font-size:22px;font-weight:900;color:#18181b;letter-spacing:-0.4px;">{s['heading']}</h2>
@@ -253,17 +302,15 @@ def get_daily_report_email(
 <div style="background:#f4f4f5;border-radius:8px;overflow:hidden;margin-bottom:20px;">
   <div style="height:8px;background:{bar_color};border-radius:8px;width:{rate}%;"></div>
 </div>
-{streak_html}
-<div style="text-align:center;margin-top:24px;">
-  <a href="{app_url}/reports" style="display:inline-block;padding:13px 28px;background:#3b82f6;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;border-radius:10px;">{s['cta']}</a>
-</div>"""
+{streak_html}{table_html}"""
 
     subject = f"{s['subject']} — {completed}/{total} ({rate}%)"
     html = _build_html(body_html, s["footer"])
     text = f"ChallengeTracker\n\n{greeting}\n{s['heading']}\n\n{completed}/{total} {s['tasks']} ({rate}%)\n"
     if streak > 0:
         text += f"{streak_label}\n"
-    text += f"\n{s['cta']}: {app_url}/reports\n\n---\n{s['footer']}"
+    text += table_text
+    text += f"\n\n---\n{s['footer']}"
     return subject, html, text
 
 
@@ -277,13 +324,13 @@ def get_weekly_report_email(
     trend_delta: int,
     best: str | None,
     streak: int = 0,
+    challenges: list[dict] | None = None,
 ) -> tuple[str, str, str]:
     """Returns (subject, html, text) for the weekly email report."""
     s = _WEEKLY_STRINGS.get(lang, _WEEKLY_STRINGS["en"])
     display_name = name or ""
     greeting = f"{s['greeting']}{', ' + display_name if display_name else ''}!"
     bar_color = _bar_color(rate)
-    app_url = settings.FRONTEND_URL
 
     if trend_arrow == "↑":
         trend_text = s["trend_up"]
@@ -309,9 +356,12 @@ def get_weekly_report_email(
     streak_label = s["streak"].format(n=streak, days=_ru_days(streak) if lang == "ru" else "")
     streak_html = ""
     if streak > 0:
-        streak_html = f"""<div style="background:#fef3c7;border-radius:10px;padding:10px 16px;margin-bottom:20px;text-align:center;">
+        streak_html = f"""<div style="background:#fef3c7;border-radius:10px;padding:10px 16px;margin-bottom:16px;text-align:center;">
   <span style="font-size:15px;font-weight:700;color:#92400e;">{streak_label}</span>
 </div>"""
+
+    table_html = _challenges_html(challenges or [], lang)
+    table_text = _challenges_text(challenges or [], lang)
 
     body_html = f"""<p style="margin:0 0 4px;font-size:14px;color:#71717a;">{greeting}</p>
 <h2 style="margin:0 0 24px;font-size:22px;font-weight:900;color:#18181b;letter-spacing:-0.4px;">{s['heading']}</h2>
@@ -323,12 +373,9 @@ def get_weekly_report_email(
 <div style="background:#f4f4f5;border-radius:8px;overflow:hidden;margin-bottom:16px;">
   <div style="height:8px;background:{bar_color};border-radius:8px;width:{rate}%;"></div>
 </div>
-<p style="margin:0 0 20px;font-size:13px;font-weight:600;color:{trend_color};text-align:center;">{trend_text}</p>
+<p style="margin:0 0 16px;font-size:13px;font-weight:600;color:{trend_color};text-align:center;">{trend_text}</p>
 {best_html}
-{streak_html}
-<div style="text-align:center;margin-top:24px;">
-  <a href="{app_url}/reports" style="display:inline-block;padding:13px 28px;background:#3b82f6;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;border-radius:10px;">{s['cta']}</a>
-</div>"""
+{streak_html}{table_html}"""
 
     subject = f"{s['subject']} — {rate}% {trend_arrow}"
     html = _build_html(body_html, s["footer"])
@@ -336,7 +383,8 @@ def get_weekly_report_email(
     text += best_text
     if streak > 0:
         text += f"\n{streak_label}"
-    text += f"\n\n{s['cta']}: {app_url}/reports\n\n---\n{s['footer']}"
+    text += table_text
+    text += f"\n\n---\n{s['footer']}"
     return subject, html, text
 
 
@@ -346,11 +394,12 @@ async def send_daily_report_email(
     total: int,
     rate: int,
     streak: int,
+    challenges: list[dict] | None = None,
 ) -> None:
     if not getattr(user, "email", None):
         return
     subject, html, text = get_daily_report_email(
-        user.language, user.name, completed, total, rate, streak
+        user.language, user.name, completed, total, rate, streak, challenges
     )
     await email_adapter.send(user.email, subject, html, text)
 
@@ -364,10 +413,11 @@ async def send_weekly_report_email(
     trend_delta: int,
     best: str | None,
     streak: int = 0,
+    challenges: list[dict] | None = None,
 ) -> None:
     if not getattr(user, "email", None):
         return
     subject, html, text = get_weekly_report_email(
-        user.language, user.name, completed, total, rate, trend_arrow, trend_delta, best, streak
+        user.language, user.name, completed, total, rate, trend_arrow, trend_delta, best, streak, challenges
     )
     await email_adapter.send(user.email, subject, html, text)
