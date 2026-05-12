@@ -65,6 +65,8 @@ export const userApi = {
     notification_morning_time?: string;
     notification_evening_time?: string;
     notify_task_reminders?: boolean;
+    notify_email_daily?: boolean;
+    notify_email_weekly?: boolean;
     streak_protection?: boolean;
     theme?: string;
   }) => api.patch("/users/me", data),

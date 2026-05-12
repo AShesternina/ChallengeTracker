@@ -13,6 +13,8 @@ class UserOut(BaseModel):
     notification_morning_time: str | None
     notification_evening_time: str | None
     notify_task_reminders: bool
+    notify_email_daily: bool = False
+    notify_email_weekly: bool = False
     streak_protection: bool
     theme: str
     telegram_chat_id: int | None
@@ -36,5 +38,7 @@ class UserUpdateRequest(BaseModel):
     notification_morning_time: str | None = None
     notification_evening_time: str | None = None
     notify_task_reminders: bool | None = None
+    notify_email_daily: bool | None = None
+    notify_email_weekly: bool | None = None
     streak_protection: bool | None = None
     theme: str | None = None

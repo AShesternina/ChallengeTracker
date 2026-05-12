@@ -53,6 +53,10 @@ async def update_me(
         user.notification_evening_time = data.notification_evening_time
     if data.notify_task_reminders is not None:
         user.notify_task_reminders = data.notify_task_reminders
+    if data.notify_email_daily is not None:
+        user.notify_email_daily = data.notify_email_daily
+    if data.notify_email_weekly is not None:
+        user.notify_email_weekly = data.notify_email_weekly
     if data.streak_protection is not None:
         user.streak_protection = data.streak_protection
     if data.theme is not None:

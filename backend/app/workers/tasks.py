@@ -326,6 +326,123 @@ def send_burnout_alerts(self):
     _run(_inner())
 
 
+@celery_app.task(name="app.workers.tasks.send_email_daily_reports", bind=True, max_retries=3)
+def send_email_daily_reports(self):
+    async def _inner():
+        import pytz
+        from sqlalchemy import select, and_
+        from app.core.database import AsyncSessionLocal
+        from app.core.redis import get_redis
+        from app.models.user import User
+        from app.services.report_service import daily_report, streak_report
+        from app.services.email_service import send_daily_report_email
+
+        now_utc = datetime.now(dt_timezone.utc)
+        redis = get_redis()
+
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(
+                select(User).where(
+                    and_(User.is_active == True, User.is_verified == True, User.notify_email_daily == True)
+                )
+            )
+            users = list(result.scalars().all())
+
+            for user in users:
+                try:
+                    user_tz = pytz.timezone(user.timezone)
+                except Exception:
+                    user_tz = pytz.UTC
+
+                user_now = now_utc.astimezone(user_tz)
+
+                # Daily email replaces weekly on Sundays (weekly handles it)
+                if user_now.weekday() == 6:
+                    continue
+
+                pref = user.notification_evening_time or "21:00"
+                if not _is_within_window(user_now.strftime("%H:%M"), pref):
+                    continue
+
+                # Dedup via Redis: one daily email per user per calendar day
+                today_local = user_now.date()
+                dedup_key = f"email_daily:{user.id}:{today_local.isoformat()}"
+                if not await redis.set(dedup_key, 1, ex=23 * 3600, nx=True):
+                    continue
+
+                stats = await daily_report(db, user.id, today_local)
+                if stats.total > 0:
+                    streak_data = await streak_report(db, user.id, user.streak_protection)
+                    rate = round(stats.completed / stats.total * 100) if stats.total else 0
+                    await send_daily_report_email(
+                        user, stats.completed, stats.total, rate, streak_data.current_streak
+                    )
+
+    _run(_inner())
+
+
+@celery_app.task(name="app.workers.tasks.send_email_weekly_reports", bind=True, max_retries=3)
+def send_email_weekly_reports(self):
+    async def _inner():
+        import pytz
+        from sqlalchemy import select, and_
+        from app.core.database import AsyncSessionLocal
+        from app.core.redis import get_redis
+        from app.models.user import User
+        from app.services.report_service import weekly_review_data, streak_report
+        from app.services.email_service import send_weekly_report_email
+
+        now_utc = datetime.now(dt_timezone.utc)
+        redis = get_redis()
+
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(
+                select(User).where(
+                    and_(User.is_active == True, User.is_verified == True, User.notify_email_weekly == True)
+                )
+            )
+            users = list(result.scalars().all())
+
+            for user in users:
+                try:
+                    user_tz = pytz.timezone(user.timezone)
+                except Exception:
+                    user_tz = pytz.UTC
+
+                user_now = now_utc.astimezone(user_tz)
+
+                # Weekly email only on Sundays in user's local timezone
+                if user_now.weekday() != 6:
+                    continue
+
+                pref = user.notification_evening_time or "21:00"
+                if not _is_within_window(user_now.strftime("%H:%M"), pref):
+                    continue
+
+                # Dedup via Redis: one weekly email per user per week (keyed by Monday's date)
+                monday = (user_now.date() - timedelta(days=6))
+                dedup_key = f"email_weekly:{user.id}:{monday.isoformat()}"
+                if not await redis.set(dedup_key, 1, ex=6 * 24 * 3600, nx=True):
+                    continue
+
+                today_local = user_now.date()
+                data = await weekly_review_data(db, user.id, today_local)
+                if data:
+                    streak_data = await streak_report(db, user.id, user.streak_protection)
+                    await send_weekly_report_email(
+                        user,
+                        completed=data["week_completed"],
+                        total=data["week_total"],
+                        rate=data["week_rate"],
+                        trend_arrow=data["trend_arrow"],
+                        trend_delta=data["trend_delta"],
+                        best=data["best_challenge"],
+                        streak=streak_data.current_streak,
+                    )
+
+    _run(_inner())
+
+
 @celery_app.task(name="app.workers.tasks.complete_expired_challenges", bind=True, max_retries=3)
 def complete_expired_challenges_task(self):
     async def _inner():

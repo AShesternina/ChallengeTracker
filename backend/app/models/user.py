@@ -19,6 +19,8 @@ class User(Base):
     notification_morning_time: Mapped[str | None] = mapped_column(String(5), nullable=True)
     notification_evening_time: Mapped[str | None] = mapped_column(String(5), nullable=True)
     notify_task_reminders: Mapped[bool] = mapped_column(Boolean, default=False)
+    notify_email_daily: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    notify_email_weekly: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     streak_protection: Mapped[bool] = mapped_column(Boolean, default=True)
     theme: Mapped[str] = mapped_column(String(10), default="system")
     telegram_chat_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)

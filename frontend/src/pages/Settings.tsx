@@ -41,6 +41,8 @@ export default function Settings() {
   const [morningTime, setMorningTime] = useState(user?.notification_morning_time || "08:00");
   const [eveningTime, setEveningTime] = useState(user?.notification_evening_time || "21:00");
   const [taskReminders, setTaskReminders] = useState(user?.notify_task_reminders ?? false);
+  const [emailDaily, setEmailDaily] = useState(user?.notify_email_daily ?? false);
+  const [emailWeekly, setEmailWeekly] = useState(user?.notify_email_weekly ?? false);
   const [streakProtection, setStreakProtection] = useState(user?.streak_protection ?? true);
   const [savingTimes, setSavingTimes] = useState(false);
   const [savedTimes, setSavedTimes] = useState(false);
@@ -60,6 +62,8 @@ export default function Settings() {
       setMorningTime(data.notification_morning_time || "08:00");
       setEveningTime(data.notification_evening_time || "21:00");
       setTaskReminders(data.notify_task_reminders ?? false);
+      setEmailDaily(data.notify_email_daily ?? false);
+      setEmailWeekly(data.notify_email_weekly ?? false);
       setStreakProtection(data.streak_protection ?? true);
     }).catch(() => {});
 
@@ -368,6 +372,42 @@ export default function Settings() {
           </div>
         )}
       </Section>
+
+      {/* Email reports — only for verified users */}
+      {user?.is_verified && (
+        <Section title={t("settings.email_reports")}>
+          <div className="space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-semibold text-text-primary">{t("settings.email_daily")}</p>
+                <p className="text-[11px] text-text-tertiary mt-0.5">{t("settings.email_daily_hint")}</p>
+              </div>
+              <div className="shrink-0 mt-0.5">
+                <Toggle enabled={emailDaily} loading={false} label={t("settings.email_daily")} onToggle={async () => {
+                  const next = !emailDaily;
+                  setEmailDaily(next);
+                  const { data } = await userApi.update({ notify_email_daily: next });
+                  setUser(data);
+                }} />
+              </div>
+            </div>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-semibold text-text-primary">{t("settings.email_weekly")}</p>
+                <p className="text-[11px] text-text-tertiary mt-0.5">{t("settings.email_weekly_hint")}</p>
+              </div>
+              <div className="shrink-0 mt-0.5">
+                <Toggle enabled={emailWeekly} loading={false} label={t("settings.email_weekly")} onToggle={async () => {
+                  const next = !emailWeekly;
+                  setEmailWeekly(next);
+                  const { data } = await userApi.update({ notify_email_weekly: next });
+                  setUser(data);
+                }} />
+              </div>
+            </div>
+          </div>
+        </Section>
+      )}
 
       {/* Notification times */}
       <Section title={t("settings.notif_times")}>
