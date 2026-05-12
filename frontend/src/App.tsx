@@ -16,7 +16,6 @@ import Layout from "./components/Layout";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import OnboardingPage from "./pages/Onboarding";
-import Dashboard from "./pages/Dashboard";
 import DailyTasks from "./pages/DailyTasks";
 import Challenges from "./pages/Challenges";
 import CreateChallenge from "./pages/CreateChallenge";
@@ -105,7 +104,7 @@ export default function App() {
             </RequireAuth>
           }
         >
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/" element={<Navigate to="/daily" replace />} />
           <Route path="/daily" element={<DailyTasks />} />
           <Route path="/challenges" element={<Challenges />} />
           <Route path="/challenges/new" element={<CreateChallenge />} />
@@ -115,7 +114,7 @@ export default function App() {
           <Route path="/settings" element={<Settings />} />
           <Route path="/settings/change-password" element={<ChangePassword />} />
         </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/daily" replace />} />
       </Routes>
     </BrowserRouter>
   );

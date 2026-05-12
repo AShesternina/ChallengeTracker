@@ -76,7 +76,7 @@ export default function Reports() {
   const [loading, setLoading] = useState(false);
   const [weekdayRates, setWeekdayRates] = useState<number[] | null>(null);
   const [weekdayTotals, setWeekdayTotals] = useState<number[]>([]);
-  const [momentumData, setMomentumData] = useState<{ trend: string } | null>(null);
+  const [momentumData, setMomentumData] = useState<{ score: number; trend: string } | null>(null);
   const [streakData, setStreakData] = useState<{ current_streak: number } | null>(null);
 
   // Day drill-down
@@ -109,7 +109,7 @@ export default function Reports() {
     ]).then(([wpRes, momRes, strRes]) => {
       setWeekdayRates(wpRes.data.rates);
       setWeekdayTotals(wpRes.data.totals);
-      setMomentumData({ trend: momRes.data.trend });
+      setMomentumData({ score: momRes.data.score, trend: momRes.data.trend });
       setStreakData({ current_streak: strRes.data.current_streak });
     }).catch(() => {});
   };
@@ -190,7 +190,7 @@ export default function Reports() {
         <button onClick={() => setSelectedDay(null)}
           className="flex items-center gap-1 text-[13px] font-semibold text-text-tertiary hover:text-text-secondary transition-colors">
           <ArrowLeftIcon size={15} />
-          {t("reports.title")}
+          {t("nav.progress")}
         </button>
 
         {/* Day header */}
@@ -271,11 +271,45 @@ export default function Reports() {
     : [];
   const isCurrentMonth = year === now.getFullYear() && month === now.getMonth() + 1;
 
+  const streak = streakData?.current_streak ?? 0;
+
   return (
     <div className="space-y-4 w-full overflow-x-hidden">
-      <h2 className="text-[22px] font-black text-text-primary" style={{ letterSpacing: "-0.4px" }}>
-        {t("reports.title")}
-      </h2>
+
+      {/* Page header with streak + momentum */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-[22px] font-black text-text-primary" style={{ letterSpacing: "-0.4px" }}>
+          {t("nav.progress")}
+        </h2>
+        <div className="flex items-center gap-2">
+          {streak > 0 && (
+            <span className="flex items-center gap-1 text-[12px] font-bold px-2 py-0.5 rounded-full"
+              style={{ background: "var(--color-warning-bg)", color: "var(--color-warning)" }}>
+              🔥 {streak}
+            </span>
+          )}
+          {momentumData && momentumData.score > 0 && (
+            <span className="text-[12px] font-semibold" style={{ color: "var(--color-text-tertiary)" }}>
+              {momentumData.score}%{" "}
+              {momentumData.trend === "up" ? "↑" : momentumData.trend === "down" ? "↓" : "→"}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Active challenges */}
+      {challenges.length > 0 && (
+        <div>
+          <p className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider mb-2">
+            {t("reports.active_challenges")}
+          </p>
+          <div className="space-y-2">
+            {challenges.map((ch) => (
+              <ChallengeRow key={ch.id} instance={ch} dark={dark} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Month header card — nav + stats combined */}
       <div className="rounded-md px-4 pt-3 pb-4"
@@ -420,20 +454,6 @@ export default function Reports() {
 
           {/* Smart insights — only for current month */}
           {isCurrentMonth && insights.length > 0 && <InsightsCard insights={insights} />}
-
-          {/* Active challenges list */}
-          {challenges.length > 0 && (
-            <div>
-              <p className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider mb-2">
-                {t("reports.active_challenges")}
-              </p>
-              <div className="space-y-2">
-                {challenges.map((ch) => (
-                  <ChallengeRow key={ch.id} instance={ch} dark={dark} />
-                ))}
-              </div>
-            </div>
-          )}
         </>
       )}
     </div>

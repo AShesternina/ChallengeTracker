@@ -4,6 +4,7 @@ const es = {
     today: "Hoy",
     challenges: "Desafíos",
     reports: "Informes",
+    progress: "Progreso",
     settings: "Ajustes",
   },
   common: {

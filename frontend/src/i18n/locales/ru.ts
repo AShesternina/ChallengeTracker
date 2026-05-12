@@ -4,6 +4,7 @@ const ru = {
     today: "Сегодня",
     challenges: "Челленджи",
     reports: "Отчёты",
+    progress: "Прогресс",
     settings: "Настройки",
   },
   common: {

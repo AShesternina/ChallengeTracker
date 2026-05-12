@@ -4,6 +4,7 @@ const pt = {
     today: "Hoje",
     challenges: "Desafios",
     reports: "Relatórios",
+    progress: "Progresso",
     settings: "Configurações",
   },
   common: {

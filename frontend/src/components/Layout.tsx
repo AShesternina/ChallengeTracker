@@ -2,7 +2,6 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../store/authStore";
 import {
-  HomeIcon, HomeFilledIcon,
   ListIcon, ListFilledIcon,
   TargetIcon, TargetFilledIcon,
   BarChartIcon, BarChartFilledIcon,
@@ -10,10 +9,9 @@ import {
 } from "./Icons";
 
 const NAV = [
-  { to: "/", labelKey: "nav.dashboard", Icon: HomeIcon, FilledIcon: HomeFilledIcon },
   { to: "/daily", labelKey: "nav.today", Icon: ListIcon, FilledIcon: ListFilledIcon },
   { to: "/challenges", labelKey: "nav.challenges", Icon: TargetIcon, FilledIcon: TargetFilledIcon },
-  { to: "/reports", labelKey: "nav.reports", Icon: BarChartIcon, FilledIcon: BarChartFilledIcon },
+  { to: "/reports", labelKey: "nav.progress", Icon: BarChartIcon, FilledIcon: BarChartFilledIcon },
   { to: "/settings", labelKey: "nav.settings", Icon: GearIcon, FilledIcon: GearFilledIcon },
 ];
 
@@ -37,9 +35,9 @@ export default function Layout() {
 
         <nav className="flex-1 px-3 space-y-0.5">
           {NAV.map(({ to, labelKey, Icon, FilledIcon }) => {
-            const isActive = to === "/" ? location.pathname === "/" : location.pathname.startsWith(to);
+            const isActive = location.pathname.startsWith(to);
             return (
-              <NavLink key={to} to={to} end={to === "/"} className="block">
+              <NavLink key={to} to={to} className="block">
                 <span className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-theme ${
                   isActive ? "bg-accent-soft text-accent font-semibold" : "text-text-secondary hover:bg-surface2"
                 }`}>
@@ -79,9 +77,9 @@ export default function Layout() {
           borderTop: "1px solid var(--color-border)",
         }}>
         {NAV.map(({ to, labelKey, Icon, FilledIcon }) => {
-          const isActive = to === "/" ? location.pathname === "/" : location.pathname.startsWith(to);
+          const isActive = location.pathname.startsWith(to);
           return (
-            <NavLink key={to} to={to} end={to === "/"} className="flex flex-col items-center gap-0.5 flex-1 py-0.5">
+            <NavLink key={to} to={to} className="flex flex-col items-center gap-0.5 flex-1 py-0.5">
               <span className={`flex items-center justify-center rounded-[10px] transition-theme ${
                 isActive ? "bg-accent-soft" : ""
               }`} style={{ width: 36, height: 28 }}>

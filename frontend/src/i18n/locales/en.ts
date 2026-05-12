@@ -4,6 +4,7 @@ const en = {
     today: "Today",
     challenges: "Challenges",
     reports: "Reports",
+    progress: "Progress",
     settings: "Settings",
   },
   common: {

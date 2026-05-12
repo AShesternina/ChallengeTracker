@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import { ru as ruLocale, es as esLocale, ptBR as ptLocale, enUS } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
-import { dailyApi, challengesApi } from "../services/api";
+import { dailyApi, challengesApi, reportsApi } from "../services/api";
 import { useTaskStore } from "../store/taskStore";
 import { useThemeStore } from "../store/themeStore";
 import { useCategoryStyle } from "../utils/category";
@@ -39,6 +39,10 @@ export default function DailyTasks() {
     searchParams.get("tab") === "challenges" ? "challenges" : "tasks"
   );
 
+  // Streak + momentum
+  const [streak, setStreak] = useState(0);
+  const [momentum, setMomentum] = useState<{ score: number; trend: string } | null>(null);
+
   // My Challenges tab state
   const [instances, setInstances] = useState<ChallengeInstance[]>([]);
   const [instancesLoading, setInstancesLoading] = useState(false);
@@ -52,8 +56,16 @@ export default function DailyTasks() {
   useEffect(() => {
     setLoading(true);
     const todayDate = format(new Date(), "yyyy-MM-dd");
-    dailyApi.today(todayDate)
-      .then((r) => setSummary(r.data))
+    Promise.all([
+      dailyApi.today(todayDate),
+      reportsApi.streak(),
+      reportsApi.momentum(),
+    ])
+      .then(([daily, streakRes, momRes]) => {
+        setSummary(daily.data);
+        setStreak(streakRes.data.current_streak ?? 0);
+        setMomentum({ score: momRes.data.score, trend: momRes.data.trend });
+      })
       .catch(() => setError(t("common.error")))
       .finally(() => setLoading(false));
   }, []);
@@ -141,6 +153,23 @@ export default function DailyTasks() {
           <div className="h-1 rounded-full overflow-hidden mt-2" style={{ background: "var(--color-surface2)" }}>
             <div className="h-full rounded-full transition-all duration-500"
               style={{ width: `${(visibleCompleted / visibleTotal) * 100}%`, background: "var(--color-accent)" }} />
+          </div>
+        )}
+        {/* Streak + momentum mini row */}
+        {(streak > 0 || momentum) && (
+          <div className="flex items-center gap-3 mt-2">
+            {streak > 0 && (
+              <span className="flex items-center gap-1 text-[12px] font-bold px-2 py-0.5 rounded-full"
+                style={{ background: "var(--color-warning-bg)", color: "var(--color-warning)" }}>
+                🔥 {streak}
+              </span>
+            )}
+            {momentum && momentum.score > 0 && (
+              <span className="text-[12px] font-semibold" style={{ color: "var(--color-text-tertiary)" }}>
+                {momentum.score}%{" "}
+                {momentum.trend === "up" ? "↑" : momentum.trend === "down" ? "↓" : "→"}
+              </span>
+            )}
           </div>
         )}
       </div>
