@@ -92,9 +92,11 @@ export default function DailyTasks() {
     );
   }
 
-  const pending = summary?.tasks.filter((t) => t.status === "pending") ?? [];
-  const done = summary?.tasks.filter((t) => t.status !== "pending") ?? [];
-  const pendingActive = pending.filter((t) => t.challenge_status !== "paused");
+  const visibleTasks = summary?.tasks.filter((t) => t.challenge_status !== "paused") ?? [];
+  const pending = visibleTasks.filter((t) => t.status === "pending");
+  const done = visibleTasks.filter((t) => t.status !== "pending");
+  const visibleTotal = visibleTasks.length;
+  const visibleCompleted = visibleTasks.filter((t) => t.status === "completed").length;
 
   const todayIso = format(new Date(), "yyyy-MM-dd");
 
@@ -125,17 +127,17 @@ export default function DailyTasks() {
           <h2 className="text-[22px] font-black text-text-primary" style={{ letterSpacing: "-0.4px" }}>
             {tab === "tasks" ? t("daily.title") : t("challenges.my_title")}
           </h2>
-          {tab === "tasks" && summary && summary.total > 0 && (
+          {tab === "tasks" && visibleTotal > 0 && (
             <span className="text-[13px] font-bold" style={{ color: "var(--color-accent)" }}>
-              {summary.completed}/{summary.total}
+              {visibleCompleted}/{visibleTotal}
             </span>
           )}
         </div>
         {/* Thin progress line — only on tasks tab */}
-        {tab === "tasks" && summary && summary.total > 0 && (
+        {tab === "tasks" && visibleTotal > 0 && (
           <div className="h-1 rounded-full overflow-hidden mt-2" style={{ background: "var(--color-surface2)" }}>
             <div className="h-full rounded-full transition-all duration-500"
-              style={{ width: `${(summary.completed / summary.total) * 100}%`, background: "var(--color-accent)" }} />
+              style={{ width: `${(visibleCompleted / visibleTotal) * 100}%`, background: "var(--color-accent)" }} />
           </div>
         )}
       </div>
@@ -156,14 +158,14 @@ export default function DailyTasks() {
       {/* ── TASKS TAB ─────────────────────────────────────────────────────── */}
       {tab === "tasks" && (
         <>
-          {summary?.total === 0 && (
+          {visibleTotal === 0 && (
             <div className="text-center py-14">
               <p className="text-4xl mb-3">🎉</p>
               <p className="font-bold text-text-primary">{t("daily.no_tasks")}</p>
               <p className="text-[13px] text-text-tertiary mt-1">{t("daily.no_tasks_hint")}</p>
             </div>
           )}
-          {pendingActive.length === 0 && (summary?.total ?? 0) > 0 && (
+          {pending.length === 0 && visibleTotal > 0 && (
             <CelebrationBanner message={t("daily.all_done")} />
           )}
           {pending.length > 0 && (

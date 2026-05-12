@@ -108,7 +108,14 @@ async def dispatch(
     if any_sent:
         return
 
-    # Email fallback — only if push and telegram both unavailable/failed
+    # Email fallback — only if push and telegram both unavailable/failed.
+    # Skip if user subscribed to the dedicated HTML email reports (daily/weekly)
+    # to avoid sending duplicate emails for the same event.
+    if ntype == NotificationType.daily_report and getattr(user, "notify_email_daily", False):
+        return
+    if ntype == NotificationType.weekly_review and getattr(user, "notify_email_weekly", False):
+        return
+
     if user.email:
         try:
             html = f"<h2>{email_title}</h2><p>{email_body}</p>"

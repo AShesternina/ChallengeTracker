@@ -57,8 +57,13 @@ export default function Dashboard() {
 
   const todayIso = format(new Date(), "yyyy-MM-dd");
 
-  const completionRate = summary && summary.total > 0
-    ? Math.round((summary.completed / summary.total) * 100)
+  const visibleTasks = summary?.tasks.filter((t) => t.challenge_status !== "paused") ?? [];
+  const visibleTotal = visibleTasks.length;
+  const visibleCompleted = visibleTasks.filter((t) => t.status === "completed").length;
+  const visiblePending = visibleTasks.filter((t) => t.status === "pending").length;
+
+  const completionRate = visibleTotal > 0
+    ? Math.round((visibleCompleted / visibleTotal) * 100)
     : 0;
 
   const currentChallenges = activeChallenges.filter((c) => c.start_date <= todayIso);
@@ -116,11 +121,11 @@ export default function Dashboard() {
           <div className="flex-1 min-w-0">
             <p className="text-white/70 text-[11px] font-medium">{t("dashboard.today_progress")}</p>
             <p className="text-[34px] font-black leading-none mt-0.5">
-              {summary?.completed ?? 0}
-              <span className="text-[17px] font-bold text-white/60">/{summary?.total ?? 0}</span>
+              {visibleCompleted}
+              <span className="text-[17px] font-bold text-white/60">/{visibleTotal}</span>
             </p>
             <p className="text-[11px] text-white/60 mt-0.5">
-              {summary?.pending ?? 0} {t("dashboard.remaining")}
+              {visiblePending} {t("dashboard.remaining")}
             </p>
           </div>
           {momentum !== null && momentum.days_tracked > 0 && (
@@ -170,22 +175,22 @@ export default function Dashboard() {
       )}
 
       {/* Today's tasks preview */}
-      {summary && summary.tasks.length > 0 && (
+      {visibleTotal > 0 && (
         <div>
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider">
               {t("dashboard.tasks_today")}
             </h3>
-            {summary.tasks.length > 3 && (
+            {visibleTotal > 3 && (
               <Link to="/daily"
                 className="text-[11px] font-bold"
                 style={{ color: "var(--color-accent)" }}>
-                {t("dashboard.view_all", { count: summary.tasks.length })} →
+                {t("dashboard.view_all", { count: visibleTotal })} →
               </Link>
             )}
           </div>
           <div className="space-y-1.5">
-            {summary.tasks.slice(0, 3).map((task) => (
+            {visibleTasks.slice(0, 3).map((task) => (
               <TaskCard key={task.id} task={task} readOnly />
             ))}
           </div>
