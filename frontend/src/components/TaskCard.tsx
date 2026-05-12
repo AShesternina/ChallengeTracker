@@ -50,17 +50,24 @@ export default function TaskCard({ task, onComplete, onSkip, onUndo, loading, sh
       className={`rounded-lg transition-all duration-200 ${readOnly ? "p-2.5" : "p-3.5"}`}
       style={{
         background: cardBg,
-        border: `1.5px solid ${isDone ? "var(--color-success-bg)" : isSkipped ? "var(--color-border)" : isInactive ? "var(--color-border)" : `${accent}35`}`,
+        border: `1.5px solid ${isDone ? "var(--color-success)" + "40" : isSkipped ? "var(--color-border)" : isInactive ? "var(--color-border)" : `${accent}35`}`,
         opacity: isSkipped || isInactive ? 0.55 : 1,
       }}
     >
       <div className={`flex items-center ${readOnly ? "gap-2" : "gap-3"}`}>
-        <div className={`${readOnly ? "w-8 h-8 rounded-md text-sm" : "w-10 h-10 rounded-[10px] text-lg"} flex items-center justify-center shrink-0`}
-          style={{ background: isDone ? "var(--color-success-bg)" : bg }}>
-          {isDone
-            ? <CheckIcon size={18} className="text-success" strokeWidth={2.5} />
-            : <span>{icon}</span>
-          }
+
+        {/* Icon — always shows category icon; done state adds badge overlay */}
+        <div className="relative shrink-0">
+          <div className={`${readOnly ? "w-8 h-8 rounded-md text-sm" : "w-10 h-10 rounded-[10px] text-lg"} flex items-center justify-center`}
+            style={{ background: bg }}>
+            <span>{icon}</span>
+          </div>
+          {isDone && !readOnly && (
+            <div className="absolute -bottom-1 -right-1 w-[18px] h-[18px] rounded-full flex items-center justify-center"
+              style={{ background: "var(--color-success)", border: "2px solid var(--color-surface)" }}>
+              <CheckIcon size={9} className="text-white" strokeWidth={3} />
+            </div>
+          )}
         </div>
 
         <div className="flex-1 min-w-0">
@@ -70,7 +77,7 @@ export default function TaskCard({ task, onComplete, onSkip, onUndo, loading, sh
               {challengeTitle}
             </span>
           )}
-          <p className={`text-[14px] font-bold leading-tight ${isDone ? "text-text-secondary" : "text-text-primary"}`}>
+          <p className={`text-[14px] font-bold leading-tight ${isDone ? "text-text-tertiary line-through" : "text-text-primary"}`}>
             {challengeTitle}
           </p>
 
@@ -120,9 +127,10 @@ export default function TaskCard({ task, onComplete, onSkip, onUndo, loading, sh
               )}
               {!isPending && onUndo && (
                 <button onClick={() => onUndo(task.id)} disabled={loading}
-                  className="p-1.5 rounded-sm text-text-tertiary hover:text-text-secondary transition-colors"
-                  aria-label={t("task.undo")}>
-                  <UndoIcon size={14} />
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-semibold rounded-full disabled:opacity-40 transition-colors"
+                  style={{ background: "var(--color-surface2)", color: "var(--color-text-secondary)" }}>
+                  <UndoIcon size={12} />
+                  {t("task.undo")}
                 </button>
               )}
             </>
