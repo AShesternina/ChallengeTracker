@@ -43,20 +43,22 @@ URLs: Frontend → http://localhost:5173 | API → http://localhost:8000 | Docs 
 2. `GET /api/v1/daily/today` — lazy idempotent generation for that specific date (catches any missed days).
 3. Celery beat at 00:05 UTC — nightly generation for all active challenges.
 
-**Task visibility rules (applies everywhere — DailyTasks, Dashboard, Reports):**
+**Task visibility rules (applies everywhere — DailyTasks, Progress/Reports):**
 - Active challenge + today/past → fully editable (Done / Skip / Undo)
 - Future days → read-only (no action buttons, "Future · read only" badge) — Reports only
-- Paused challenge → task visible but dimmed, "paused" badge, no action buttons — handled via `challenge_status`
+- Paused challenge → tasks **hidden entirely** from Today and Progress views (filtered on frontend). Still visible in Reports day drill-down (read-only).
 - Deleted challenge → all its `DailyTaskInstance` rows are hard-deleted
 
 **Paused days are excluded from all statistics** (daily report, monthly report, challenge report, streak). The `pause_periods` JSON field on `ChallengeInstance` tracks historical pause intervals: `[{"start": "YYYY-MM-DD", "end": "YYYY-MM-DD|null"}]`. Use `pause_utils.is_paused_on()` and `pause_utils.get_paused_dates()` — never inline this logic.
 
 **`TaskCard` is the only component for rendering tasks** — use it everywhere tasks appear:
-- `readOnly` prop: status badge instead of action buttons (Dashboard preview)
+- `readOnly` prop: status badge instead of action buttons (Progress page preview)
 - Default (interactive): Done / Skip / Undo buttons
-- `challenge_status === "paused"` → dimmed, no buttons, status badge
+- `challenge_status === "paused"` → dimmed, no buttons, status badge (Reports day drill-down only — paused tasks are hidden from Today/Progress)
 
 Never create separate task row components (e.g. MiniTaskRow). All task display logic lives in `TaskCard`.
+
+**Completed task card design:** category icon always shown + green badge overlay (18px circle with ✓) in bottom-right corner. Undo: grey pill button with text (same size/style as Skip/Done).
 
 ## Backend structure
 
@@ -81,9 +83,9 @@ All business logic lives in `services/`. Endpoints only validate input, call ser
 ```
 frontend/src/
   components/    Layout, TaskCard, ProgressRing, Icons, PasswordInput, ConfirmModal, InstallBanner
-  pages/         Dashboard, DailyTasks, Challenges, CreateChallenge, ChallengeDetail,
-                 ChallengeReport, Reports, Settings, ChangePassword, Login, Register, Onboarding,
-                 PublicChallenge, VerifyEmail
+  pages/         DailyTasks, Challenges, CreateChallenge, ChallengeDetail,
+                 ChallengeReport, Reports (= Progress page), Settings, ChangePassword,
+                 Login, Register, Onboarding, PublicChallenge, VerifyEmail
   store/         authStore (user + tokens + language + theme + onboarding_completed + notification prefs + streak_protection + telegram_chat_id), taskStore, themeStore (system/light/dark), installStore
   services/      api.ts (Axios + JWT auto-refresh), push.ts (Web Push, force fresh token on subscribe), sw-lang.ts (SW language sync), telegramApi
   utils/         category.ts (13 categories), templateTranslations.ts (36 templates × 4 langs + 9 category keys + SLUG_TO_TITLE map)
@@ -287,7 +289,7 @@ Template name/description translations live in `utils/templateTranslations.ts`.
 `notification_service.dispatch()` — sends to all available channels:
 1. **Push** — all registered devices (`UserDevice`). Data-only payload `{type, …data, url}`. SW translates using dynamic `resolve()` function in `sw.ts` (supports streak/rate-based variants). Auto-removes expired subscriptions (410 Gone).
 2. **Telegram** — if `user.telegram_chat_id` is set, sends rich HTML with inline keyboard button linking to the app. Uses per-type formatters from `notifications_i18n.py`.
-3. **Email fallback** — only if both push and Telegram unavailable/failed. `notifications_i18n.py` provides translated text.
+3. **Email fallback** — only if both push and Telegram unavailable/failed. `notifications_i18n.py` provides translated text. **Exception:** skips email fallback for `daily_report` if `user.notify_email_daily=True`, and for `weekly_review` if `user.notify_email_weekly=True` — to prevent duplicate emails when the user already receives the dedicated HTML report.
 
 **Dynamic notification tone:**
 - Morning summary: shows `🔥 N дней подряд!` if `streak > 1`, otherwise generic greeting
@@ -361,7 +363,7 @@ Celery morning/evening tasks run every 5 min and filter users whose local time m
 - Per-challenge breakdown table (`daily_challenges_breakdown` / `weekly_challenges_breakdown` from `report_service.py`) — each row: icon (✅⏳❌) + translated title + X/Y
 - Footer with settings hint
 
-**Two new Celery tasks** (`send_email_daily_reports`, `send_email_weekly_reports`) — both run every 5 min at `notification_evening_time`, Redis dedup, filter `is_verified=True AND notify_email_*=True`.
+**Two Celery tasks** (`send_email_daily_reports`, `send_email_weekly_reports`) — both run every 5 min at `notification_evening_time`, Redis dedup, filter `is_verified=True AND notify_email_*=True`. **Important:** Redis dedup key (`email_daily:{user_id}:{date}`) is set only **after** a successful send — not before — so users with no active tasks on a given day remain eligible for future sends.
 
 ## Multilanguage system
 
@@ -456,13 +458,13 @@ docker exec challengetracker-backend-1 alembic upgrade head
 - **bcrypt compatibility**: `bcrypt` is pinned to `4.0.1` — `passlib 1.7.4` reads `bcrypt.__about__.__version__` removed in bcrypt 4.1+
 - **Vite HMR on Windows + Docker**: file watching sometimes misses changes — hard-refresh with `Ctrl+Shift+R` or restart container
 - **Port 5432**: not exposed to host. Backend connects via internal Docker network (`db:5432`)
-- **Frontend date**: Dashboard and DailyTasks always pass `?target_date=YYYY-MM-DD` from the browser to avoid server timezone mismatch
+- **Frontend date**: DailyTasks and Reports always pass `?target_date=YYYY-MM-DD` from the browser to avoid server timezone mismatch
 - **VPS git pull**: the remote uses HTTPS (`github.com/AShesternina/ChallengeTracker`). If `git pull` fails with "could not read Username", copy changed files via scp or configure a GitHub deploy key with SSH remote.
 - **Desktop sidebar**: uses `position: fixed` (not sticky). Main content has `lg:ml-60` offset. `overflow-x: hidden` is on `html/body` only — do NOT add it to the Layout root div (breaks fixed positioning). The `<main>` has `overflow-x-hidden` + its flex parent has `min-w-0` to prevent mobile width overflow.
 - **ConfirmModal focus trap**: uses `createPortal` to render in `<body>` + sets `inert` on `#root` while open. This is the only correct pattern — previous approaches using keydown interception failed.
-- **PWA install prompt**: `beforeinstallprompt` event is captured in `App.tsx` and stored in `installStore`. `InstallBanner` shows on Dashboard (max 2 times, 2-day cooldown). Settings shows install button when not installed. `requireInteraction: true` on all push notifications (stay until dismissed).
+- **PWA install prompt**: `beforeinstallprompt` event is captured in `App.tsx` and stored in `installStore`. `InstallBanner` shows on the Today page (max 2 times, 2-day cooldown). Settings shows install button when not installed. `requireInteraction: true` on all push notifications (stay until dismissed).
 - **Public templates**: `/challenge/:slug` route is outside `<RequireAuth>`. `PublicChallenge.tsx` calls `GET /challenges/templates/{slug}` (no auth). After register → onboarding with `?challenge=slug` pre-selects template via `SLUG_TO_TITLE` map in `templateTranslations.ts`.
 - **Theme selector**: 3-button segmented control in Settings header (◑ system / ☀️ light / 🌙 dark). Stored in `User.theme`, synced across devices. `themeStore` listens to `prefers-color-scheme` changes when theme=system.
 - **Settings structure**: No separate Profile section — avatar + name (inline edit, tap pencil to open input, ✓/✕ buttons) + email displayed in the page header row alongside the theme switcher. Sending empty name clears it to null in DB. Section **РЕГИОН** combines Language (accordion) + Timezone (accordion, auto-saves on select, no Save button). Email Reports section visible only when `is_verified=True`. Notification times section always visible. Account section: email + verification status + change password + sign out + delete account. `/settings/change-password` is a separate page.
-- **Navigation structure**: Challenges page = template library (category grid → templates → start); My Challenges management lives inside Today page (second tab "Мои челленджи" = active/paused/completed list). Dashboard = overview only (hero card, active challenges, tasks preview — no stats row, no quick actions).
+- **Navigation structure**: 4 tabs — Today (home, `/daily`) · Challenges (`/challenges`) · Progress (`/reports`) · Settings. Dashboard page removed; `/` redirects to `/daily`. My Challenges management lives inside Today page (second tab "Мои челленджи" = active/paused/completed list, split into Current/Upcoming subgroups for active). Challenges page = template library (category grid → templates → start) with "Мои челленджи →" link to `/daily?tab=challenges`. Progress page = streak + momentum + active challenges at top, then calendar heatmap + weekday patterns + insights below. DailyTasks header shows streak 🔥 + momentum % mini-widget. `ScrollToTop` component in App.tsx resets scroll on every route change.
 - **"Create from scratch"**: always navigates to `/challenges/new?scratch=1`. CreateChallenge.tsx reads the `scratch` param and starts at "configure" step directly, skipping template selection.
