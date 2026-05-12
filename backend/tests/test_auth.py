@@ -470,3 +470,42 @@ async def test_update_user_name_empty_clears_to_null(client: AsyncClient):
     r = await client.patch("/api/v1/users/me", json={"name": ""}, headers=headers)
     assert r.status_code == 200
     assert r.json()["name"] is None
+
+
+# ── email reports ──────────────────────────────────────────────────────────────
+
+async def test_user_has_email_report_fields_default_false(client: AsyncClient):
+    """New user has notify_email_daily=False and notify_email_weekly=False by default."""
+    tokens = await register_and_login(client)
+    r = await client.get("/api/v1/users/me", headers=auth_headers(tokens))
+    assert r.status_code == 200
+    data = r.json()
+    assert "notify_email_daily" in data
+    assert "notify_email_weekly" in data
+    assert data["notify_email_daily"] is False
+    assert data["notify_email_weekly"] is False
+
+
+async def test_update_notify_email_daily(client: AsyncClient):
+    """PATCH /users/me {notify_email_daily: true} persists."""
+    tokens = await register_and_login(client)
+    headers = auth_headers(tokens)
+    r = await client.patch("/api/v1/users/me", json={"notify_email_daily": True}, headers=headers)
+    assert r.status_code == 200
+    assert r.json()["notify_email_daily"] is True
+
+    r2 = await client.get("/api/v1/users/me", headers=headers)
+    assert r2.json()["notify_email_daily"] is True
+
+
+async def test_update_notify_email_weekly(client: AsyncClient):
+    """PATCH /users/me {notify_email_weekly: true} persists and can be toggled back."""
+    tokens = await register_and_login(client)
+    headers = auth_headers(tokens)
+    r = await client.patch("/api/v1/users/me", json={"notify_email_weekly": True}, headers=headers)
+    assert r.status_code == 200
+    assert r.json()["notify_email_weekly"] is True
+
+    r2 = await client.patch("/api/v1/users/me", json={"notify_email_weekly": False}, headers=headers)
+    assert r2.status_code == 200
+    assert r2.json()["notify_email_weekly"] is False
