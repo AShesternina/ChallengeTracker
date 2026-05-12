@@ -60,7 +60,7 @@ def send_morning_summaries(self):
                             NotificationLog.created_at >= thirty_min_ago,
                         )
                     )
-                )).scalar_one_or_none()
+                )).scalars().first()
                 if already:
                     continue
 
@@ -119,7 +119,7 @@ def send_daily_reports(self):
                             NotificationLog.created_at >= thirty_min_ago,
                         )
                     )
-                )).scalar_one_or_none()
+                )).scalars().first()
                 if already:
                     continue
 
@@ -176,7 +176,7 @@ def send_weekly_reviews(self):
                             NotificationLog.created_at >= thirty_min_ago,
                         )
                     )
-                )).scalar_one_or_none()
+                )).scalars().first()
                 if already:
                     continue
 
@@ -240,7 +240,7 @@ def send_task_reminders(self):
                             NotificationLog.created_at >= four_min_ago,
                         )
                     )
-                )).scalar_one_or_none()
+                )).scalars().first()
                 if already:
                     continue
 
@@ -315,7 +315,7 @@ def send_burnout_alerts(self):
                             NotificationLog.created_at >= five_days_ago,
                         )
                     )
-                )).scalar_one_or_none()
+                )).scalars().first()
                 if already:
                     continue
 
