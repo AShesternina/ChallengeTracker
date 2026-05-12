@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useThemeStore } from "../store/themeStore";
 import { useCategoryStyle } from "../utils/category";
 import { DailyTask } from "../store/taskStore";
-import { CheckIcon, ClockIcon, UndoIcon } from "./Icons";
+import { CheckIcon, ClockIcon } from "./Icons";
 import { translateTemplateName } from "../utils/templateTranslations";
 
 interface Props {
@@ -77,7 +77,7 @@ export default function TaskCard({ task, onComplete, onSkip, onUndo, loading, sh
               {challengeTitle}
             </span>
           )}
-          <p className={`text-[14px] font-bold leading-tight ${isDone ? "text-text-tertiary line-through" : "text-text-primary"}`}>
+          <p className={`text-[14px] font-bold leading-tight ${isDone ? "text-text-tertiary" : "text-text-primary"}`}>
             {challengeTitle}
           </p>
 
@@ -114,12 +114,12 @@ export default function TaskCard({ task, onComplete, onSkip, onUndo, loading, sh
               {isPending && (
                 <>
                   <button onClick={() => onSkip?.(task.id)} disabled={loading}
-                    className="px-2.5 py-1.5 text-[12px] font-semibold rounded-sm border disabled:opacity-40 transition-colors"
+                    className="px-2 py-1.5 text-[11px] font-semibold rounded-sm border disabled:opacity-40 transition-colors"
                     style={{ color: "var(--color-text-secondary)", borderColor: "var(--color-border-strong)", borderWidth: "1.5px" }}>
                     {t("common.skip")}
                   </button>
                   <button onClick={() => onComplete?.(task.id)} disabled={loading}
-                    className="px-2.5 py-1.5 text-[12px] font-bold text-white rounded-sm disabled:opacity-40 transition-colors"
+                    className="px-2 py-1.5 text-[11px] font-bold text-white rounded-sm disabled:opacity-40 transition-colors"
                     style={{ background: accent }}>
                     {t("common.done")}
                   </button>
@@ -127,9 +127,8 @@ export default function TaskCard({ task, onComplete, onSkip, onUndo, loading, sh
               )}
               {!isPending && onUndo && (
                 <button onClick={() => onUndo(task.id)} disabled={loading}
-                  className="flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-semibold rounded-full disabled:opacity-40 transition-colors"
+                  className="px-2 py-1.5 text-[11px] font-semibold rounded-sm disabled:opacity-40 transition-colors"
                   style={{ background: "var(--color-surface2)", color: "var(--color-text-secondary)" }}>
-                  <UndoIcon size={12} />
                   {t("task.undo")}
                 </button>
               )}
