@@ -236,6 +236,7 @@ const ru = {
     email_weekly_hint: "Получать обзор недели каждое воскресенье вечером",
     streak_protection: "⚡ Защита серии",
     streak_protection_hint: "Один пропущенный день не сломает серию",
+    region: "Регион",
     language: "Язык",
     appearance: "Внешний вид",
     dark_mode: "Тёмная тема",

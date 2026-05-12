@@ -236,6 +236,7 @@ const en = {
     email_weekly_hint: "Receive a week review every Sunday evening",
     streak_protection: "⚡ Streak protection",
     streak_protection_hint: "One missed day won't break your streak",
+    region: "Region",
     language: "Language",
     appearance: "Appearance",
     dark_mode: "Dark mode",

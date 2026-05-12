@@ -33,8 +33,7 @@ export default function Settings() {
   const [editingName, setEditingName] = useState(false);
   const [savingName, setSavingName] = useState(false);
   const [timezone, setTimezone] = useState(user?.timezone || "UTC");
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [expandedRegion, setExpandedRegion] = useState<"language" | "timezone" | null>(null);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
   const [deviceId, setDeviceId] = useState<number | null>(null);
@@ -95,21 +94,19 @@ export default function Settings() {
     }
   };
 
-  const handleSave = async () => {
-    setSaving(true);
+  const handleTimezoneChange = async (value: string) => {
+    setTimezone(value);
     try {
-      const { data } = await userApi.update({ timezone });
+      const { data } = await userApi.update({ timezone: value });
       setUser(data);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    } finally {
-      setSaving(false);
-    }
+      setExpandedRegion(null);
+    } catch {}
   };
 
   const handleLanguageChange = async (code: string) => {
     await i18n.changeLanguage(code);
     setServiceWorkerLanguage(code);
+    setExpandedRegion(null);
     try {
       const { data } = await userApi.update({ language: code });
       setUser(data);
@@ -308,45 +305,54 @@ export default function Settings() {
         </Section>
       )}
 
-      {/* Language */}
-      <Section title={t("settings.language")}>
-        <div className="grid grid-cols-2 gap-2">
-          {LANGUAGES.map((lang) => (
-            <button key={lang.code} onClick={() => handleLanguageChange(lang.code)}
-              className="flex items-center justify-center gap-2 py-2.5 rounded-md text-[13px] font-bold transition-all"
-              style={{
-                border: `1.5px solid ${i18n.language.startsWith(lang.code) ? "var(--color-accent)" : "var(--color-border)"}`,
-                background: i18n.language.startsWith(lang.code) ? "var(--color-accent-soft)" : "var(--color-surface2)",
-                color: i18n.language.startsWith(lang.code) ? "var(--color-accent)" : "var(--color-text-secondary)",
-              }}>
-              <span>{lang.flag}</span>
-              {lang.label}
-            </button>
-          ))}
-        </div>
-      </Section>
+      {/* Region: language + timezone */}
+      <Section title={t("settings.region")}>
+        {/* Language row */}
+        <RegionRow
+          label={t("settings.language")}
+          value={LANGUAGES.find(l => i18n.language.startsWith(l.code))?.flag + " " + LANGUAGES.find(l => i18n.language.startsWith(l.code))?.label}
+          expanded={expandedRegion === "language"}
+          onToggle={() => setExpandedRegion(expandedRegion === "language" ? null : "language")}
+        >
+          <div className="grid grid-cols-2 gap-2 pt-2">
+            {LANGUAGES.map((lang) => (
+              <button key={lang.code} onClick={() => handleLanguageChange(lang.code)}
+                className="flex items-center justify-center gap-2 py-2 rounded-md text-[13px] font-semibold transition-all"
+                style={{
+                  border: `1.5px solid ${i18n.language.startsWith(lang.code) ? "var(--color-accent)" : "var(--color-border)"}`,
+                  background: i18n.language.startsWith(lang.code) ? "var(--color-accent-soft)" : "var(--color-surface2)",
+                  color: i18n.language.startsWith(lang.code) ? "var(--color-accent)" : "var(--color-text-secondary)",
+                }}>
+                <span>{lang.flag}</span>{lang.label}
+              </button>
+            ))}
+          </div>
+        </RegionRow>
 
-      {/* Timezone */}
-      <Section title={t("settings.timezone")}>
-        <select value={timezone} onChange={(e) => setTimezone(e.target.value)}
-          className="w-full px-3 py-2.5 rounded-md text-[13px] text-text-primary outline-none mb-3 appearance-none"
-          style={{
-            background: "var(--color-surface2)",
-            border: "1.5px solid var(--color-border)",
-            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
-            backgroundRepeat: "no-repeat",
-            backgroundPosition: "right 12px center",
-            paddingRight: "36px",
-          }}>
-          {TIMEZONES.map((tz) => (
-            <option key={tz} value={tz}>{tz}</option>
-          ))}
-        </select>
-        <button onClick={handleSave} disabled={saving}
-          className="w-full py-2.5 rounded-md text-[13px] font-bold text-white disabled:opacity-50 transition-opacity"
-          style={{ background: saved ? "var(--color-success)" : "var(--color-accent)" }}>
-          {saving ? t("common.saving") : saved ? t("common.saved") : t("common.save")}
-        </button>
+        <div style={{ borderTop: "1px solid var(--color-border)" }} />
+
+        {/* Timezone row */}
+        <RegionRow
+          label={t("settings.timezone")}
+          value={timezone}
+          expanded={expandedRegion === "timezone"}
+          onToggle={() => setExpandedRegion(expandedRegion === "timezone" ? null : "timezone")}
+        >
+          <select value={timezone} onChange={(e) => handleTimezoneChange(e.target.value)}
+            className="w-full px-3 py-2 rounded-md text-[13px] text-text-primary outline-none mt-2 appearance-none"
+            style={{
+              background: "var(--color-surface2)",
+              border: "1.5px solid var(--color-border)",
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+              backgroundRepeat: "no-repeat",
+              backgroundPosition: "right 12px center",
+              paddingRight: "36px",
+            }}>
+            {TIMEZONES.map((tz) => (
+              <option key={tz} value={tz}>{tz}</option>
+            ))}
+          </select>
+        </RegionRow>
       </Section>
 
       {/* Push notifications */}
@@ -561,6 +567,27 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
       <p className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider">{title}</p>
       {children}
+    </div>
+  );
+}
+
+function RegionRow({ label, value, expanded, onToggle, children }: {
+  label: string; value: string | undefined; expanded: boolean; onToggle: () => void; children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <button onClick={onToggle} className="w-full flex items-center justify-between py-1.5 transition-colors">
+        <span className="text-[14px] font-semibold text-text-primary">{label}</span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[13px] text-text-tertiary">{value}</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+            strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary transition-transform"
+            style={{ transform: expanded ? "rotate(90deg)" : "rotate(0deg)" }}>
+            <path d="M9 18l6-6-6-6"/>
+          </svg>
+        </div>
+      </button>
+      {expanded && <div>{children}</div>}
     </div>
   );
 }

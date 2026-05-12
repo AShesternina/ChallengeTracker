@@ -236,6 +236,7 @@ const es = {
     email_weekly_hint: "Recibe un resumen de la semana cada domingo por la tarde",
     streak_protection: "⚡ Protección de racha",
     streak_protection_hint: "Un día perdido no romperá tu racha",
+    region: "Región",
     language: "Idioma",
     appearance: "Apariencia",
     dark_mode: "Modo oscuro",
