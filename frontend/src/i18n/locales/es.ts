@@ -127,6 +127,9 @@ const es = {
     no_completed: "No hay desafíos completados",
     confirm_delete_card: "¿Eliminar desafío?",
     confirm_delete_card_body: "Todas las tareas y el progreso serán eliminados sin posibilidad de recuperación.",
+    section_current: "Actuales",
+    section_upcoming: "Próximos",
+    starts_in: "en {{n}} d.",
   },
   detail: {
     start: "Inicio",

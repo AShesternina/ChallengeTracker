@@ -127,6 +127,9 @@ const ru = {
     no_completed: "Нет завершённых челленджей",
     confirm_delete_card: "Удалить челлендж?",
     confirm_delete_card_body: "Все задачи и прогресс будут удалены без возможности восстановления.",
+    section_current: "Сейчас",
+    section_upcoming: "Позже",
+    starts_in: "через {{n}} дн.",
   },
   detail: {
     start: "Начало",

@@ -127,6 +127,9 @@ const pt = {
     no_completed: "Sem desafios concluídos",
     confirm_delete_card: "Excluir desafio?",
     confirm_delete_card_body: "Todas as tarefas e o progresso serão apagados sem possibilidade de recuperação.",
+    section_current: "Atuais",
+    section_upcoming: "Próximos",
+    starts_in: "em {{n}} d.",
   },
   detail: {
     start: "Início",

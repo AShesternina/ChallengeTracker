@@ -18,6 +18,7 @@ interface ChallengeInstance {
   id: number;
   challenge: { title: string; type: string };
   status: string;
+  start_date: string;
 }
 
 export default function Dashboard() {
@@ -54,9 +55,14 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }, []);
 
+  const todayIso = format(new Date(), "yyyy-MM-dd");
+
   const completionRate = summary && summary.total > 0
     ? Math.round((summary.completed / summary.total) * 100)
     : 0;
+
+  const currentChallenges = activeChallenges.filter((c) => c.start_date <= todayIso);
+  const upcomingChallenges = activeChallenges.filter((c) => c.start_date > todayIso);
 
   const userName = user?.name || user?.email?.split("@")[0] || "there";
   const todayStr = format(new Date(), "EEEE, d MMMM", { locale: dateLocale });
@@ -125,25 +131,39 @@ export default function Dashboard() {
         <div className="absolute -right-2 bottom-2 w-14 h-14 rounded-full opacity-10" style={{ background: "white" }} />
       </Link>
 
-      {/* Active challenges */}
-      {activeChallenges.length > 0 && (
+      {/* Active challenges — current */}
+      {currentChallenges.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider">
               {t("dashboard.active_challenges")}
             </h3>
             <span className="text-[11px] font-bold text-text-tertiary">
-              {activeChallenges.length}
+              {currentChallenges.length}
             </span>
           </div>
           <div className="space-y-1.5">
-            {activeChallenges.map((ci) => (
-              <ChallengeCard
-                key={ci.id}
-                instance={ci}
-                tasks={tasksByChallenge[ci.id]}
-                lang={i18n.language}
-              />
+            {currentChallenges.map((ci) => (
+              <ChallengeCard key={ci.id} instance={ci} tasks={tasksByChallenge[ci.id]} lang={i18n.language} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Active challenges — upcoming */}
+      {upcomingChallenges.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider">
+              {t("challenges.section_upcoming")}
+            </h3>
+            <span className="text-[11px] font-bold text-text-tertiary">
+              {upcomingChallenges.length}
+            </span>
+          </div>
+          <div className="space-y-1.5">
+            {upcomingChallenges.map((ci) => (
+              <ChallengeCard key={ci.id} instance={ci} tasks={undefined} lang={i18n.language} upcoming />
             ))}
           </div>
         </div>
@@ -175,10 +195,11 @@ export default function Dashboard() {
   );
 }
 
-function ChallengeCard({ instance, tasks, lang }: {
+function ChallengeCard({ instance, tasks, lang, upcoming }: {
   instance: ChallengeInstance;
   tasks?: { total: number; completed: number };
   lang: string;
+  upcoming?: boolean;
 }) {
   const { t } = useTranslation();
   const { dark } = useThemeStore();
@@ -188,11 +209,14 @@ function ChallengeCard({ instance, tasks, lang }: {
   const completed = tasks?.completed ?? 0;
   const rate = total > 0 ? completed / total : 0;
   const allDone = total > 0 && completed === total;
+  const daysUntilStart = upcoming
+    ? Math.ceil((new Date(instance.start_date).getTime() - Date.now()) / 86400000)
+    : 0;
 
   return (
     <Link to={`/challenges/${instance.id}`}
       className="block rounded-md px-3 py-2"
-      style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+      style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", opacity: upcoming ? 0.65 : 1 }}>
       <div className="flex items-center gap-2.5">
         <div className="w-8 h-8 rounded-md flex items-center justify-center text-sm shrink-0"
           style={{ background: bg }}>
@@ -202,11 +226,13 @@ function ChallengeCard({ instance, tasks, lang }: {
           <div className="flex items-center justify-between gap-1">
             <p className="font-bold text-text-primary text-[13px] truncate">{title}</p>
             <span className="text-[12px] font-semibold shrink-0"
-              style={{ color: allDone ? "var(--color-success)" : "var(--color-text-tertiary)" }}>
-              {total > 0 ? `${completed}/${total}` : t("dashboard.no_tasks_today")}
+              style={{ color: upcoming ? "var(--color-text-tertiary)" : allDone ? "var(--color-success)" : "var(--color-text-tertiary)" }}>
+              {upcoming
+                ? t("challenges.starts_in", { n: daysUntilStart })
+                : total > 0 ? `${completed}/${total}` : t("dashboard.no_tasks_today")}
             </span>
           </div>
-          {total > 0 && (
+          {!upcoming && total > 0 && (
             <div className="h-1 rounded-full overflow-hidden mt-1" style={{ background: "var(--color-surface2)" }}>
               <div className="h-full rounded-full transition-all"
                 style={{ width: `${rate * 100}%`, background: allDone ? "var(--color-success)" : accent }} />

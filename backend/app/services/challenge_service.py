@@ -130,8 +130,20 @@ async def update_instance(
             await ensure_daily_tasks(db, user_id, d)
             d += timedelta(days=1)
 
-    # Auto-complete if end_date moved to the past
-    if instance.status == InstanceStatus.active and instance.end_date < date.today():
+    # Auto-complete if end_date moved to the past (works for both active and paused)
+    if instance.status in (InstanceStatus.active, InstanceStatus.paused) and instance.end_date < date.today():
+        if instance.status == InstanceStatus.paused:
+            # Close the open pause period before completing
+            periods = _parse_pause_periods(instance.pause_periods)
+            yesterday = date.today() - timedelta(days=1)
+            for p in periods:
+                if p.get("end") is None:
+                    if yesterday >= date.fromisoformat(p["start"]):
+                        p["end"] = str(yesterday)
+                    else:
+                        periods.remove(p)
+                    break
+            instance.pause_periods = json.dumps(periods)
         instance.status = InstanceStatus.completed
         await db.flush()
 
@@ -158,7 +170,6 @@ async def resume_instance(db: AsyncSession, instance_id: int, user_id: int) -> C
         raise ValueError("Instance not found")
     if instance.status != InstanceStatus.paused:
         raise ValueError("Only paused challenges can be resumed")
-    instance.status = InstanceStatus.active
     periods = _parse_pause_periods(instance.pause_periods)
     today = date.today()
     yesterday = today - timedelta(days=1)
@@ -170,6 +181,11 @@ async def resume_instance(db: AsyncSession, instance_id: int, user_id: int) -> C
                 periods.remove(p)  # paused and resumed same day
             break
     instance.pause_periods = json.dumps(periods)
+    # Auto-complete if end_date already passed
+    if instance.end_date < today:
+        instance.status = InstanceStatus.completed
+    else:
+        instance.status = InstanceStatus.active
     await db.flush()
     return instance
 

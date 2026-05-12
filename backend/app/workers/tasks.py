@@ -367,7 +367,7 @@ def send_email_daily_reports(self):
                 # Dedup via Redis: one daily email per user per calendar day
                 today_local = user_now.date()
                 dedup_key = f"email_daily:{user.id}:{today_local.isoformat()}"
-                if not await redis.set(dedup_key, 1, ex=23 * 3600, nx=True):
+                if await redis.exists(dedup_key):
                     continue
 
                 stats = await daily_report(db, user.id, today_local)
@@ -378,6 +378,7 @@ def send_email_daily_reports(self):
                     await send_daily_report_email(
                         user, stats.completed, stats.total, rate, streak_data.current_streak, challenges
                     )
+                    await redis.set(dedup_key, 1, ex=23 * 3600)
 
     _run(_inner())
 
@@ -423,7 +424,7 @@ def send_email_weekly_reports(self):
                 # Dedup via Redis: one weekly email per user per week (keyed by Monday's date)
                 monday = (user_now.date() - timedelta(days=6))
                 dedup_key = f"email_weekly:{user.id}:{monday.isoformat()}"
-                if not await redis.set(dedup_key, 1, ex=6 * 24 * 3600, nx=True):
+                if await redis.exists(dedup_key):
                     continue
 
                 today_local = user_now.date()
@@ -442,6 +443,7 @@ def send_email_weekly_reports(self):
                         streak=streak_data.current_streak,
                         challenges=challenges,
                     )
+                    await redis.set(dedup_key, 1, ex=6 * 24 * 3600)
 
     _run(_inner())
 

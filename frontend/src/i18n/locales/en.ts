@@ -127,6 +127,9 @@ const en = {
     no_completed: "No completed challenges",
     confirm_delete_card: "Delete challenge?",
     confirm_delete_card_body: "All tasks and progress will be erased and cannot be recovered.",
+    section_current: "Current",
+    section_upcoming: "Upcoming",
+    starts_in: "in {{n}} d.",
   },
   detail: {
     start: "Start",

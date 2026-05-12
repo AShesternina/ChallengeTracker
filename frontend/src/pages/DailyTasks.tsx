@@ -96,6 +96,8 @@ export default function DailyTasks() {
   const done = summary?.tasks.filter((t) => t.status !== "pending") ?? [];
   const pendingActive = pending.filter((t) => t.challenge_status !== "paused");
 
+  const todayIso = format(new Date(), "yyyy-MM-dd");
+
   const CHALLENGE_FILTERS: { key: ChallengeFilter; label: string }[] = [
     { key: "active",    label: t("challenges.tab_active") },
     { key: "paused",    label: t("challenges.tab_paused") },
@@ -104,6 +106,13 @@ export default function DailyTasks() {
   const countFor = (key: ChallengeFilter) =>
     instances.filter((i) => i.status === key).length;
   const filteredInstances = instances.filter((i) => i.status === challengeFilter);
+
+  const currentInstances = challengeFilter === "active"
+    ? filteredInstances.filter((i) => i.start_date <= todayIso)
+    : filteredInstances;
+  const upcomingInstances = challengeFilter === "active"
+    ? filteredInstances.filter((i) => i.start_date > todayIso)
+    : [];
 
   return (
     <div className="space-y-4 w-full overflow-x-hidden">
@@ -244,12 +253,31 @@ export default function DailyTasks() {
                 </div>
               )}
 
-              {/* Challenge cards */}
-              <div className="space-y-2.5">
-                {filteredInstances.map((instance) => (
-                  <ChallengeCard key={instance.id} instance={instance} dark={dark} dateLocale={dateLocale} />
-                ))}
-              </div>
+              {/* Challenge cards — current */}
+              {currentInstances.length > 0 && (
+                <div className="space-y-2.5">
+                  {upcomingInstances.length > 0 && (
+                    <p className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider px-0.5">
+                      {t("challenges.section_current")}
+                    </p>
+                  )}
+                  {currentInstances.map((instance) => (
+                    <ChallengeCard key={instance.id} instance={instance} dark={dark} dateLocale={dateLocale} />
+                  ))}
+                </div>
+              )}
+
+              {/* Challenge cards — upcoming */}
+              {upcomingInstances.length > 0 && (
+                <div className="space-y-2.5">
+                  <p className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider px-0.5 mt-1">
+                    {t("challenges.section_upcoming")}
+                  </p>
+                  {upcomingInstances.map((instance) => (
+                    <ChallengeCard key={instance.id} instance={instance} dark={dark} dateLocale={dateLocale} upcoming />
+                  ))}
+                </div>
+              )}
 
               {/* New challenge button */}
               <Link to="/challenges"
@@ -302,10 +330,11 @@ function TabBtn({ active, onClick, label }: { active: boolean; onClick: () => vo
   );
 }
 
-function ChallengeCard({ instance, dark, dateLocale }: {
+function ChallengeCard({ instance, dark, dateLocale, upcoming }: {
   instance: ChallengeInstance;
   dark: boolean;
   dateLocale: any;
+  upcoming?: boolean;
 }) {
   const { i18n, t } = useTranslation();
   const { icon, accent, bg } = useCategoryStyle(instance.challenge.title, dark);
@@ -318,12 +347,15 @@ function ChallengeCard({ instance, dark, dateLocale }: {
   const daysLeft = Math.max(0, Math.ceil(
     (new Date(instance.end_date).getTime() - Date.now()) / 86400000
   ));
-  const progress = Math.min(100, Math.round(((totalDays - daysLeft) / totalDays) * 100));
+  const daysUntilStart = upcoming
+    ? Math.ceil((new Date(instance.start_date).getTime() - Date.now()) / 86400000)
+    : 0;
+  const progress = upcoming ? 0 : Math.min(100, Math.round(((totalDays - daysLeft) / totalDays) * 100));
 
   return (
     <Link to={`/challenges/${instance.id}`}
       className="block rounded-md p-4 transition-all hover:shadow-md"
-      style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", opacity: isArchived ? 0.8 : 1 }}>
+      style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", opacity: upcoming ? 0.7 : isArchived ? 0.8 : 1 }}>
       <div className="flex items-start gap-3">
         <div className="w-10 h-10 rounded-[10px] flex items-center justify-center shrink-0 text-lg"
           style={{ background: bg }}>
@@ -334,10 +366,12 @@ function ChallengeCard({ instance, dark, dateLocale }: {
             <h3 className="font-bold text-text-primary truncate text-[14px]">
               {translateTemplateName(instance.challenge.title, i18n.language)}
             </h3>
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold shrink-0"
-              style={{ background: style.bg, color: style.text }}>
-              {t(`challenges.status_${instance.status}` as any, { defaultValue: instance.status })}
-            </span>
+            {!upcoming && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold shrink-0"
+                style={{ background: style.bg, color: style.text }}>
+                {t(`challenges.status_${instance.status}` as any, { defaultValue: instance.status })}
+              </span>
+            )}
           </div>
           <div className="h-1 rounded-full overflow-hidden mb-1" style={{ background: "var(--color-surface2)" }}>
             <div className="h-full rounded-full transition-all"
@@ -348,10 +382,16 @@ function ChallengeCard({ instance, dark, dateLocale }: {
               {format(new Date(instance.start_date), "d MMM", { locale: dateLocale })} →{" "}
               {format(new Date(instance.end_date), "d MMM yyyy", { locale: dateLocale })}
             </p>
-            <p className="text-[11px] font-semibold"
-              style={{ color: isArchived ? "var(--color-text-tertiary)" : accent }}>
-              {progress}%
-            </p>
+            {upcoming ? (
+              <p className="text-[11px] font-semibold" style={{ color: "var(--color-text-tertiary)" }}>
+                {t("challenges.starts_in", { n: daysUntilStart })}
+              </p>
+            ) : (
+              <p className="text-[11px] font-semibold"
+                style={{ color: isArchived ? "var(--color-text-tertiary)" : accent }}>
+                {progress}%
+              </p>
+            )}
           </div>
         </div>
         <ChevronRightIcon size={14} className="text-text-tertiary shrink-0 mt-1" />
