@@ -154,7 +154,7 @@ No web fonts loaded — system stack only.
 ## 5. Component Specifications
 
 ### Bottom Navigation
-- 5 tabs: Главная / Сегодня / Челленджи / Отчёты / Настройки
+- 4 tabs: Сегодня / Челленджи / Прогресс / Настройки (Dashboard removed — Today is home screen, `/` redirects to `/daily`)
 - Icons: **stroke SVG** (1.9px, inactive) → **filled SVG** (active)
 - Active state: icon pill background `accentSoft` (36×28px, radius 10px) + label color `accent` + weight 700
 - Inactive: icon color `textTertiary`, label 9px weight 500
@@ -194,15 +194,15 @@ No web fonts loaded — system stack only.
   - pending → `surface` + category border `accent+'35'`
   - completed → `greenBg` + border `green+'44'`
   - skipped → `surface2` + `border`, opacity 0.55
-- Category icon box: 40×40px, radius 10px, bg = `catBg`
-- When completed: icon replaced with checkmark (green)
-- Name: 14px weight 700, `textSecondary` (muted, no strikethrough) when done — green bg + checkmark are sufficient done signal
+- Category icon box: 40×40px, radius 10px, bg = `catBg` — **always shows category icon** (never replaced)
+- When completed: green badge overlay (18px circle with ✓, `green` bg, white icon, `2px solid surface` border) in bottom-right corner of icon box
+- Name: 14px weight 700, `textTertiary` (muted, no strikethrough) when done — green bg + badge are sufficient done signal
 - Time row: clock icon (11px) + time (11px weight 600)
 - Note: 11px `textSecondary`, truncated
 - Multi-task badge: `"N из M"`, 10px weight 800, `accent` pill
 - All-day badge: `"весь день"`, 10px, `accent` pill
-- Actions: "Пропуск" outline btn + "Готово" accent btn
-- Undo: "↩" ghost btn when done/skipped
+- Actions: "Пропуск" outline btn + "Готово" accent btn — both `px-2 py-1.5 text-[11px]`
+- Undo: "Отменить" grey pill btn (same size as Пропуск/Готово, `surface2` bg)
 
 ### Challenge Card (list)
 - Category icon: 36×36px, radius 10px, bg = `catBg`
@@ -286,39 +286,27 @@ Primary button shadow: `0 2px 8px accent+'40'`
 - Primary CTA button full-width
 - "No account? Register" link: `accent` weight 700
 
-### Dashboard
-**Header**: date (11px `textTertiary`) + greeting 20px weight 900 (uses `user.name` if set, else email prefix) + streak pill (🔥 + count) — no logo, no avatar
-
-**Hero card** (clickable → `/daily`): gradient purple→blue, ProgressRing (white, 76px) + "2/15" large number (34px) + "N осталось"  
-**Momentum badge** (inline, right side of hero card, separated by vertical divider):  
-- Score: 22px weight 900 white  
-- Trend label: 10px (↑ Better / → Stable / ↓ Lower)  
-- Caption: "Momentum" 9px white/50  
-- Shown only when days_tracked > 0
-
-**Active challenges section**: per-challenge cards (clickable → challenge detail)  
-- Category icon (32×32) + title (13px bold) + X/Y counter + thin progress bar (1px)
-
-**Tasks preview**: max 3 compact TaskCards (readOnly variant), "View all N →" link
-
-_Note: Stats row (Active/Done/Skipped) and quick action buttons removed — redundant with nav and hero card._
-
-### Daily Tasks
-**Header**: date + title + inline progress (`X/Y` right-aligned + thin progress line below title) — only on Tasks tab.
+### Daily Tasks — Home Screen (`/daily`)
+**Header**: date + title + inline progress (`X/Y` right-aligned + thin progress line below title) — only on Tasks tab.  
+**Streak + momentum row** (below progress line, shown when streak > 0 or momentum exists):  
+- 🔥 streak count — warning pill (`yellowBg` / `yellow`)  
+- Momentum score% + trend arrow (↑/→/↓) — `textTertiary`
 
 **Tab switcher**: "Задачи" | "Мои челленджи" — segmented control in `surface2`.
 
 **Tasks tab**:
+- Paused tasks **hidden entirely** — not shown, not counted in X/Y
 - Pending tasks → done/skipped tasks
 - All-done state: green banner with 🎉
 
 **Мои челленджи tab**:
 - Sub-filter: Active / Paused / Completed (segmented with counts)
+- Active tab split into **Сейчас** (start_date ≤ today) and **Позже** (start_date > today) subgroups with section headers; "Позже" cards show opacity 0.7 + "через N дн." instead of %
 - Challenge cards (clickable → detail page)
 - "Новый челлендж" dashed button at bottom → `/challenges`
 
 ### Challenges — Template Library
-- Header: "Челленджи" + subtitle "36 challenges in 9 categories"
+- Header: "Челленджи" + subtitle "36 challenges in 9 categories" + **"Мои челленджи →"** link (top-right, `accent`) → `/daily?tab=challenges`
 - **Category grid** (2–3 col): emoji + category name + challenge count. Tap → template list.
 - **Template list**: clickable cards (icon + name + description + duration/frequency meta + `›`). Tap → `/challenges/new?template=ID`
 - **"Create from scratch"** dashed button at bottom of both screens → `/challenges/new?scratch=1`
@@ -343,8 +331,14 @@ _Note: Stats row (Active/Done/Skipped) and quick action buttons removed — redu
 - Type segmented control: 3 equal buttons, active = `accentSoft` border + bg
 - CTA: "🚀 Запустить челлендж" primary full-width
 
-### Reports
-- **Month header card** (single card): `← Май 2026 →` nav row + thin progress bar (color-coded: green ≥80% / yellow ≥50% / red >0%) + stats row ("55 задач · 11 выполнено" left, large "20%" right). Spinner inline when loading.
+### Progress (`/reports`) — formerly Reports
+**Page header row**: "Прогресс" title (22px weight 800) + streak pill 🔥 + momentum score% + trend arrow — right-aligned.
+
+**Active challenges section** (top, before calendar):
+- Section label "АКТИВНЫЕ ЧЕЛЛЕНДЖИ" (11px uppercase `textTertiary`)
+- `ChallengeRow` cards: icon + title + progress bar + % + chevron → `/reports/challenge/{id}`
+
+**Month header card** (single card): `← Май 2026 →` nav row + thin progress bar (color-coded: green ≥80% / yellow ≥50% / red >0%) + stats row ("55 задач · 11 выполнено" left, large "20%" right). Spinner inline when loading.
 - **Heatmap**: 7-col grid, rectangular cells (`minHeight: 44px`), `gap-1.5`, rounded-md corners
   - Inside each cell: day number (13px bold) + completion % (9px, only for past days with data)
   - 100%: `green` bg, white text
@@ -502,3 +496,13 @@ Two-step flow now has visual indicator: filled circle (step 1) → connector lin
 27. ✅ **Template library redesign**: 36 шаблонов в 9 категориях. Страница Челленджи = библиотека (категории → шаблоны). Управление «Мои челленджи» перенесено во вкладку Сегодня.
 28. ✅ **Onboarding redesign**: Welcome с 3 категориями-тизерами → Категория → Шаблоны → Настройка. Без step-dots. Имя пользователя убрано из онбординга, перенесено в Настройки.
 29. ✅ **Dashboard simplification**: убраны блок статистики (Active/Done/Skipped) и быстрые действия. Hero-карточка кликабельна → Сегодня. Карточки активных челленджей кликабельны → детали.
+30. ✅ **Navigation restructure**: Dashboard удалён. 4 таба: Сегодня (home) · Челленджи · Прогресс · Настройки. `/` редиректит на `/daily`.
+31. ✅ **Streak + momentum on Today**: мини-строка под прогресс-баром в шапке страницы Сегодня — 🔥 streak + momentum% + trend arrow.
+32. ✅ **Progress page** (бывшие Отчёты): активные челленджи + streak/momentum в шапке; календарная аналитика ниже.
+33. ✅ **Paused tasks hidden**: паузированные задачи скрыты из списков Today и Progress. Счётчик X/Y и прогресс-бар их не учитывают.
+34. ✅ **Upcoming challenges grouping**: вкладка Активные в "Мои челленджи" делится на "Сейчас" и "Позже" (start_date > today). На Progress то же разделение.
+35. ✅ **Completed task card v2**: иконка категории сохраняется (не заменяется). Зелёный badge-кружок (18px) с ✓ в правом нижнем углу. Кнопка "Отменить" — серая таблетка, того же размера что Пропуск/Готово.
+36. ✅ **Back navigation fixes**: ChallengeDetail → `navigate(-1)`; ChallengeReport → `/challenges/{id}`; CreateChallenge scratch → `navigate(-1)`.
+37. ✅ **ScrollToTop**: при каждом переходе между страницами скролл сбрасывается в 0.
+38. ✅ **Email dedup fix**: Redis-ключ ставится после успешной отправки, не до. `dispatch()` не шлёт email-fallback если у пользователя включён HTML-отчёт.
+39. ✅ **Paused challenge auto-complete**: смена даты окончания на прошлое → автоматически завершает челлендж (в т.ч. из паузы). Resume паузированного с просроченной датой → `completed`, не `active`.
