@@ -104,8 +104,8 @@ _SEED_TEMPLATES = [
      "default_duration_days": 30, "tasks_per_day": 1, "task_times": None, "icon": "🍷", "slug": "no-alcohol"},
     {"title": "No Smoking", "description": "Quit smoking — your lungs will start recovering in 24 hours", "type": "all_day",
      "default_duration_days": 30, "tasks_per_day": 1, "task_times": None, "icon": "🚭", "slug": "no-smoking"},
-    {"title": "No Late Snacks", "description": "Stop eating after 8pm — better sleep and metabolism", "type": "single",
-     "default_duration_days": 30, "tasks_per_day": 1, "task_times": '["20:00"]', "icon": "🌙", "slug": "no-late-snacks"},
+    {"title": "No Swearing", "description": "Go 7 days without swearing — train your speech and mind", "type": "all_day",
+     "default_duration_days": 7, "tasks_per_day": 1, "task_times": None, "icon": "🤐", "slug": "no-swearing"},
     # Relationships (v2)
     {"title": "Call Loved Ones", "description": "Call a family member or close friend every day", "type": "single",
      "default_duration_days": 30, "tasks_per_day": 1, "task_times": '["19:00"]', "icon": "📞", "slug": "call-loved-ones"},

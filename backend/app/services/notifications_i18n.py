@@ -39,7 +39,7 @@ _CHALLENGE_TITLES: dict[str, dict[str, str]] = {
     "Financial Journal":          {"ru": "Финансовый дневник",        "es": "Diario financiero",         "pt": "Diário financiero"},
     "No Alcohol":                 {"ru": "Без алкоголя",              "es": "Sin alcohol",               "pt": "Sem álcool"},
     "No Smoking":                 {"ru": "Без курения",               "es": "Sin fumar",                 "pt": "Sem fumar"},
-    "No Late Snacks":             {"ru": "Без поздних перекусов",     "es": "Sin meriendas tardías",     "pt": "Sem lanches noturnos"},
+    "No Swearing":                {"ru": "Без мата",                  "es": "Sin groserías",             "pt": "Sem palavrões"},
     "Call Loved Ones":            {"ru": "Звонок близким",            "es": "Llamar a seres queridos",   "pt": "Ligar para entes queridos"},
     "Family Time":                {"ru": "Время с семьёй",            "es": "Tiempo en familia",         "pt": "Tempo em família"},
     "Meet a Friend":              {"ru": "Встреча с другом",          "es": "Quedar con un amigo",       "pt": "Encontrar um amigo"},

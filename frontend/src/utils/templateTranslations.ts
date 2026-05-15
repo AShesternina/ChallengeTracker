@@ -66,7 +66,7 @@ export const TEMPLATE_CATEGORY_MAP: Record<string, string> = {
   "No Alcohol":              "🚫 Quit Habits",
   "No Smoking":              "🚫 Quit Habits",
   "No Sugar":                "🚫 Quit Habits",
-  "No Late Snacks":          "🚫 Quit Habits",
+  "No Swearing":             "🚫 Quit Habits",
   // Relationships
   "Call Loved Ones":         "❤️ Relationships",
   "Family Time":             "❤️ Relationships",
@@ -114,7 +114,7 @@ const TITLE_MAP: Record<string, Record<TemplateLang, string>> = {
   "No Alcohol":              { ru: "Без алкоголя",             en: "No Alcohol",              es: "Sin alcohol",                pt: "Sem álcool" },
   "No Smoking":              { ru: "Без курения",              en: "No Smoking",              es: "Sin fumar",                  pt: "Sem fumar" },
   "No Sugar":                { ru: "Без сахара",               en: "No Sugar",                es: "Sin azúcar",                 pt: "Sem açúcar" },
-  "No Late Snacks":          { ru: "Без поздних перекусов",    en: "No Late Snacks",          es: "Sin meriendas tardías",      pt: "Sem lanches noturnos" },
+  "No Swearing":             { ru: "Без мата",                  en: "No Swearing",             es: "Sin groserías",              pt: "Sem palavrões" },
   // ❤️ Relationships
   "Call Loved Ones":         { ru: "Звонок близким",           en: "Call Loved Ones",         es: "Llamar a seres queridos",    pt: "Ligar para entes queridos" },
   "Family Time":             { ru: "Время с семьёй",           en: "Family Time",             es: "Tiempo en familia",          pt: "Tempo em família" },
@@ -193,8 +193,8 @@ const DESC_MAP: Record<string, Record<TemplateLang, string>> = {
     { ru: "Бросьте курить — ваши лёгкие начнут восстанавливаться через 24 часа", en: "Quit smoking — your lungs will start recovering in 24 hours", es: "Deja de fumar — tus pulmones comenzarán a recuperarse en 24 horas", pt: "Pare de fumar — seus pulmões começarão a se recuperar em 24 horas" },
   "Avoid sugar for the whole day":
     { ru: "Избегайте сахара в течение всего дня", en: "Avoid sugar for the whole day", es: "Evita el azúcar durante todo el día", pt: "Evite açúcar durante todo o dia" },
-  "Stop eating after 8pm — better sleep and metabolism":
-    { ru: "Перестаньте есть после 20:00 — лучший сон и метаболизм", en: "Stop eating after 8pm — better sleep and metabolism", es: "Deja de comer después de las 20:00 — mejor sueño y metabolismo", pt: "Pare de comer após as 20h — melhor sono e metabolismo" },
+  "Go 7 days without swearing — train your speech and mind":
+    { ru: "7 дней без мата — тренируй речь и осознанность", en: "Go 7 days without swearing — train your speech and mind", es: "7 días sin groserías — entrena tu habla y mente", pt: "7 dias sem palavrões — treine sua fala e mente" },
   // Relationships
   "Call a family member or close friend every day":
     { ru: "Позвоните члену семьи или близкому другу каждый день", en: "Call a family member or close friend every day", es: "Llama a un familiar o amigo cercano cada día", pt: "Ligue para um familiar ou amigo próximo todo dia" },
@@ -275,7 +275,7 @@ export const SLUG_TO_TITLE: Record<string, string> = {
   "no-alcohol":              "No Alcohol",
   "no-smoking":              "No Smoking",
   "no-sugar":                "No Sugar",
-  "no-late-snacks":          "No Late Snacks",
+  "no-swearing":             "No Swearing",
   // Relationships
   "call-loved-ones":         "Call Loved Ones",
   "family-time":             "Family Time",

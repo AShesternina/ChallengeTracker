@@ -275,7 +275,7 @@ async def test_templates_v2_count(client: AsyncClient):
 async def test_templates_v2_new_slugs(client: AsyncClient):
     """New v2 templates are accessible by slug (public endpoint)."""
     new_slugs = [
-        "no-alcohol", "no-smoking", "no-late-snacks",
+        "no-alcohol", "no-smoking", "no-swearing",
         "blood-pressure-check", "daily-vegetables",
         "read-20-pages", "learn-20-words", "coding-practice",
         "deep-work-2-hours", "daily-planning", "3-main-tasks",
