@@ -227,8 +227,10 @@ No web fonts loaded — system stack only.
 - Caption "Momentum": 9px white/50
 - Metric: weighted 14-day completion (today = weight 14, 13 days ago = weight 1)
 
-### Challenge Report — Recovery Analytics
-- Shown when `resilience_score !== null`
+### Challenge Report — Mascot + Recovery Analytics
+- Hero section: **Trackee mascot** (120px) between progress bar and stats grid, emotion based on completion rate:
+  - ≥80% → `happy_dancing`, ≥50% → `confident_relaxed`, <50% → `sad`
+- Recovery analytics shown when `resilience_score !== null`
 - Section title: "Recovery Analytics"
 - 4-cell grid: Resilience % (accent) / Avg comeback days / Breaks count / Comebacks count
 - Resilience = comebacks / breaks × 100, capped at 100%
@@ -297,11 +299,13 @@ Primary button shadow: `0 2px 8px accent+'40'`
 **Tasks tab**:
 - Paused tasks **hidden entirely** — not shown, not counted in X/Y
 - Pending tasks → done/skipped tasks
-- All-done state: green banner with 🎉
+- Empty state (no challenges started): **Trackee questioning mascot** (120px) + text
+- All-done state: green banner with **Trackee excited_happy mascot** (64px) + confetti particles
 
 **Мои челленджи tab**:
 - Sub-filter: Active / Paused / Completed (segmented with counts)
 - Active tab split into **Сейчас** (start_date ≤ today) and **Позже** (start_date > today) subgroups with section headers; "Позже" cards show opacity 0.7 + "через N дн." instead of %
+- Empty states: **questioning** (no active) / **sleepy** (no paused) / **surprised** (no completed) mascot
 - Challenge cards (clickable → detail page)
 - "Новый челлендж" dashed button at bottom → `/challenges`
 
@@ -332,7 +336,7 @@ Primary button shadow: `0 2px 8px accent+'40'`
 - CTA: "🚀 Запустить челлендж" primary full-width
 
 ### Progress (`/reports`) — formerly Reports
-**Page header row**: "Прогресс" title (22px weight 800) + streak pill 🔥 + momentum score% + trend arrow — right-aligned.
+**Page header row**: **Trackee thinking_wise mascot** (64px) + "Прогресс" title (22px weight 800) + streak pill 🔥 + momentum score% + trend arrow — right-aligned.
 
 **Active challenges section** (top, before calendar):
 - Section label "АКТИВНЫЕ ЧЕЛЛЕНДЖИ" (11px uppercase `textTertiary`)
@@ -370,7 +374,53 @@ Primary button shadow: `0 2px 8px accent+'40'`
 
 ---
 
-## 7. Icon System
+## 7. Trackee — Mascot Character
+
+**Trackee** — фиолетовый осьминог, маскот приложения. Реагирует на прогресс пользователя, создаёт эмоциональную связь с приложением.
+
+### 12 эмоций
+
+| Файл | Эмоция | Когда показывать |
+|------|--------|-----------------|
+| `01_angry.png` | Злой | Серия прервана, задачи игнорировались несколько дней |
+| `02_sleepy.png` | Сонный | Нет паузированных челленджей (empty state) |
+| `03_surprised.png` | Удивлённый | Нет завершённых челленджей (empty state); первое достижение |
+| `04_sad.png` | Грустный | Completion rate < 50% в Challenge Report; push daily <50% |
+| `05_cool.png` | Крутой | Push morning_summary со стриком > 7 дней |
+| `06_skeptical.png` | Скептичный | Задача пропущена без причины |
+| `07_questioning.png` | С вопросом | Нет задач сегодня (нет активных челленджей); нет активных в «Мои челленджи» |
+| `08_excited_happy.png` | Радостный | Все задачи выполнены (CelebrationBanner); push daily ≥80% |
+| `09_nervous.png` | Нервный | Push task_reminder |
+| `10_confident_relaxed.png` | Уверенный | Completion 50–79% в Challenge Report; push daily ≥50% |
+| `11_thinking_wise.png` | Мудрый | Заголовок страницы Прогресс; push weekly <80%; burnout alert |
+| `12_happy_dancing.png` | Танцует | Completion ≥80% в Challenge Report; push daily 100%; push weekly ≥80%; all-done в CelebrationBanner |
+
+### Размеры
+
+| Название | px | Использование |
+|---|---|---|
+| `small` | 64px | CelebrationBanner, push icon |
+| `medium` | 120px | Empty states, Challenge Report hero |
+| `large` | 160px | Зарезервировано для будущих экранов |
+
+### Правила
+
+- **Один маскот на экран** — не дублировать на одной странице
+- **Анимация входа**: `fade + scale(0.85→1)`, 0.3s `cubic-bezier(0, 0, 0.2, 1)` — уже встроена в компонент
+- **Не добавлять** в TaskCard, строки списков или inline-элементы
+- **Файлы**: `frontend/public/mascot/` (статика, не import — доступны по URL)
+- **Компонент**: `components/Mascot.tsx` — props: `emotion`, `size`, `className`
+
+### Mascot в уведомлениях
+
+Push-уведомления показывают маскота через поля `icon` и `image`:
+- URL формируется как `${origin}/mascot/{filename}`
+- Telegram и email fallback — только текст (без изображений)
+- HTML email отчёты (daily/weekly) — маскот как `<img>` в начале письма
+
+---
+
+## 8. Icon System
 
 **Library**: Custom stroke SVG (Lucide-style)  
 **Default stroke**: 1.9px, strokeLinecap: round, strokeLinejoin: round  
@@ -497,6 +547,8 @@ Two-step flow now has visual indicator: filled circle (step 1) → connector lin
 28. ✅ **Onboarding redesign**: Welcome с 3 категориями-тизерами → Категория → Шаблоны → Настройка. Без step-dots. Имя пользователя убрано из онбординга, перенесено в Настройки.
 29. ✅ **Dashboard simplification**: убраны блок статистики (Active/Done/Skipped) и быстрые действия. Hero-карточка кликабельна → Сегодня. Карточки активных челленджей кликабельны → детали.
 30. ✅ **Navigation restructure**: Dashboard удалён. 4 таба: Сегодня (home) · Челленджи · Прогресс · Настройки. `/` редиректит на `/daily`.
+31. ✅ **Trackee mascot**: 12 эмоций (фиолетовый осьминог). Интегрирован: Today empty/all-done, Мои челленджи empty states, Progress header, ChallengeReport hero, push notifications (icon+image), email HTML отчёты. Файлы в `frontend/public/mascot/`.
+32. ✅ **Notification personalization**: имя пользователя в push (morning greeting, burnout) и Telegram. Mascot icon в каждом типе push. Email отчёты с маскотом по completion rate.
 31. ✅ **Streak + momentum on Today**: мини-строка под прогресс-баром в шапке страницы Сегодня — 🔥 streak + momentum% + trend arrow.
 32. ✅ **Progress page** (бывшие Отчёты): активные челленджи + streak/momentum в шапке; календарная аналитика ниже.
 33. ✅ **Paused tasks hidden**: паузированные задачи скрыты из списков Today и Progress. Счётчик X/Y и прогресс-бар их не учитывают.

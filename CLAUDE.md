@@ -82,7 +82,7 @@ All business logic lives in `services/`. Endpoints only validate input, call ser
 
 ```
 frontend/src/
-  components/    Layout, TaskCard, ProgressRing, Icons, PasswordInput, ConfirmModal, InstallBanner
+  components/    Layout, TaskCard, ProgressRing, Icons, PasswordInput, ConfirmModal, InstallBanner, Mascot
   pages/         DailyTasks, Challenges, CreateChallenge, ChallengeDetail,
                  ChallengeReport, Reports (= Progress page), Settings, ChangePassword,
                  Login, Register, Onboarding, PublicChallenge, VerifyEmail
@@ -215,7 +215,7 @@ docker exec challengetracker-backend-1 alembic upgrade head
 docker exec challengetracker-backend-1 alembic revision --autogenerate -m "description"
 ```
 
-Migrations: `0001_initial` → ... → `0009_add_onboarding_completed` → `0010_add_notification_times` → `0011_add_notify_task_reminders` → `0012_add_telegram` → `0013_add_weekly_review_notification_type` → `0014_add_streak_protection` → `0015_add_burnout_alert_notification_type` → `0016_add_template_slugs` → `0017_add_user_theme` → `0018_add_email_verification_token` → `0019_add_user_name` → `0020_add_new_templates` → `0021_add_email_report_settings`
+Migrations: `0001_initial` → ... → `0009_add_onboarding_completed` → `0010_add_notification_times` → `0011_add_notify_task_reminders` → `0012_add_telegram` → `0013_add_weekly_review_notification_type` → `0014_add_streak_protection` → `0015_add_burnout_alert_notification_type` → `0016_add_template_slugs` → `0017_add_user_theme` → `0018_add_email_verification_token` → `0019_add_user_name` → `0020_add_new_templates` → `0021_add_email_report_settings` → `0022_replace_no_late_snacks_template`
 
 PostgreSQL enums require explicit `CAST(:value AS enumtype)` — do NOT use `op.bulk_insert()` with enum columns.
 
@@ -279,7 +279,7 @@ Template name/description translations live in `utils/templateTranslations.ts`.
 5. 💼 Productivity — Deep Work 2 Hours, Daily Planning, No Social Media Until Noon, 3 Main Tasks
 6. 🧹 Home & Order — 15 Min Cleaning, Clean Desk, Declutter, Minimalism 1 Item
 7. 💰 Finance — Daily Expense Tracking, No Spend Day, Daily Savings, Financial Journal
-8. 🚫 Quit Habits — No Alcohol, No Smoking, No Sugar, No Late Snacks
+8. 🚫 Quit Habits — No Alcohol, No Smoking, No Sugar, No Swearing (🤐, 7 days, all_day)
 9. ❤️ Relationships — Call Loved Ones, Family Time, Meet a Friend, Self-Care Day
 
 `CATEGORY_ORDER`, `CATEGORY_LABELS`, `TEMPLATE_CATEGORY_MAP` exported from `templateTranslations.ts` — all category/template UI must use these. Category key = `"🥗 Health & Nutrition"` (English internal key). Old templates (16 from initial seed) remain in DB for backward compat but are not shown in the library UI.
@@ -292,10 +292,22 @@ Template name/description translations live in `utils/templateTranslations.ts`.
 3. **Email fallback** — only if both push and Telegram unavailable/failed. `notifications_i18n.py` provides translated text. **Exception:** skips email fallback for `daily_report` if `user.notify_email_daily=True`, and for `weekly_review` if `user.notify_email_weekly=True` — to prevent duplicate emails when the user already receives the dedicated HTML report.
 
 **Dynamic notification tone:**
-- Morning summary: shows `🔥 N дней подряд!` if `streak > 1`, otherwise generic greeting
+- Morning summary: shows `🔥 N дней подряд, {name}!` if `streak > 1`, otherwise `Доброе утро, {name}!`; name omitted if null
 - Daily report: 4 variants by completion rate — 100% (🎉 perfect), ≥80% (💪 great), ≥50% (👍 good), <50% (💙 ok)
 - Weekly review: 🏆 if rate ≥80%, 📊 otherwise
+- Burnout alert: includes name if set — `Сложная неделя, {name}? Всё ок.`
 - Challenge titles in task reminders translated to user's language via `translate_challenge_title()`
+
+**Push payload always includes `name` field** (empty string if null). All `send_*()` helpers pass `user.name or ""` in push_data.
+
+**Mascot icons in push notifications:** each notification type shows the Trackee mascot as `icon` + `image` in the system notification:
+- `morning_summary`: `happy_dancing` (streak >7 → `cool`)
+- `daily_report`: `happy_dancing` (100%) / `excited_happy` (≥80%) / `confident_relaxed` (≥50%) / `sad` (<50%)
+- `task_reminder`: `nervous`
+- `weekly_review`: `happy_dancing` (≥80%) / `thinking_wise` (<80%)
+- `burnout_alert`: `thinking_wise`
+
+Images at `{FRONTEND_URL}/mascot/{filename}.png` (served from `frontend/public/mascot/`).
 
 **Dedup:** morning/evening Celery tasks skip send if same type was successfully sent in last 30 min. Task reminders skip if sent in last 4 min.
 
@@ -427,7 +439,7 @@ docker exec challengetracker-backend-1 pytest tests/test_auth.py::test_login_suc
 - Production server does NOT have `PYTEST_ALLOW=1` — pytest is blocked at import time with a clear error
 - `pytest` is also not installed in the production image (double protection)
 
-Test files: `test_auth.py` (48) · `test_challenges.py` (21) · `test_daily.py` (11) · `test_reports.py` (16) · `test_new_features.py` (29) · `test_telegram.py` (8)
+Test files: `test_auth.py` (48) · `test_challenges.py` (22) · `test_daily.py` (11) · `test_reports.py` (16) · `test_new_features.py` (31) · `test_telegram.py` (8)
 
 `conftest.py` uses `drop_all + create_all` before each test session to ensure schema is always up to date with current models.
 
@@ -468,3 +480,4 @@ docker exec challengetracker-backend-1 alembic upgrade head
 - **Settings structure**: No separate Profile section — avatar + name (inline edit, tap pencil to open input, ✓/✕ buttons) + email displayed in the page header row alongside the theme switcher. Sending empty name clears it to null in DB. Section **РЕГИОН** combines Language (accordion) + Timezone (accordion, auto-saves on select, no Save button). Email Reports section visible only when `is_verified=True`. Notification times section always visible. Account section: email + verification status + change password + sign out + delete account. `/settings/change-password` is a separate page.
 - **Navigation structure**: 4 tabs — Today (home, `/daily`) · Challenges (`/challenges`) · Progress (`/reports`) · Settings. Dashboard page removed; `/` redirects to `/daily`. My Challenges management lives inside Today page (second tab "Мои челленджи" = active/paused/completed list, split into Current/Upcoming subgroups for active). Challenges page = template library (category grid → templates → start) with "Мои челленджи →" link to `/daily?tab=challenges`. Progress page = streak + momentum + active challenges at top, then calendar heatmap + weekday patterns + insights below. DailyTasks header shows streak 🔥 + momentum % mini-widget. `ScrollToTop` component in App.tsx resets scroll on every route change.
 - **"Create from scratch"**: always navigates to `/challenges/new?scratch=1`. CreateChallenge.tsx reads the `scratch` param and starts at "configure" step directly, skipping template selection.
+- **Mascot (Trackee)**: purple octopus character, 12 emotions, images in `frontend/public/mascot/` (01_angry … 12_happy_dancing). Component: `components/Mascot.tsx` — props: `emotion`, `size` (small 64/medium 120/large 160px), `className`. Fade+scale entrance animation. Used in: Today empty state (`questioning`), all-done banner (`excited_happy`), My Challenges empty states (`questioning`/`sleepy`/`surprised`), Progress header (`thinking_wise`), ChallengeReport hero (`happy_dancing`/`confident_relaxed`/`sad` by rate), push notifications icon+image, email reports (daily+weekly HTML). Never add mascot to task cards or inline list items.

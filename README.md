@@ -170,10 +170,10 @@ backend/app/
   schemas/            — Pydantic schemas
   services/           — вся бизнес-логика (в т.ч. language_service, notifications_i18n)
   workers/            — Celery app + scheduled tasks
-alembic/              — миграции (0001 → ... → 0021)
+alembic/              — миграции (0001 → ... → 0022)
 
 frontend/src/
-  components/         — Layout, TaskCard, ProgressRing, Icons, PasswordInput, ConfirmModal, InstallBanner
+  components/         — Layout, TaskCard, ProgressRing, Icons, PasswordInput, ConfirmModal, InstallBanner, Mascot
   pages/              — DailyTasks, Challenges, CreateChallenge, ChallengeDetail, ChallengeReport, Reports (= Progress), Settings, ChangePassword, Login, Register, Onboarding, PublicChallenge, VerifyEmail
   store/              — authStore (user incl. name + tokens + language + theme + onboarding + notif prefs + streak_protection + telegram_chat_id), taskStore, themeStore (system/light/dark), installStore
   services/           — api.ts, push.ts, sw-lang.ts, telegramApi
@@ -274,10 +274,10 @@ DELETE /api/v1/notifications/devices/{id}
 
 ## Деплой (production)
 
-- **Frontend**: Vercel — автодеплой из ветки master → tracker.shura.pro
+- **Frontend**: VPS 195.133.194.173 (nginx → порт 3000), собирается через multi-stage Dockerfile. Vercel используется как резерв.
 - **Backend + DB + Redis**: VPS 195.133.194.173, docker-compose.prod.yml
-- **SSL**: Let's Encrypt через certbot + nginx для api.tracker.shura.pro
-- **DNS**: Porkbun — tracker.shura.pro → Vercel, api.tracker.shura.pro → 195.133.194.173
+- **SSL**: Let's Encrypt через certbot + nginx для tracker.shura.pro и api.tracker.shura.pro
+- **DNS**: Porkbun — tracker.shura.pro → 195.133.194.173, api.tracker.shura.pro → 195.133.194.173
 
 ```bash
 # На сервере
@@ -309,4 +309,4 @@ docker exec challengetracker-backend-1 bash -c \
   "pip install -r requirements-test.txt -q && pytest tests/ -v --tb=short --cov=app --cov-report=term-missing"
 ```
 
-133 тестов: test_auth (48) · test_challenges (21) · test_daily (11) · test_reports (16) · test_new_features (29) · test_telegram (8)
+136 тестов: test_auth (48) · test_challenges (22) · test_daily (11) · test_reports (16) · test_new_features (31) · test_telegram (8)
