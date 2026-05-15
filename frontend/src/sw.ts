@@ -250,10 +250,10 @@ self.addEventListener("push", (event) => {
       return self.registration.showNotification(title, {
         body,
         icon: mascot,
-        image: mascot,
         data: { url: (data.url as string) || "/" },
         requireInteraction: true,
-      });
+        ...({ image: mascot } as object),
+      } as NotificationOptions);
     })
   );
 });
