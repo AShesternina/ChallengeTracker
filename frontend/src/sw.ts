@@ -246,9 +246,11 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     getLang().then((lang) => {
       const { title, body } = resolve(type, lang, data);
+      const mascot = getMascotIcon(type, data);
       return self.registration.showNotification(title, {
         body,
-        icon: getMascotIcon(type, data),
+        icon: mascot,
+        image: mascot,
         data: { url: (data.url as string) || "/" },
         requireInteraction: true,
       });
