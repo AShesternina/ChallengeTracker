@@ -299,3 +299,19 @@ async def test_templates_v2_fields(client: AsyncClient):
         assert tpl["icon"]
         assert tpl["type"] in ("single", "multi", "all_day")
         assert tpl["default_duration_days"] > 0
+
+
+async def test_no_swearing_template_replaces_no_late_snacks(client: AsyncClient):
+    """no-swearing replaced no-late-snacks: correct slug, type, duration, icon."""
+    r = await client.get("/api/v1/challenges/templates/no-swearing")
+    assert r.status_code == 200
+    tpl = r.json()
+    assert tpl["slug"] == "no-swearing"
+    assert tpl["title"] == "No Swearing"
+    assert tpl["type"] == "all_day"
+    assert tpl["default_duration_days"] == 7
+    assert tpl["icon"] == "🤐"
+
+    # Old slug must be gone
+    r2 = await client.get("/api/v1/challenges/templates/no-late-snacks")
+    assert r2.status_code == 404

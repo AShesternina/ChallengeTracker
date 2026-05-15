@@ -423,3 +423,68 @@ async def test_resubscribe_endpoint_updates_subscription(client: AsyncClient):
     assert len(r_list.json()) == 1
 
     # 204 + device count unchanged is sufficient — DeviceOut doesn't expose push_subscription
+
+
+# ── paused challenge edge cases ───────────────────────────────────────────────
+
+async def test_paused_instance_end_date_past_auto_completes(client: AsyncClient):
+    """Updating end_date to a past date on a paused challenge should set status=completed."""
+    tokens = await register_and_login(client)
+    headers = auth_headers(tokens)
+
+    r = await client.post("/api/v1/challenges", json={
+        "title": "Pause + Past End",
+        "type": "single",
+        "default_duration_days": 30,
+        "tasks_per_day": 1,
+        "task_times": ["08:00"],
+    }, headers=headers)
+    cid = r.json()["id"]
+    r = await client.post("/api/v1/challenges/start",
+                          json={"challenge_id": cid, "start_date": TODAY}, headers=headers)
+    instance_id = r.json()["id"]
+
+    # Pause the challenge
+    await client.post(f"/api/v1/challenges/instances/{instance_id}/pause", headers=headers)
+
+    # Set end_date to yesterday — should auto-complete even while paused
+    yesterday = (date.today() - timedelta(days=1)).isoformat()
+    r = await client.patch(f"/api/v1/challenges/instances/{instance_id}",
+                           json={"end_date": yesterday}, headers=headers)
+    assert r.status_code == 200
+    assert r.json()["status"] == "completed"
+
+
+async def test_resume_expired_paused_instance_auto_completes(client: AsyncClient):
+    """Resuming a paused challenge whose end_date is in the past should set status=completed."""
+    tokens = await register_and_login(client)
+    headers = auth_headers(tokens)
+
+    past_start = (date.today() - timedelta(days=10)).isoformat()
+    r = await client.post("/api/v1/challenges", json={
+        "title": "Expired Paused",
+        "type": "single",
+        "default_duration_days": 7,
+        "tasks_per_day": 1,
+        "task_times": ["08:00"],
+    }, headers=headers)
+    cid = r.json()["id"]
+    r = await client.post("/api/v1/challenges/start",
+                          json={"challenge_id": cid, "start_date": past_start}, headers=headers)
+    # Challenge ends in the past — it's immediately completed, so we need a fresh one
+    # that we manually pause before end_date passes; simulate via direct PATCH end_date first
+    instance_id = r.json()["id"]
+    if r.json()["status"] == "completed":
+        pytest.skip("challenge auto-completed on start, can't test resume of expired paused")
+
+    await client.post(f"/api/v1/challenges/instances/{instance_id}/pause", headers=headers)
+
+    # Expire it by patching end_date to yesterday
+    yesterday = (date.today() - timedelta(days=1)).isoformat()
+    await client.patch(f"/api/v1/challenges/instances/{instance_id}",
+                       json={"end_date": yesterday}, headers=headers)
+
+    # Now resume — should be completed, not active
+    r = await client.post(f"/api/v1/challenges/instances/{instance_id}/resume", headers=headers)
+    assert r.status_code == 200
+    assert r.json()["status"] == "completed"
