@@ -8,6 +8,7 @@ import { useThemeStore } from "../store/themeStore";
 import { useCategoryStyle } from "../utils/category";
 import { ChevronRightIcon, ArrowLeftIcon } from "../components/Icons";
 import TaskCard from "../components/TaskCard";
+import Mascot from "../components/Mascot";
 import { translateTemplateName } from "../utils/templateTranslations";
 
 interface DayStats {
@@ -278,9 +279,12 @@ export default function Reports() {
 
       {/* Page header with streak + momentum */}
       <div className="flex items-center justify-between">
-        <h2 className="text-[22px] font-black text-text-primary" style={{ letterSpacing: "-0.4px" }}>
-          {t("nav.progress")}
-        </h2>
+        <div className="flex items-center gap-2.5">
+          <Mascot emotion="thinking_wise" size="small" />
+          <h2 className="text-[22px] font-black text-text-primary" style={{ letterSpacing: "-0.4px" }}>
+            {t("nav.progress")}
+          </h2>
+        </div>
         <div className="flex items-center gap-2">
           {streak > 0 && (
             <span className="flex items-center gap-1 text-[12px] font-bold px-2 py-0.5 rounded-full"

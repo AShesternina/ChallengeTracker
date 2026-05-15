@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { reportsApi } from "../services/api";
 import { ArrowLeftIcon, FlameIcon, TrophyIcon } from "../components/Icons";
+import Mascot, { MascotEmotion } from "../components/Mascot";
 import { useThemeStore } from "../store/themeStore";
 import { useCategoryStyle } from "../utils/category";
 import { translateTemplateName } from "../utils/templateTranslations";
@@ -53,6 +54,7 @@ export default function ChallengeReport() {
   const { icon, bg } = useCategoryStyle(report.challenge_title, dark);
   const rate = Math.round(report.completion_rate * 100);
   const rateColor = rate >= 80 ? "var(--color-success)" : rate >= 50 ? "var(--color-warning)" : "var(--color-danger)";
+  const mascotEmotion: MascotEmotion = rate >= 80 ? "happy_dancing" : rate >= 50 ? "confident_relaxed" : "sad";
 
   return (
     <div className="space-y-4">
@@ -87,6 +89,11 @@ export default function ChallengeReport() {
             <div className="h-full rounded-full transition-all"
               style={{ width: `${rate}%`, background: rateColor }} />
           </div>
+        </div>
+
+        {/* Mascot */}
+        <div className="flex justify-center mb-4">
+          <Mascot emotion={mascotEmotion} size="medium" />
         </div>
 
         {/* Stats grid */}

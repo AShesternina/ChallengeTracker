@@ -269,11 +269,12 @@ export default function DailyTasks() {
 
               {/* Empty state */}
               {filteredInstances.length === 0 && (
-                <div className="text-center py-14">
-                  <p className="text-4xl mb-3">
-                    {challengeFilter === "active" ? "🎯" : challengeFilter === "paused" ? "⏸️" : "📦"}
-                  </p>
-                  <p className="font-bold text-text-primary">
+                <div className="text-center py-10 flex flex-col items-center">
+                  <Mascot
+                    emotion={challengeFilter === "active" ? "questioning" : challengeFilter === "paused" ? "sleepy" : "surprised"}
+                    size="medium"
+                  />
+                  <p className="font-bold text-text-primary mt-4">
                     {challengeFilter === "active" ? t("challenges.no_challenges")
                       : challengeFilter === "paused" ? t("challenges.no_paused")
                       : t("challenges.no_completed")}

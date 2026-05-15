@@ -292,7 +292,11 @@ def get_daily_report_email(
     table_html = _challenges_html(challenges or [], lang)
     table_text = _challenges_text(challenges or [], lang)
 
-    body_html = f"""<p style="margin:0 0 4px;font-size:14px;color:#71717a;">{greeting}</p>
+    mascot_file = "12_happy_dancing.png" if rate == 100 else "08_excited_happy.png" if rate >= 80 else "10_confident_relaxed.png" if rate >= 50 else "04_sad.png"
+    mascot_url = f"{settings.FRONTEND_URL}/mascot/{mascot_file}"
+    mascot_html = f'<div style="text-align:center;margin-bottom:20px;"><img src="{mascot_url}" width="100" height="100" alt="Trackee" style="display:inline-block;object-fit:contain;" /></div>'
+
+    body_html = f"""{mascot_html}<p style="margin:0 0 4px;font-size:14px;color:#71717a;">{greeting}</p>
 <h2 style="margin:0 0 24px;font-size:22px;font-weight:900;color:#18181b;letter-spacing:-0.4px;">{s['heading']}</h2>
 <div style="text-align:center;margin-bottom:16px;">
   <span style="font-size:56px;font-weight:900;color:#18181b;letter-spacing:-3px;">{completed}</span>
@@ -363,7 +367,11 @@ def get_weekly_report_email(
     table_html = _challenges_html(challenges or [], lang)
     table_text = _challenges_text(challenges or [], lang)
 
-    body_html = f"""<p style="margin:0 0 4px;font-size:14px;color:#71717a;">{greeting}</p>
+    mascot_file = "12_happy_dancing.png" if rate >= 80 else "11_thinking_wise.png"
+    mascot_url = f"{settings.FRONTEND_URL}/mascot/{mascot_file}"
+    mascot_html = f'<div style="text-align:center;margin-bottom:20px;"><img src="{mascot_url}" width="100" height="100" alt="Trackee" style="display:inline-block;object-fit:contain;" /></div>'
+
+    body_html = f"""{mascot_html}<p style="margin:0 0 4px;font-size:14px;color:#71717a;">{greeting}</p>
 <h2 style="margin:0 0 24px;font-size:22px;font-weight:900;color:#18181b;letter-spacing:-0.4px;">{s['heading']}</h2>
 <div style="text-align:center;margin-bottom:16px;">
   <span style="font-size:56px;font-weight:900;color:#18181b;letter-spacing:-3px;">{completed}</span>
