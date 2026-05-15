@@ -9,6 +9,7 @@ import { useThemeStore } from "../store/themeStore";
 import { useCategoryStyle } from "../utils/category";
 import { ChevronRightIcon } from "../components/Icons";
 import TaskCard from "../components/TaskCard";
+import Mascot from "../components/Mascot";
 import { translateTemplateName } from "../utils/templateTranslations";
 
 type Tab = "tasks" | "challenges";
@@ -191,14 +192,14 @@ export default function DailyTasks() {
       {tab === "tasks" && (
         <>
           {visibleTotal === 0 && (
-            <div className="text-center py-14">
-              <p className="text-4xl mb-3">🎉</p>
-              <p className="font-bold text-text-primary">{t("daily.no_tasks")}</p>
+            <div className="text-center py-10 flex flex-col items-center">
+              <Mascot emotion="questioning" size="medium" />
+              <p className="font-bold text-text-primary mt-4">{t("daily.no_tasks")}</p>
               <p className="text-[13px] text-text-tertiary mt-1">{t("daily.no_tasks_hint")}</p>
             </div>
           )}
           {pending.length === 0 && visibleTotal > 0 && (
-            <CelebrationBanner message={t("daily.all_done")} />
+            <CelebrationBanner message={t("daily.all_done")} sub={t("daily.all_done_sub")} />
           )}
           {pending.length > 0 && (
             <div className="space-y-2">
@@ -327,7 +328,7 @@ export default function DailyTasks() {
   );
 }
 
-function CelebrationBanner({ message }: { message: string }) {
+function CelebrationBanner({ message, sub }: { message: string; sub: string }) {
   const PARTICLES = [
     { emoji: "🎉", left: "20%", anim: "floatUpLeft",   delay: "0s" },
     { emoji: "✨", left: "46%", anim: "floatUpCenter",  delay: "0.12s" },
@@ -341,10 +342,11 @@ function CelebrationBanner({ message }: { message: string }) {
           {emoji}
         </span>
       ))}
-      <div className="celebrate-banner text-center py-4 rounded-md"
+      <div className="celebrate-banner text-center py-5 rounded-md flex flex-col items-center"
         style={{ background: "var(--color-success-bg)", border: "1px solid var(--color-success)" }}>
-        <p className="text-2xl mb-1">✅</p>
-        <p className="font-bold text-success text-[14px]">{message}</p>
+        <Mascot emotion="excited_happy" size="small" />
+        <p className="font-bold text-[14px] mt-2" style={{ color: "var(--color-success)" }}>{message}</p>
+        <p className="text-[12px] mt-0.5" style={{ color: "var(--color-success)" }}>{sub}</p>
       </div>
     </div>
   );

@@ -79,6 +79,7 @@ const pt = {
     title: "Tarefas de hoje",
     progress: "Progresso",
     all_done: "Tudo feito por hoje!",
+    all_done_sub: "Continue assim!",
     no_tasks: "Sem tarefas hoje!",
     no_tasks_hint: "Inicie um desafio para ver tarefas aqui.",
     action_failed: "Ação falhou",

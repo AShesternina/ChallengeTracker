@@ -79,6 +79,7 @@ const en = {
     title: "Today's Tasks",
     progress: "Progress",
     all_done: "All done for today!",
+    all_done_sub: "Keep it up!",
     no_tasks: "No tasks today!",
     no_tasks_hint: "Start a challenge to see tasks here.",
     action_failed: "Action failed",
