@@ -20,18 +20,18 @@ interface NotificationStrings {
 
 // Morning — default (no streak)
 const MORNING_DEFAULT: Record<Lang, NotificationStrings> = {
-  en: { title: "Good morning! ☀️",  body: "You have {total} tasks today. Let's go!" },
-  ru: { title: "Доброе утро! ☀️",   body: "Сегодня {total} задач. Давай начнём!" },
-  es: { title: "¡Buenos días! ☀️",  body: "Tienes {total} tareas hoy. ¡Vamos!" },
-  pt: { title: "Bom dia! ☀️",       body: "Você tem {total} tarefas hoje. Vamos lá!" },
+  en: { title: "Good morning{namepart}! ☀️",  body: "You have {total} tasks today. Let's go!" },
+  ru: { title: "Доброе утро{namepart}! ☀️",   body: "Сегодня {total} задач. Давай начнём!" },
+  es: { title: "¡Buenos días{namepart}! ☀️",  body: "Tienes {total} tareas hoy. ¡Vamos!" },
+  pt: { title: "Bom dia{namepart}! ☀️",       body: "Você tem {total} tarefas hoje. Vamos lá!" },
 };
 
 // Morning — with streak (streak > 1)
 const MORNING_STREAK: Record<Lang, NotificationStrings> = {
-  en: { title: "🔥 {streak} days in a row!",      body: "{total} tasks today. Don't stop now!" },
-  ru: { title: "🔥 {streak} дней подряд!",         body: "{total} задач сегодня. Не останавливайся!" },
-  es: { title: "🔥 ¡{streak} días seguidos!",      body: "{total} tareas hoy. ¡No pares ahora!" },
-  pt: { title: "🔥 {streak} dias seguidos!",       body: "{total} tarefas hoje. Não pare agora!" },
+  en: { title: "🔥 {streak} days in a row{namepart}!",      body: "{total} tasks today. Don't stop now!" },
+  ru: { title: "🔥 {streak} дней подряд{namepart}!",         body: "{total} задач сегодня. Не останавливайся!" },
+  es: { title: "🔥 ¡{streak} días seguidos{namepart}!",      body: "{total} tareas hoy. ¡No pares ahora!" },
+  pt: { title: "🔥 {streak} dias seguidos{namepart}!",       body: "{total} tarefas hoje. Não pare agora!" },
 };
 
 // Daily report — 4 variants by completion rate
@@ -175,11 +175,30 @@ function interpolate(template: string, vars: Record<string, string | number>): s
   return template.replace(/\{(\w+)\}/g, (_, key) => String(vars[key] ?? `{${key}}`));
 }
 
+function getMascotIcon(type: string, data: Record<string, unknown>): string {
+  const base = `${self.location.origin}/mascot/`;
+  if (type === "morning_summary") {
+    return base + (Number(data.streak ?? 0) > 7 ? "05_cool.png" : "12_happy_dancing.png");
+  }
+  if (type === "daily_report") {
+    const rate = Number(data.rate ?? 0);
+    if (rate === 100) return base + "12_happy_dancing.png";
+    if (rate >= 80)   return base + "08_excited_happy.png";
+    if (rate >= 50)   return base + "10_confident_relaxed.png";
+    return base + "04_sad.png";
+  }
+  if (type === "task_reminder")  return base + "09_nervous.png";
+  if (type === "weekly_review")  return base + (Number(data.rate ?? 0) >= 80 ? "12_happy_dancing.png" : "11_thinking_wise.png");
+  if (type === "burnout_alert")  return base + "11_thinking_wise.png";
+  return base + "10_confident_relaxed.png";
+}
+
 // ── Dynamic notification resolution ─────────────────────────────────────────
 
 function resolve(type: string, lang: Lang, data: Record<string, unknown>): { title: string; body: string } {
   const L = SUPPORTED_LANGS.has(lang) ? lang : FALLBACK_LANG;
-  const vars = data as Record<string, string | number>;
+  const name = String(data.name ?? "").trim();
+  const vars = { ...(data as Record<string, string | number>), namepart: name ? `, ${name}` : "" };
 
   if (type === "morning_summary") {
     const streak = Number(data.streak ?? 0);
@@ -229,6 +248,7 @@ self.addEventListener("push", (event) => {
       const { title, body } = resolve(type, lang, data);
       return self.registration.showNotification(title, {
         body,
+        icon: getMascotIcon(type, data),
         data: { url: (data.url as string) || "/" },
         requireInteraction: true,
       });

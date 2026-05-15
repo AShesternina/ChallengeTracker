@@ -128,9 +128,10 @@ async def dispatch(
 
 
 async def send_morning_summary(db: AsyncSession, user: User, total_tasks: int, streak: int = 0) -> None:
-    push_data = {"type": "morning_summary", "total": total_tasks, "streak": streak, "url": "/daily"}
+    display_name = user.name or ""
+    push_data = {"type": "morning_summary", "total": total_tasks, "streak": streak, "name": display_name, "url": "/daily"}
     email_title, email_body = get_morning_summary(user.language, total_tasks, streak)
-    tg_text, tg_url = get_morning_telegram(user.language, total_tasks, streak)
+    tg_text, tg_url = get_morning_telegram(user.language, total_tasks, streak, name=display_name)
     await dispatch(db, user, NotificationType.morning_summary, push_data, email_title, email_body,
                    telegram_text=tg_text, telegram_url=tg_url,
                    telegram_button_label=_OPEN_LABEL.get(user.language, "Open →"))
@@ -140,7 +141,7 @@ async def send_task_reminder(db: AsyncSession, user: User, task_names: list[str]
     translated = [translate_challenge_title(n, user.language) for n in task_names]
     tasks_str = ", ".join(translated)
     count = len(task_names)
-    push_data = {"type": "task_reminder", "tasks": tasks_str, "count": count, "url": "/daily"}
+    push_data = {"type": "task_reminder", "tasks": tasks_str, "count": count, "name": user.name or "", "url": "/daily"}
     email_title, email_body = get_task_reminder(user.language, tasks_str)
     tg_text, tg_url = get_task_reminder_telegram(user.language, tasks_str)
     await dispatch(db, user, NotificationType.task_reminder, push_data, email_title, email_body,
@@ -150,7 +151,7 @@ async def send_task_reminder(db: AsyncSession, user: User, task_names: list[str]
 
 async def send_daily_report(db: AsyncSession, user: User, completed: int, total: int) -> None:
     rate = round(completed / total * 100) if total else 0
-    push_data = {"type": "daily_report", "completed": completed, "total": total, "rate": rate, "url": "/reports"}
+    push_data = {"type": "daily_report", "completed": completed, "total": total, "rate": rate, "name": user.name or "", "url": "/reports"}
     email_title, email_body = get_daily_report(user.language, completed, total, rate)
     tg_text, tg_url = get_daily_report_telegram(user.language, completed, total, rate)
     await dispatch(db, user, NotificationType.daily_report, push_data, email_title, email_body,
@@ -159,9 +160,10 @@ async def send_daily_report(db: AsyncSession, user: User, completed: int, total:
 
 
 async def send_burnout_alert(db: AsyncSession, user: User) -> None:
-    push_data = {"type": "burnout_alert", "url": "/daily"}
+    display_name = user.name or ""
+    push_data = {"type": "burnout_alert", "name": display_name, "url": "/daily"}
     email_title, email_body = get_burnout_alert(user.language)
-    tg_text, tg_url = get_burnout_telegram(user.language)
+    tg_text, tg_url = get_burnout_telegram(user.language, name=display_name)
     await dispatch(db, user, NotificationType.burnout_alert, push_data, email_title, email_body,
                    telegram_text=tg_text, telegram_url=tg_url,
                    telegram_button_label=_OPEN_LABEL.get(user.language, "Open →"))
@@ -179,6 +181,7 @@ async def send_weekly_review(
         "rate": rate,
         "trend_arrow": trend_arrow,
         "best": best or "",
+        "name": user.name or "",
         "url": "/reports",
     }
     email_title, email_body = get_weekly_review(

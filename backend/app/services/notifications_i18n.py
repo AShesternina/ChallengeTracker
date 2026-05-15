@@ -223,16 +223,16 @@ _TG_OPEN_REPORTS: dict[str, str] = {
 }
 
 _TG_MORNING_STREAK: dict[str, str] = {
-    "en": "🔥 <b>{streak} days in a row!</b>\n\n<b>{total} tasks</b> are waiting today.\nYou're on a roll — don't stop now! ⚡",
-    "ru": "🔥 <b>{streak} дней подряд!</b>\n\n<b>{total} задач</b> ждут тебя сегодня.\nТы в потоке — не останавливайся! ⚡",
-    "es": "🔥 <b>¡{streak} días seguidos!</b>\n\n<b>{total} tareas</b> te esperan hoy.\n¡Estás en racha — no pares ahora! ⚡",
-    "pt": "🔥 <b>{streak} dias seguidos!</b>\n\n<b>{total} tarefas</b> aguardam hoje.\nVocê está em ritmo — não pare agora! ⚡",
+    "en": "🔥 <b>{streak} days in a row{namepart}!</b>\n\n<b>{total} tasks</b> are waiting today.\nYou're on a roll — don't stop now! ⚡",
+    "ru": "🔥 <b>{streak} дней подряд{namepart}!</b>\n\n<b>{total} задач</b> ждут тебя сегодня.\nТы в потоке — не останавливайся! ⚡",
+    "es": "🔥 <b>¡{streak} días seguidos{namepart}!</b>\n\n<b>{total} tareas</b> te esperan hoy.\n¡Estás en racha — no pares ahora! ⚡",
+    "pt": "🔥 <b>{streak} dias seguidos{namepart}!</b>\n\n<b>{total} tarefas</b> aguardam hoje.\nVocê está em ritmo — não pare agora! ⚡",
 }
 _TG_MORNING_DEFAULT: dict[str, str] = {
-    "en": "☀️ <b>Good morning!</b>\n\nYou have <b>{total} tasks</b> today.\nStart small — and you'll find your rhythm 💪",
-    "ru": "☀️ <b>Доброе утро!</b>\n\nСегодня у тебя <b>{total} задач</b>.\nНачни с малого — и войдёшь в ритм 💪",
-    "es": "☀️ <b>¡Buenos días!</b>\n\nTienes <b>{total} tareas</b> hoy.\nEmpieza poco a poco — y encontrarás tu ritmo 💪",
-    "pt": "☀️ <b>Bom dia!</b>\n\nVocê tem <b>{total} tarefas</b> hoje.\nComeçe devagar — e vai encontrar seu ritmo 💪",
+    "en": "☀️ <b>Good morning{namepart}!</b>\n\nYou have <b>{total} tasks</b> today.\nStart small — and you'll find your rhythm 💪",
+    "ru": "☀️ <b>Доброе утро{namepart}!</b>\n\nСегодня у тебя <b>{total} задач</b>.\nНачни с малого — и войдёшь в ритм 💪",
+    "es": "☀️ <b>¡Buenos días{namepart}!</b>\n\nTienes <b>{total} tareas</b> hoy.\nEmpieza poco a poco — y encontrarás tu ritmo 💪",
+    "pt": "☀️ <b>Bom dia{namepart}!</b>\n\nVocê tem <b>{total} tarefas</b> hoje.\nComeçe devagar — e vai encontrar seu ritmo 💪",
 }
 
 _TG_DAILY_PERFECT: dict[str, str] = {
@@ -268,10 +268,10 @@ _TG_TASK_REMINDER: dict[str, str] = {
 }
 
 _TG_BURNOUT: dict[str, str] = {
-    "en": "🌱 <b>Tough week? That's okay.</b>\n\nWe noticed things have been hard lately.\nYou can pause a challenge to regroup — that's not giving up, it's being smart.\n\nYou're on the right path 💚",
-    "ru": "🌱 <b>Сложная неделя? Всё ок.</b>\n\nЗамечаем, что последние дни даются тяжело.\nМожешь поставить челлендж на паузу — это не сдаться, а грамотно перегруппироваться.\n\nТы на верном пути 💚",
-    "es": "🌱 <b>¿Semana difícil? Está bien.</b>\n\nNotamos que los últimos días han sido duros.\nPuedes pausar un desafío para reagruparte — eso no es rendirse, es ser inteligente.\n\nEstás en el camino correcto 💚",
-    "pt": "🌱 <b>Semana difícil? Tudo bem.</b>\n\nPercebemos que os últimos dias têm sido pesados.\nVocê pode pausar um desafio para se reorganizar — isso não é desistir, é ser inteligente.\n\nVocê está no caminho certo 💚",
+    "en": "🌱 <b>Tough week{namepart}? That's okay.</b>\n\nWe noticed things have been hard lately.\nYou can pause a challenge to regroup — that's not giving up, it's being smart.\n\nYou're on the right path 💚",
+    "ru": "🌱 <b>Сложная неделя{namepart}? Всё ок.</b>\n\nЗамечаем, что последние дни даются тяжело.\nМожешь поставить челлендж на паузу — это не сдаться, а грамотно перегруппироваться.\n\nТы на верном пути 💚",
+    "es": "🌱 <b>¿Semana difícil{namepart}? Está bien.</b>\n\nNotamos que los últimos días han sido duros.\nPuedes pausar un desafío para reagruparte — eso no es rendirse, es ser inteligente.\n\nEstás en el camino correcto 💚",
+    "pt": "🌱 <b>Semana difícil{namepart}? Tudo bem.</b>\n\nPercebemos que os últimos dias têm sido pesados.\nVocê pode pausar um desafio para se reorganizar — isso não é desistir, é ser inteligente.\n\nVocê está no caminho certo 💚",
 }
 
 _TG_WEEKLY_HIGH: dict[str, str] = {
@@ -288,11 +288,12 @@ _TG_WEEKLY_NORMAL: dict[str, str] = {
 }
 
 
-def get_morning_telegram(lang: str, total: int, streak: int = 0) -> tuple[str, str]:
+def get_morning_telegram(lang: str, total: int, streak: int = 0, name: str = "") -> tuple[str, str]:
+    namepart = f", {name}" if name else ""
     if streak > 1:
-        text = _TG_MORNING_STREAK.get(lang, _TG_MORNING_STREAK["en"]).format(streak=streak, total=total)
+        text = _TG_MORNING_STREAK.get(lang, _TG_MORNING_STREAK["en"]).format(streak=streak, total=total, namepart=namepart)
     else:
-        text = _TG_MORNING_DEFAULT.get(lang, _TG_MORNING_DEFAULT["en"]).format(total=total)
+        text = _TG_MORNING_DEFAULT.get(lang, _TG_MORNING_DEFAULT["en"]).format(total=total, namepart=namepart)
     return text, f"{APP_URL}/daily"
 
 
@@ -314,8 +315,10 @@ def get_task_reminder_telegram(lang: str, tasks: str) -> tuple[str, str]:
     return text, f"{APP_URL}/daily"
 
 
-def get_burnout_telegram(lang: str) -> tuple[str, str]:
-    return _TG_BURNOUT.get(lang, _TG_BURNOUT["en"]), f"{APP_URL}/daily"
+def get_burnout_telegram(lang: str, name: str = "") -> tuple[str, str]:
+    namepart = f", {name}" if name else ""
+    text = _TG_BURNOUT.get(lang, _TG_BURNOUT["en"]).format(namepart=namepart)
+    return text, f"{APP_URL}/daily"
 
 
 def get_weekly_review_telegram(
